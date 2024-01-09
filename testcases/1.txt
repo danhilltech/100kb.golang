@@ -1,0 +1,7 @@
+suihkulokki rambling
+Saturday, March 23, 2019
+On the #uploadfilter problem
+We need to turn tables around. If they want something impossible, it should be upto them to implement it.
+It is simply unfair to require each online provider to implement an AI to detect copyright infringement, manage a database of copyrighted content and pay for the costs running it all.. ..And getting slapped with a lawsuit anyways, since copyrighted content is still slipping through.
+The burden of implementing #uploadfilter should be on the copyright holder organizations. Implement as a SaaS. Youtube other web platforms call your API and pay $0.01 each time a pirate content is detected. On the other side, to ensure correctness of the filter, copyright holders have to pay any lost revenue, court costs and so on for each false positive.
+Filtering uploads is still problematic. But it's now the copyright holders problem. Instead people blaming web companies for poor filters, it's the copyright holders now who have to answer to the public why their filters are rejecting content that doesn't belong to them.

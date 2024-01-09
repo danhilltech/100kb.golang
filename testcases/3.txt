@@ -1,0 +1,26 @@
+Explicit Versus Implicit - The Cost Of Implicitness in Programming Comprehension
+February 6, 2021  / 3 min read
+For better developer experience always prefer an explicit pattern.
+There is an overhead with understanding implicit code. It implies that you know a contextual knowledge not written in front of you.
+JavaScript Throwable Functions
+In JavaScript, we have no way of signaling if a given function will throw or not. This is the implicitness of calling a function.
+An alternative to make the error handling of a throwable function explicit is to request the user to pass an error callback.
+Another alternative is to always return, and in this case you can return the result of a error value. See Maybe wrappers.
+React’s useEffect
+React’s useEffect is an example of the drawback to implicitness. Regardless to how powerful it is, it is hard to initially understand what it does by just looking at the code. On the contrary the class component lifecycles were very explicit to what it did: componentDidMount for example.
+Node JS Express’ Error Middleware
+The Node JS Express library allows you to handle errors by passing a callback to the app.use that has four arguments: err, req, res, and next.
+While this function signature might seem obvious with a statically typed language if the type carries the name of its purpose, with plain JavaScript this is an implicit assumption that someone won’t understand by just looking at it.
+Express error handling
+Define error-handling middleware functions in the same way as other middleware functions, except error-handling functions have four arguments instead of three: (err, req, res, next).
+expressjs.com, https://expressjs.com/en/guide/error-handling.html, (Accessed Saturday, February 6, 2021)
+Anonymous inlined functions are examples that carry implicitness overhead. The previous example of Express’s error handling function signature becomes even harder to understand when you see the app.use(...) with an inlined callback. It is not clear at all what the callback is doing without reading the function block.
+Further On Anonymous Functions
+The same occurs in other examples. In my experience, JavaScript’s Array.reduce is a common example of the implicitness overhead. If it takes a properly named function as a callback it becomes easier to grasp, else it requires more reading.
+58% Is Spent On Comprehension
+According to this article we spend most of our time in a codebase trying to understand it. If you agree that explicit code is easier to understand than it should influence how we write code.
+This paper is quite interesting in that it describes in great details how the figures are obtained. And it says that Comprehension took on average ~58%
+Plus
+Please do not confuse explicit versus implicit with declarative versus imperative.
+Following a good naming convention and not writing implicit code will take you a long way to having an easier to comprehend codebase. See https://github.com/kettanaito/naming-cheatsheet for naming convetion recommendations.
+Despite the above highlighting how well named functions can help make a codebase more explict, using a purely functional programming library on your codebase to help can also add a lot of overhead to the codebase comprehension all because of the same reasons - implied knowledge.

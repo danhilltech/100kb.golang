@@ -1,0 +1,30 @@
+Getting things done (in small increments)
+Many programmers subscribe to the belief that they need large blocks of uninterrupted time to get anything done. Paul Graham wrote about this in Maker’s Schedule, Manager’s Schedule:
+One reason programmers dislike meetings so much is that they’re on a different type of schedule from other people. Meetings cost them more.
+[Programmers] generally prefer to use time in units of half a day at least. You can’t write or program well in units of an hour. That’s barely enough time to get started.
+When you’re operating on the maker’s schedule, meetings are a disaster. A single meeting can blow a whole afternoon, by breaking it into two pieces each too small to do anything hard in.
+Don’t get me wrong, I love having a whole afternoon to work on something without interruption. It’s probably ideal for most people. But it’s an exaggeration to say that it’s impossible to program well in units of an hour.
+Parent’s schedule
+Last summer, my wife and I had our third child. Before we had kids, I’d sometimes spend a full day — or even a weekend — working on a fun programming project. But now, with three kids and a full-time job, I’m lucky to find a half dozen free hours spread out across the week.
+My primary side project is Ohm, a parsing toolkit for JavaScript. I’ve been working on it since 2015, and been the sole maintainer since 2017. Since our third child was born, I’ve managed to ship:
+a new major version
+three minor versions with various bug fixes and new features
+a brand new web site for the project
+…and about 75% of the time I invested in this was in increments of one hour or less, when my kids were sleeping.
+Trying to get work done this way was certainly a big adjustment, but I managed to develop some habits and find some tricks that made it work for me. Obviously I can’t say that what works for me would work for everyone. But like almost everything in life, I’m pretty sure most people can improve significantly through practice.
+Some useful tactics
+Here are some things that I found to be helpful (caveat lector, YMMV, and all that) —
+Make progress every day. A few things (like minor bugs) might take less than an hour. But most things worth doing take longer, which means that I can’t finish them in a single sitting. On those things, I try to make a little progress every day — even if it’s only 20 or 30 minutes. It keeps the cache warm: if I work on something early in the morning, I’ll keep thinking about it over the course of the day. Then, if I have another half hour at the end of the day, the problem is still pretty fresh in my head.
+I’m not strict about when I do the work. Sometimes I’ll work in the early morning (~6am, right after making coffee), and sometimes in the evening (9–10pm). The most important thing is to make a little progress every day.
+Always know what the next thing to do is. For me, this means having either a clear end goal (e.g., fix this bug, make this test green) or a concrete next step (e.g., change all callers of wiggle to call waggle). If I plan this ahead of time, then when I sit down at my computer, I can immediately get to work.
+I was never a huge fan of test-driven development, but I do find it helpful in this context. Once I have a failing test, I find it much easier to resume the work again later. And writing the test helps me figure out the next manageable unit of progress.
+If I need to stop working right in the middle of something, sometimes I leave a note directly in the source code, like this:
+This will cause a syntax error the next time I run the tests, which reminds me of what I need to do next.
+Pay attention to feedback loops. When working in such small increments, I find fast feedback to be even more important than usual. Depending on what I’m working on, this might mean unit tests, fast refresh for React stuff, or using watchexec to automatically re-run a script.
+For bigger things, make a plan and keep a log. When I’m starting a more complex task, like a performance investigation or a big refactoring, I take 10-15 minutes to write down a plan before I start the work. Nothing fancy, just a few bullet points in a text file. And when I get interrupted, I take 30 seconds to summarize my progress and any next steps I should take.
+I find that planning my work this way also makes me more effective. When I had big blocks of uninterrupted time, I would usually just dive into a refactoring without thinking it through too deeply. But when I sit down to plan things out in detail, I often realize that I’m missing a critical detail and need to adjust my plan.
+Block distractions. If I’m not careful, I can fall into a habit of checking Twitter, HN, etc. as soon as I sit down at my computer. This can easily waste 20 or 30 minutes at the start of a working session. If I’ve only got an hour, it’s half gone.
+When I blocked those sites on my computer, I found it much easier to get into a focused state quickly. It also prevents me from quickly checking command-tabbing to the browser whenever I’m stuck too long on something tricky (which I’m also guilty of).
+Most of these things I learned the hard way, as I struggled to try to get things done in the limited free time that I had. I don’t think there’s anything groundbreaking here, just a few small things that have made a difference for me. Maybe they’re useful to you, too.
+Beyond the tactics, I suspect that practice is also important here. JB Rainsberger suggests that using the Pomodoro technique will train you to achieve focus quickly. I’ve used it off and on over the past couple years; it’s possible that helped as well.
+💬 Want to leave feedback? Send me an email or respond on on Twitter.

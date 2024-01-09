@@ -1,0 +1,8 @@
+{
+    "search.exclude": {
+        "testcases": true
+    },
+    "files.associations": {
+        "testcases/*.*": "plaintext"
+    },
+}
