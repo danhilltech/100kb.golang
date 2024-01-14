@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package ai.sentence_embedding;
+option go_package = "./pkg/ai";
+
+message SentenceEmbeddingRequest {
+    repeated string texts = 1;
+}
+
+message Embedding {
+    repeated float vectors = 1 [packed=true];
+}
+
+message SentenceEmbeddingResponse {
+    repeated Embedding texts = 1;
+}

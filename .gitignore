@@ -21,4 +21,6 @@
 go.work
 100kb.golang
 models/*.bin
-target/*
+target
+_obj
+*.db

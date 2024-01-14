@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package ai.keywords;
+option go_package = "./pkg/ai";
+
+message KeywordRequest {
+    repeated string texts = 1;
+}
+
+message Keyword {
+    bytes text = 1;
+    float score = 2;
+}
+
+message Keywords {
+    repeated Keyword keywords = 1;
+}
+
+message KeywordResponse {
+    repeated Keywords texts = 1;
+}

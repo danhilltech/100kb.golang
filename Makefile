@@ -1,4 +1,5 @@
-RUST_SRC = $(shell find . -type f -name '*.rs' -not -path "./target/*")
+RUST_SRC = $(shell find . -type f -name '*.rs' -not -path "./target/*" -o -name '*.proto' -not -path "./target/*")
+GO_PROTO_SRC = $(shell find ./lib -type f -name '*.proto' -not -path "./target/*")
 REV := $(shell git rev-parse HEAD)
 
 lib/libgobert.so: $(RUST_SRC)
@@ -8,10 +9,21 @@ lib/libgobert.so: $(RUST_SRC)
 lib/gobert-cbindgen.h: $(RUST_SRC)
 	@cd lib/gobert && cbindgen . --lang c -o ../gobert-cbindgen.h
 
+pkg/ai/keywords.pb.go: ${GO_PROTO_SRC}
+	@protoc -I=. --go_out=. ./lib/gobert/src/keywords.proto
+pkg/ai/sentence_embedding.pb.go: ${GO_PROTO_SRC}
+	@protoc -I=. --go_out=. ./lib/gobert/src/sentence_embedding.proto
+
 .PHONY: build
-build: lib/libgobert.so lib/gobert-cbindgen.h
+build: lib/libgobert.so lib/gobert-cbindgen.h pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go
 	go build -ldflags="-r $(ROOT_DIR)lib" -buildvcs=false
 
 .PHONY: clean
-	go clean
+clean:	
+	@go clean
 	@rm -f 100kb.golang
+	@rm -rf target/*
+
+.PHONY: godefs
+godefs:
+	@go tool cgo -godefs ai.go

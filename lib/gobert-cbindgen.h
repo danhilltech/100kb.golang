@@ -3,12 +3,30 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef struct Model {
+typedef struct SharedSentenceEmbeddingModel {
   SentenceEmbeddingsModel model;
-} Model;
+} SharedSentenceEmbeddingModel;
 
-struct Model *new_sentence_embedding(void);
+typedef struct SharedKeywordExtractionModel {
+  KeywordExtractionModel model;
+} SharedKeywordExtractionModel;
 
-void drop_sentence_embedding(struct Model *ptr);
+struct SharedSentenceEmbeddingModel *new_sentence_embedding(void);
 
-void sentence_embedding(struct Model *ptr, const char *const *strs, float *dst_ptr);
+void drop_sentence_embedding(struct SharedSentenceEmbeddingModel *ptr);
+
+uint8_t *sentence_embedding(struct SharedSentenceEmbeddingModel *ptr,
+                            const unsigned char *req,
+                            size_t *req_size,
+                            size_t *out_size);
+
+struct SharedKeywordExtractionModel *new_keyword_extraction(void);
+
+void drop_keyword_extraction(struct SharedKeywordExtractionModel *ptr);
+
+uint8_t *keyword_extraction(struct SharedKeywordExtractionModel *ptr,
+                            const unsigned char *req,
+                            size_t *req_size,
+                            size_t *out_size);
+
+void drop_bytesarray(uint8_t *ptr);

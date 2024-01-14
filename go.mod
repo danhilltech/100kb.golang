@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
-	github.com/go-skynet/go-bert.cpp v0.0.0-20231028093757-710044b12454
 	github.com/mattn/go-sqlite3 v1.14.19
 	github.com/mmcdole/gofeed v1.2.1
 	golang.org/x/net v0.19.0
@@ -19,4 +18,5 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 )

@@ -1,0 +1,56 @@
+package article
+
+import (
+	"bytes"
+	"io"
+	"strings"
+	"time"
+
+	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
+	"github.com/danhilltech/100kb.golang/pkg/parsing"
+)
+
+// Crawls
+func (engine *Engine) articleIndex(article *Article) error {
+
+	article.LastFetchAt = time.Now().Unix()
+
+	// Check its a good url
+	if strings.HasSuffix(article.Url, ".mp4") {
+		return nil
+	}
+	if !strings.HasPrefix(article.Url, "http") {
+		return nil
+	}
+
+	httpC := retryhttp.NewRetryableClient()
+
+	// crawl it
+	resp, err := httpC.Get(article.Url)
+	if err != nil {
+		return nil
+	}
+
+	defer resp.Body.Close()
+
+	html, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+
+	article.Html = html
+
+	reader := bytes.NewReader(html)
+
+	body, title, description, err := parsing.HtmlToText(reader)
+	if err != nil {
+		return nil
+	}
+
+	article.BodyRaw = body
+	article.Title = title
+	article.Description = description
+
+	return nil
+
+}
