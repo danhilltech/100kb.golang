@@ -16,7 +16,7 @@ import (
 func main() {
 	fmt.Println("Running\t\t\t🔥🔥🔥")
 
-	db, err := db.InitDB("test2")
+	db, err := db.InitDB("/dbs/output")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

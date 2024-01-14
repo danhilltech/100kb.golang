@@ -63,6 +63,8 @@ RUN chsh -s /usr/bin/zsh vscode
 # [Optional] Uncomment the next lines to use go get to install anything else you need
 USER vscode
 
+RUN mkdir -p /dbs
+
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 ENV TERM xterm

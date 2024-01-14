@@ -1,3 +1,0 @@
-[submodule "bert.cpp"]
-	path = bert.cpp
-	url = https://github.com/skeskinen/bert.cpp.git
