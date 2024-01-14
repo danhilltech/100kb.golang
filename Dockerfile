@@ -61,8 +61,6 @@ ENV ZSH_THEME agnoster
 # run the installation script  
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 
-# Copy the source from the current directory to the Working Directory inside the container
-COPY . .
 
 # # Build the Go app
 # RUN make build

@@ -35,7 +35,7 @@ dockerbuild:
 
 .PHONY: dockerbuild
 dockerterm:
-	docker run --gpus all --rm -it 100kb.golang --mount type=bind,source=/home/dan/100kb.golang/dbs,target=/dbs zsh 
+	docker run --gpus all --rm --mount type=bind,source=/home/dan/100kb.golang/dbs,target=/dbs -it 100kb.golang zsh 
 
 .PHONY: run
 run:
