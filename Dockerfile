@@ -66,7 +66,7 @@ RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -
 COPY . .
 
 # Build the Go app
-RUN make build
+# RUN make build
 
-# Run the executable
-CMD ["./100kb.golang"]
+# # Run the executable
+# CMD ["./100kb.golang"]

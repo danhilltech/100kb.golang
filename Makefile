@@ -4,10 +4,11 @@ REV := $(shell git rev-parse HEAD)
 
 lib/libgobert.so: $(RUST_SRC)
 	cargo build --release
+	mkdir -p lib
 	@cp target/release/libgobert.so lib/libgobert.so
 
-lib/gobert-cbindgen.h: $(RUST_SRC)
-	@cd lib/gobert && cbindgen . --lang c -o ../gobert-cbindgen.h
+# lib/gobert-cbindgen.h: $(RUST_SRC)
+# 	@cd lib/gobert && cbindgen . --lang c -o ../gobert-cbindgen.h
 
 pkg/ai/keywords.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/gobert/src/keywords.proto
