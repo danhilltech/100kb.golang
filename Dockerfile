@@ -37,9 +37,13 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 RUN chsh -s /usr/bin/zsh builder
 
-USER builder
+
 WORKDIR /opt
 
+RUN chown -R builder:builder /opt
+RUN chmod 755 /opt
+
+USER builder
 # x86
 RUN curl -fsSL --insecure -o libtorch.zip  $LIBTORCH_URL \
     && unzip -q libtorch.zip \
