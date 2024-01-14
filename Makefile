@@ -27,3 +27,11 @@ clean:
 .PHONY: godefs
 godefs:
 	@go tool cgo -godefs ai.go
+
+.PHONY: dockerbuild
+dockerbuild:
+	docker build --tag '100kb.golang' .
+
+.PHONY: dockerbuild
+dockerterm:
+	docker run --gpus all --rm -it 100kb.golang zsh
