@@ -35,7 +35,9 @@ RUN groupadd --gid $USER_GID $USERNAME \
     chmod 0440 /etc/sudoers && \
     chmod g+w /etc/passwd 
 
+RUN chsh -s /usr/bin/zsh builder
 
+USER builder
 WORKDIR /opt
 
 # x86
@@ -44,10 +46,8 @@ RUN curl -fsSL --insecure -o libtorch.zip  $LIBTORCH_URL \
     && rm libtorch.zip
 
 
-RUN chsh -s /usr/bin/zsh builder
-
 # [Optional] Uncomment the next lines to use go get to install anything else you need
-USER builder
+
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
