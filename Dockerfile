@@ -42,7 +42,7 @@ WORKDIR /opt
 COPY . .
 
 RUN chown -R builder:builder /opt
-RUN chmod 755 /opt
+RUN chmod -R 755 /opt
 RUN mkdir -p /go && chmod -R 777 /go
 RUN git config --global --add safe.directory /opt
 
@@ -64,8 +64,8 @@ RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -
 # Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 
-# Build the Go app
-RUN make build
+# # Build the Go app
+# RUN make build
 
-# # Run the executable
-CMD ["./100kb.golang"]
+# # # Run the executable
+# CMD ["./100kb.golang"]
