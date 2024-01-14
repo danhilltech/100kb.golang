@@ -39,19 +39,18 @@ RUN chsh -s /usr/bin/zsh builder
 
 
 WORKDIR /opt
+COPY . .
 
 RUN chown -R builder:builder /opt
 RUN chmod 755 /opt
+RUN mkdir -p /go && chmod -R 777 /go
+RUN git config --global --add safe.directory /opt
 
 USER builder
 # x86
-RUN curl -fsSL --insecure -o libtorch.zip  $LIBTORCH_URL \
+RUN curl -fsSL --insecure -o libtorch.zip $LIBTORCH_URL \
     && unzip -q libtorch.zip \
     && rm libtorch.zip
-
-
-# [Optional] Uncomment the next lines to use go get to install anything else you need
-
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
@@ -66,7 +65,7 @@ RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -
 COPY . .
 
 # Build the Go app
-# RUN make build
+RUN make build
 
 # # Run the executable
-# CMD ["./100kb.golang"]
+CMD ["./100kb.golang"]
