@@ -84,6 +84,11 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 		return nil
 	}
 
+	if parsedUrl == nil || parsedUrl.Hostname() == "" {
+		fmt.Println(parsedUrl.String())
+		return nil
+	}
+
 	for _, ban := range BANNED_URLS {
 		if ban == parsedUrl.Hostname() {
 			return nil

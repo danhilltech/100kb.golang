@@ -2,7 +2,7 @@ package http
 
 import (
 	"bytes"
-	"fmt"
+	"context"
 	"io"
 	"math"
 	"net"
@@ -10,10 +10,11 @@ import (
 	"time"
 )
 
-const RetryCount = 3
+const RetryCount = 2
 
 type retryableTransport struct {
 	transport http.RoundTripper
+	limiter   *Limiter
 }
 
 func backoff(retries int) time.Duration {
@@ -22,7 +23,7 @@ func backoff(retries int) time.Duration {
 
 func shouldRetry(err error, resp *http.Response) bool {
 	if err != nil {
-		fmt.Println(err)
+		// fmt.Println(err)
 		return false
 	}
 
@@ -48,6 +49,13 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 	}
 
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancelFunc()
+
+	t.limiter.Wait(ctx)
+
+	t.limiter.WaitHost(ctx, req.Host)
+
 	// Send the request
 	resp, err := t.transport.RoundTrip(req)
 
@@ -55,7 +63,7 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	retries := 0
 	for shouldRetry(err, resp) && retries < RetryCount {
 		// Wait for the specified backoff period
-		fmt.Println("retrying", req.URL)
+		// fmt.Println("retrying", req.URL)
 		time.Sleep(backoff(retries))
 
 		// We're going to retry, consume any response to reuse the connection.
@@ -77,22 +85,29 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func dialTimeout(network, addr string) (net.Conn, error) {
-	return net.DialTimeout(network, addr, 1000*time.Millisecond)
+	return net.DialTimeout(network, addr, 700*time.Millisecond)
 }
 
 func NewRetryableClient() *http.Client {
+
+	limiter, err := NewRateLimiter(100, 1, 30_000)
+	if err != nil {
+		panic(err)
+	}
+
 	transport := &retryableTransport{
 		transport: &http.Transport{
 			Dial:                  dialTimeout,
-			ResponseHeaderTimeout: 1 * time.Second,
+			ResponseHeaderTimeout: 3 * time.Second,
 			MaxIdleConns:          100,
 			MaxConnsPerHost:       100,
 			MaxIdleConnsPerHost:   100,
 		},
+		limiter: limiter,
 	}
 
 	return &http.Client{
 		Transport: transport,
-		Timeout:   2 * time.Second,
+		Timeout:   5 * time.Second,
 	}
 }
