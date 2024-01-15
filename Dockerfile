@@ -8,8 +8,8 @@ ARG USERNAME=builder
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
-ENV TORCH_HOME=/opt/libtorch
-ENV LIBTORCH=/opt/libtorch
+ENV TORCH_HOME=/usr/local/lib/libtorch
+ENV LIBTORCH=/usr/local/lib/libtorch
 ENV LD_LIBRARY_PATH=${LIBTORCH}/lib:$LD_LIBRARY_PATH
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LIBTORCH_URL=https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.1.2%2Bcu118.zip
@@ -37,6 +37,12 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 RUN chsh -s /usr/bin/zsh builder
 
+WORKDIR /usr/local/lib
+
+RUN curl -fsSL --insecure -o libtorch.zip $LIBTORCH_URL \
+    && unzip -q libtorch.zip \
+    && rm libtorch.zip
+
 
 WORKDIR /opt
 
@@ -46,10 +52,7 @@ RUN mkdir -p /go && chmod -R 777 /go
 RUN git config --global --add safe.directory /opt
 
 USER builder
-# x86
-RUN curl -fsSL --insecure -o libtorch.zip $LIBTORCH_URL \
-    && unzip -q libtorch.zip \
-    && rm libtorch.zip
+
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
@@ -73,9 +76,8 @@ RUN chmod -R 755 /opt
 USER builder
 
 # # Build the Go app
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=gomod,target=/go/pkg/mod \
-    --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
+RUN --mount=type=cache,id=rust,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=gobuild,target=/home/builder/.cache/go-build \
     --mount=type=cache,id=gobuildtmp,target=/tmp/go-build \
     make build
 
