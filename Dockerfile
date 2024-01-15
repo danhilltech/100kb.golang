@@ -39,7 +39,6 @@ RUN chsh -s /usr/bin/zsh builder
 
 
 WORKDIR /opt
-COPY . .
 
 RUN chown -R builder:builder /opt
 RUN chmod -R 755 /opt
@@ -61,9 +60,22 @@ ENV ZSH_THEME agnoster
 # run the installation script  
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 
+COPY ./lib ./lib
+COPY ./pkg ./pkg
+COPY ./*.go .
+COPY ./Cargo.* .
+COPY ./go.mod .
+COPY ./go.sum .
+COPY ./Makefile .
+RUN chown -R builder:builder /opt
+RUN chmod -R 755 /opt
 
 # # Build the Go app
-RUN make build
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=gomod,target=/go/pkg/mod \
+    --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
+    --mount=type=cache,id=gobuildtmp,target=/tmp/go-build \
+    make build
 
 # # # Run the executable
 CMD ["./100kb.golang"]
