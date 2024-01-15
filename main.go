@@ -23,6 +23,15 @@ func main() {
 	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
 	metaWorkers := flag.Int("meta-workers", 4, "number of meta workers")
 
+	flag.Parse()
+
+	fmt.Println("Config:")
+	fmt.Printf("\thttpChunkSize:\t\t%d\n", *httpChunkSize)
+	fmt.Printf("\tttpWorkers:\t\t%d\n", *httpWorkers)
+	fmt.Printf("\thnFetchSize:\t\t%d\n", *hnFetchSize)
+	fmt.Printf("\tmetaChunkSize:\t\t%d\n", *metaChunkSize)
+	fmt.Printf("\tmetaWorkers:\t\t%d\n", *metaWorkers)
+
 	db, err := db.InitDB("/dbs/output")
 	if err != nil {
 		fmt.Println(err)
