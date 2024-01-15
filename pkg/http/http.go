@@ -22,7 +22,8 @@ func backoff(retries int) time.Duration {
 
 func shouldRetry(err error, resp *http.Response) bool {
 	if err != nil {
-		return true
+		fmt.Println(err)
+		return false
 	}
 
 	if resp.StatusCode == http.StatusTooManyRequests {
@@ -76,14 +77,14 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func dialTimeout(network, addr string) (net.Conn, error) {
-	return net.DialTimeout(network, addr, 1500*time.Millisecond)
+	return net.DialTimeout(network, addr, 1000*time.Millisecond)
 }
 
 func NewRetryableClient() *http.Client {
 	transport := &retryableTransport{
 		transport: &http.Transport{
 			Dial:                  dialTimeout,
-			ResponseHeaderTimeout: 2 * time.Second,
+			ResponseHeaderTimeout: 1 * time.Second,
 			MaxIdleConns:          100,
 			MaxConnsPerHost:       100,
 			MaxIdleConnsPerHost:   100,
@@ -92,6 +93,6 @@ func NewRetryableClient() *http.Client {
 
 	return &http.Client{
 		Transport: transport,
-		Timeout:   5 * time.Second,
+		Timeout:   2 * time.Second,
 	}
 }

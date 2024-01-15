@@ -27,10 +27,10 @@ func main() {
 
 	fmt.Println("Config:")
 	fmt.Printf("  httpChunkSize:\t%d\n", *httpChunkSize)
-	fmt.Printf("  ttpWorkers:\t%d\n", *httpWorkers)
-	fmt.Printf("  hnFetchSize:\t%d\n", *hnFetchSize)
+	fmt.Printf("  ttpWorkers:\t\t%d\n", *httpWorkers)
+	fmt.Printf("  hnFetchSize:\t\t%d\n", *hnFetchSize)
 	fmt.Printf("  metaChunkSize:\t%d\n", *metaChunkSize)
-	fmt.Printf("  metaWorkers:\t%d\n", *metaWorkers)
+	fmt.Printf("  metaWorkers:\t\t%d\n", *metaWorkers)
 
 	db, err := db.InitDB("/dbs/output")
 	if err != nil {
