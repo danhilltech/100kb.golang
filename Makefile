@@ -39,4 +39,4 @@ dockerterm:
 
 .PHONY: run
 run:
-	docker run --gpus all --mount type=bind,source=/home/dan/100kb.golang/dbs,target=/dbs 100kb.golang
+	docker run --gpus all --mount type=bind,source=/home/dan/100kb.golang/dbs,target=/dbs

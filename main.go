@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -15,6 +16,12 @@ import (
 
 func main() {
 	fmt.Println("Running\t\t\t🔥🔥🔥")
+
+	httpChunkSize := flag.Int("http-chunk-size", 100, "number of http chunks")
+	httpWorkers := flag.Int("http-workers", 20, "number of http workers")
+	hnFetchSize := flag.Int("hn-fetch-size", 10_000, "number of hn links to get")
+	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
+	metaWorkers := flag.Int("meta-workers", 4, "number of meta workers")
 
 	db, err := db.InitDB("/dbs/output")
 	if err != nil {
@@ -62,38 +69,36 @@ func main() {
 
 	// Now run tasks
 
-	httpWorkers := 5
-
 	// 1. Get latest hackernews content
-	err = hnEngine.RunRefresh(100, 10_00, httpWorkers)
+	err = hnEngine.RunRefresh(*httpChunkSize, *hnFetchSize, *httpWorkers)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	// // 2. Check HN stories for any new feeds
-	err = feedEngine.RunNewFeedSearch(200, httpWorkers)
+	err = feedEngine.RunNewFeedSearch(*httpChunkSize, *httpWorkers)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	// // 3. Get latest articles from our feeds
-	err = feedEngine.RunFeedRefresh(200, httpWorkers)
+	err = feedEngine.RunFeedRefresh(*httpChunkSize, *httpWorkers)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	// 4. Crawl any new articles for content
-	err = articleEngine.RunArticleIndex(200, httpWorkers)
+	err = articleEngine.RunArticleIndex(*httpChunkSize, *httpWorkers)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	// 5. Generate metadata for articles
-	err = articleEngine.RunArticleMeta(10, 1)
+	err = articleEngine.RunArticleMeta(*metaChunkSize, *metaWorkers)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

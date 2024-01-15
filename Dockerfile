@@ -83,4 +83,4 @@ RUN --mount=type=cache,id=rustcache,target=/usr/local/cargo/registry,uid=1000,gi
     make build
 
 # # # Run the executable
-CMD ["./100kb.golang"]
+ENTRYPOINT ["./100kb.golang"]

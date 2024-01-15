@@ -18,6 +18,11 @@ type Engine struct {
 	aiMutex sync.Mutex
 }
 
+type Keyword struct {
+	Text  string
+	Score float32
+}
+
 type Article struct {
 	Url         string
 	FeedUrl     string
@@ -32,7 +37,7 @@ type Article struct {
 	WordCount         int64
 	FirstPersonRatio  float64
 	SentenceEmbedding []float32
-	ExtractedKeywords []*ai.Keyword
+	ExtractedKeywords []Keyword
 }
 
 func NewEngine(db *sql.DB) (*Engine, error) {

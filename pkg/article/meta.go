@@ -2,7 +2,6 @@ package article
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 )
 
@@ -85,9 +84,10 @@ func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 		return err
 	}
 
-	fmt.Println(es[0].Keywords)
-
-	article.ExtractedKeywords = es[0].Keywords
+	// article.ExtractedKeywords = es[0].Keywords
+	for _, k := range es[0].Keywords {
+		article.ExtractedKeywords = append(article.ExtractedKeywords, Keyword{Text: string(k.Text), Score: k.Score})
+	}
 
 	return nil
 

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/danhilltech/100kb.golang/pkg/ai"
 	"github.com/danhilltech/100kb.golang/pkg/utils"
 )
 
@@ -157,7 +156,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		}
 	}
 
-	var extractedKeywords []*ai.Keyword
+	var extractedKeywords []Keyword
 	if extractedKeywordsJSON != nil {
 		err = json.Unmarshal(extractedKeywordsJSON, &extractedKeywords)
 		if err != nil {
