@@ -2,6 +2,7 @@ package article
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
@@ -83,6 +84,8 @@ func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(es[0].Keywords)
 
 	article.ExtractedKeywords = es[0].Keywords
 
