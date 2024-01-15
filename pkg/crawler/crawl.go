@@ -8,11 +8,13 @@ import (
 	"net/url"
 	"strings"
 
+	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
 	"golang.org/x/net/html"
 )
 
 type Engine struct {
 	dbInsertPreparedCrawl *sql.Stmt
+	http                  *http.Client
 }
 
 type UrlToCrawl struct {
@@ -58,6 +60,8 @@ func NewEngine(db *sql.DB) (*Engine, error) {
 		return nil, err
 	}
 
+	engine.http = retryhttp.NewRetryableClient()
+
 	return &engine, nil
 }
 
@@ -87,11 +91,13 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 	}
 
 	// crawl it
-	resp, err := http.Get(hnurl.Url)
+	resp, err := engine.http.Get(hnurl.Url)
 	if err != nil {
 		return nil
 	}
 
+	// Make sure we flush it
+	io.Copy(io.Discard, resp.Body)
 	defer resp.Body.Close()
 
 	feed := extractFeedURL(resp.Body)

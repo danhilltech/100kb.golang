@@ -26,11 +26,11 @@ func main() {
 	flag.Parse()
 
 	fmt.Println("Config:")
-	fmt.Printf("\thttpChunkSize:\t\t%d\n", *httpChunkSize)
-	fmt.Printf("\tttpWorkers:\t\t%d\n", *httpWorkers)
-	fmt.Printf("\thnFetchSize:\t\t%d\n", *hnFetchSize)
-	fmt.Printf("\tmetaChunkSize:\t\t%d\n", *metaChunkSize)
-	fmt.Printf("\tmetaWorkers:\t\t%d\n", *metaWorkers)
+	fmt.Printf("  httpChunkSize:\t%d\n", *httpChunkSize)
+	fmt.Printf("  ttpWorkers:\t%d\n", *httpWorkers)
+	fmt.Printf("  hnFetchSize:\t%d\n", *hnFetchSize)
+	fmt.Printf("  metaChunkSize:\t%d\n", *metaChunkSize)
+	fmt.Printf("  metaWorkers:\t%d\n", *metaWorkers)
 
 	db, err := db.InitDB("/dbs/output")
 	if err != nil {

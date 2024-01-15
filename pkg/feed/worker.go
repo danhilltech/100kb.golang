@@ -52,7 +52,7 @@ func (engine *Engine) doFeedSearchChunk(chunk []*crawler.UrlToCrawl, workers int
 	}
 	for _, i := range chunk {
 		if i.Feed != "" {
-			engine.Insert(i.Feed, insertTxn)
+			err = engine.Insert(i.Feed, insertTxn)
 			if err != nil {
 				fmt.Println(err)
 			}

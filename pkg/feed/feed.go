@@ -8,6 +8,7 @@ import (
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	"github.com/danhilltech/100kb.golang/pkg/crawler"
+	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
 	"github.com/mmcdole/gofeed"
 )
 
@@ -17,6 +18,7 @@ type Engine struct {
 	db                   *sql.DB
 	crawlEngine          *crawler.Engine
 	articleEngine        *article.Engine
+	http                 *http.Client
 }
 
 type Feed struct {
@@ -33,6 +35,8 @@ func NewEngine(db *sql.DB, crawlEngine *crawler.Engine, articleEngine *article.E
 	engine := Engine{crawlEngine: crawlEngine, articleEngine: articleEngine}
 
 	engine.initDB(db)
+
+	engine.http = retryhttp.NewRetryableClient()
 
 	return &engine, nil
 }
@@ -52,7 +56,7 @@ func (engine *Engine) feedRefresh(feed *Feed) error {
 	// First check the URL isn't banned
 
 	// crawl it
-	resp, err := http.Get(feed.Url)
+	resp, err := engine.http.Get(feed.Url)
 	if err != nil {
 		return nil
 	}

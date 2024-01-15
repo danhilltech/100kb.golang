@@ -84,6 +84,9 @@ func NewRetryableClient() *http.Client {
 		transport: &http.Transport{
 			Dial:                  dialTimeout,
 			ResponseHeaderTimeout: 2 * time.Second,
+			MaxIdleConns:          100,
+			MaxConnsPerHost:       100,
+			MaxIdleConnsPerHost:   100,
 		},
 	}
 
