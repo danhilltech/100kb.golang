@@ -67,8 +67,10 @@ COPY ./Cargo.* .
 COPY ./go.mod .
 COPY ./go.sum .
 COPY ./Makefile .
+USER root
 RUN chown -R builder:builder /opt
 RUN chmod -R 755 /opt
+USER builder
 
 # # Build the Go app
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
