@@ -76,9 +76,10 @@ RUN chmod -R 755 /opt
 USER builder
 
 # # Build the Go app
-RUN --mount=type=cache,id=rust,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=gobuild,target=/home/builder/.cache/go-build \
-    --mount=type=cache,id=gobuildtmp,target=/tmp/go-build \
+RUN --mount=type=cache,id=rustcache,target=/usr/local/cargo/registry,uid=1000,gid=1000 \
+    --mount=type=cache,id=gomod,target=/go/pkg/mod,uid=1000,gid=1000 \
+    --mount=type=cache,id=gobuild,target=/home/builder/.cache/go-build,uid=1000,gid=1000 \
+    --mount=type=cache,id=gobuildtmp,target=/tmp/go-build,uid=1000,gid=1000 \
     make build
 
 # # # Run the executable
