@@ -85,14 +85,30 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func dialTimeout(network, addr string) (net.Conn, error) {
-	return net.DialTimeout(network, addr, 700*time.Millisecond)
+	return net.DialTimeout(network, addr, 1500*time.Millisecond)
 }
 
 func NewRetryableClient() *http.Client {
 
-	limiter, err := NewRateLimiter(100, 1, 30_000)
+	limiter, err := NewRateLimiter(100, 2, 30_000)
 	if err != nil {
 		panic(err)
+	}
+
+	dialer := &net.Dialer{
+		Resolver: &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: time.Duration(1000) * time.Millisecond,
+				}
+				return d.DialContext(ctx, "udp", "1.1.1.1")
+			},
+		},
+	}
+
+	dialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return dialer.DialContext(ctx, network, addr)
 	}
 
 	transport := &retryableTransport{
@@ -102,6 +118,7 @@ func NewRetryableClient() *http.Client {
 			MaxIdleConns:          100,
 			MaxConnsPerHost:       100,
 			MaxIdleConnsPerHost:   100,
+			DialContext:           dialContext,
 		},
 		limiter: limiter,
 	}

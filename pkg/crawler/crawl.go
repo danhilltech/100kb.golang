@@ -69,7 +69,7 @@ func (engine *Engine) crawlURLForFeedWorker(jobs <-chan *UrlToCrawl, results cha
 	for id := range jobs {
 		err := engine.crawlURLForFeed(id)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(id.Url, err)
 		}
 		results <- id
 	}
@@ -84,10 +84,7 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 		return err
 	}
 
-	// fmt.Println("here", parsedUrl.String())
-
 	if parsedUrl == nil || parsedUrl.Hostname() == "" {
-		fmt.Println(parsedUrl.String())
 		return nil
 	}
 
