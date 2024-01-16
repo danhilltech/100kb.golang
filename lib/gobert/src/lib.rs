@@ -97,7 +97,7 @@ pub extern "C" fn new_keyword_extraction() -> *mut SharedKeywordExtractionModel 
             SentenceEmbeddingsModelType::AllMiniLmL6V2,
         ),
         // scorer_type: KeywordScorerType::MaxSum,
-        // ngram_range: (1, 1),
+        ngram_range: (1, 1),
         num_keywords: 3,
         ..Default::default()
     };

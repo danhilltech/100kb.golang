@@ -6,6 +6,7 @@ package ai
 */
 import "C"
 import (
+	"strings"
 	"unsafe"
 
 	"google.golang.org/protobuf/proto"
@@ -33,7 +34,15 @@ func NewSentenceEmbeddingModel() (*SentenceEmbeddingModel, error) {
 func (ai *SentenceEmbeddingModel) Embeddings(texts []string) ([]*Embedding, error) {
 
 	req := SentenceEmbeddingRequest{}
-	req.Texts = texts
+	textsTrimmed := make([]string, len(texts))
+
+	for i := 0; i < len(texts); i++ {
+		in := texts[i]
+		cut := strings.Split(in, " ")[0:128]
+		textsTrimmed[i] = strings.Join(cut, " ")
+	}
+
+	req.Texts = textsTrimmed
 
 	reqBytes, err := proto.Marshal(&req)
 	if err != nil {
@@ -78,7 +87,16 @@ func NewKeywordExtractionModel() (*KeywordExtractionModel, error) {
 func (ai *KeywordExtractionModel) Extract(texts []string) ([]*Keywords, error) {
 
 	req := KeywordRequest{}
-	req.Texts = texts
+
+	textsTrimmed := make([]string, len(texts))
+
+	for i := 0; i < len(texts); i++ {
+		in := texts[i]
+		cut := strings.Split(in, " ")[0:128]
+		textsTrimmed[i] = strings.Join(cut, " ")
+	}
+
+	req.Texts = textsTrimmed
 
 	reqBytes, err := proto.Marshal(&req)
 	if err != nil {
