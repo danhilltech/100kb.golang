@@ -38,8 +38,10 @@ func (ai *SentenceEmbeddingModel) Embeddings(texts []string) ([]*Embedding, erro
 
 	for i := 0; i < len(texts); i++ {
 		in := texts[i]
-		cut := strings.Split(in, " ")[0:128]
-		textsTrimmed[i] = strings.Join(cut, " ")
+		cut := strings.Split(in, " ")
+		l := Max(len(cut), 128)
+
+		textsTrimmed[i] = strings.Join(cut[0:l], " ")
 	}
 
 	req.Texts = textsTrimmed
@@ -92,8 +94,10 @@ func (ai *KeywordExtractionModel) Extract(texts []string) ([]*Keywords, error) {
 
 	for i := 0; i < len(texts); i++ {
 		in := texts[i]
-		cut := strings.Split(in, " ")[0:128]
-		textsTrimmed[i] = strings.Join(cut, " ")
+		cut := strings.Split(in, " ")
+		l := Max(len(cut), 128)
+
+		textsTrimmed[i] = strings.Join(cut[0:l], " ")
 	}
 
 	req.Texts = textsTrimmed
@@ -128,4 +132,11 @@ func (ai *KeywordExtractionModel) Extract(texts []string) ([]*Keywords, error) {
 
 func (ai *KeywordExtractionModel) Close() {
 	C.drop_keyword_extraction((*C.SharedKeywordExtractionModel)(ai.model))
+}
+
+func Max(x, y int) int {
+	if x < y {
+		return y
+	}
+	return x
 }
