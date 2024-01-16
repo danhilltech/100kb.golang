@@ -2,9 +2,11 @@ package article
 
 import (
 	"database/sql"
+	"net/http"
 	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/ai"
+	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
 )
 
 type Engine struct {
@@ -16,6 +18,8 @@ type Engine struct {
 	keywordExtractionModel *ai.KeywordExtractionModel
 
 	aiMutex sync.Mutex
+
+	http *http.Client
 }
 
 type Keyword struct {
@@ -37,13 +41,15 @@ type Article struct {
 	WordCount         int64
 	FirstPersonRatio  float64
 	SentenceEmbedding []float32
-	ExtractedKeywords []Keyword
+	ExtractedKeywords []*Keyword
 }
 
 func NewEngine(db *sql.DB) (*Engine, error) {
 	engine := Engine{}
 
 	engine.initDB(db)
+
+	engine.http = retryhttp.NewRetryableClient()
 
 	var err error
 

@@ -3,9 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	_ "net/http/pprof"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	"github.com/danhilltech/100kb.golang/pkg/crawler"
@@ -22,15 +26,23 @@ func main() {
 	hnFetchSize := flag.Int("hn-fetch-size", 10_000, "number of hn links to get")
 	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
 	metaWorkers := flag.Int("meta-workers", 4, "number of meta workers")
+	debug := flag.Bool("debug", false, "run debugging tools")
 
 	flag.Parse()
 
 	fmt.Println("Config:")
 	fmt.Printf("  httpChunkSize:\t%d\n", *httpChunkSize)
-	fmt.Printf("  ttpWorkers:\t\t%d\n", *httpWorkers)
+	fmt.Printf("  httpWorkers:\t\t%d\n", *httpWorkers)
 	fmt.Printf("  hnFetchSize:\t\t%d\n", *hnFetchSize)
 	fmt.Printf("  metaChunkSize:\t%d\n", *metaChunkSize)
 	fmt.Printf("  metaWorkers:\t\t%d\n", *metaWorkers)
+
+	if *debug {
+		// go tool pprof -top http://localhost:6060/debug/pprof/heap
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
 
 	db, err := db.InitDB("/dbs/output")
 	if err != nil {
@@ -38,6 +50,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.StopDB()
+
+	dbVer, err := db.Version()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Printf("sqlite3 version: \t%s\n", dbVer)
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -114,5 +133,9 @@ func main() {
 	}
 
 	db.Tidy()
+
+	if *debug {
+		<-c
+	}
 
 }

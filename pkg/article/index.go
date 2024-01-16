@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
 	"github.com/danhilltech/100kb.golang/pkg/parsing"
 )
 
@@ -23,10 +22,8 @@ func (engine *Engine) articleIndex(article *Article) error {
 		return nil
 	}
 
-	httpC := retryhttp.NewRetryableClient()
-
 	// crawl it
-	resp, err := httpC.Get(article.Url)
+	resp, err := engine.http.Get(article.Url)
 	if err != nil {
 		return nil
 	}

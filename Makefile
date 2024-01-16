@@ -40,3 +40,8 @@ dockerterm:
 .PHONY: run
 run:
 	docker run --gpus all --mount type=bind,source=/home/dan/100kb.golang/dbs,target=/dbs 100kb.golang -http-workers=50 -http-chunk-size=500 -hn-fetch-size=1000000
+
+
+.PHONY: transfer
+transfer:
+	rsync -havP --stats dan@192.168.1.3:~/100kb.golang/dbs/output.db .

@@ -156,7 +156,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		}
 	}
 
-	var extractedKeywords []Keyword
+	var extractedKeywords []*Keyword
 	if extractedKeywordsJSON != nil {
 		err = json.Unmarshal(extractedKeywordsJSON, &extractedKeywords)
 		if err != nil {
@@ -209,10 +209,10 @@ func (engine *Engine) getArticlesByFeed(txchan *sql.Tx, feed string, excludeUrl 
 	if err != nil {
 		return nil, err
 	}
+	defer res.Close()
 	if err := res.Err(); err != nil {
 		return nil, err
 	}
-	defer res.Close()
 
 	var urls []*Article
 

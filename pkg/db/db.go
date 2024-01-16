@@ -66,16 +66,16 @@ CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);
 `
 
 func InitDB(name string) (*Database, error) {
-	fmt.Println("creating database...")
-	defer fmt.Println("database done")
+	fmt.Printf("creating database\t\t")
+	defer fmt.Printf("❄️\n")
 
-	sqliteDatabase, err := sql.Open("sqlite3", fmt.Sprintf("file:%s.db?cache=shared&mode=rwc", name)) // Open the created SQLite File
+	sqliteDatabase, err := sql.Open("sqlite3", fmt.Sprintf("file:%s.db?mode=rwc&_journal_mode=WAL&_sync=FULL", name)) // Open the created SQLite File
 	if err != nil {
 		return nil, err
 	}
 	db := sqliteDatabase
 
-	db.SetMaxOpenConns(1)
+	// db.SetMaxOpenConns(1)
 
 	_, err = db.Exec(DB_INIT_SCRIPT)
 	if err != nil {
@@ -89,6 +89,13 @@ func (db *Database) StopDB() {
 	if db != nil {
 		db.DB.Close()
 	}
+}
+
+func (db *Database) Version() (string, error) {
+	var ver string
+	err := db.DB.QueryRow(`select sqlite_version();`).Scan(&ver)
+	return ver, err
+
 }
 
 func (db *Database) Tidy() {

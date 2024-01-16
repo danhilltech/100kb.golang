@@ -81,8 +81,10 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 
 	parsedUrl, err := url.Parse(hnurl.Url)
 	if err != nil {
-		return nil
+		return err
 	}
+
+	// fmt.Println("here", parsedUrl.String())
 
 	if parsedUrl == nil || parsedUrl.Hostname() == "" {
 		fmt.Println(parsedUrl.String())
@@ -98,14 +100,15 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 	// crawl it
 	resp, err := engine.http.Get(hnurl.Url)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	// Make sure we flush it
-	io.Copy(io.Discard, resp.Body)
 	defer resp.Body.Close()
 
 	feed := extractFeedURL(resp.Body)
+
+	// Make sure we flush it
+	io.Copy(io.Discard, resp.Body)
 
 	// Check for malformed
 	if strings.HasPrefix(feed, "//") {
