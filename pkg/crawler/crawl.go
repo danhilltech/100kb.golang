@@ -119,7 +119,7 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 		feedUrl, err := url.Parse(feed)
 
 		if err != nil {
-			return nil
+			return err
 		}
 		cleanFeed := parsedUrl.ResolveReference(feedUrl)
 

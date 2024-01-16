@@ -41,6 +41,10 @@ dockerterm:
 run:
 	docker run --gpus all --mount type=bind,source=/home/dan/100kb.golang/dbs,target=/dbs 100kb.golang -http-workers=50 -http-chunk-size=500 -hn-fetch-size=1000000
 
+.PHONY: debug
+debug:
+	docker run --gpus all --mount type=bind,source=/home/dan/100kb.golang/dbs,target=/dbs 100kb.golang -http-workers=50 -http-chunk-size=500 -hn-fetch-size=1000000 -debug=true > log.txt 2>&1
+
 
 .PHONY: transfer
 transfer:

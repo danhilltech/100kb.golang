@@ -122,12 +122,16 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 		return err
 	}
 
+	fmt.Println("Checking for new HN IDs")
+
 	for i := min; i < max; i++ {
 		if utils.InSliceInt(i, existingIds) {
 			continue
 		}
 		ids = append(ids, i)
 	}
+
+	fmt.Println("Chunking HN IDs")
 
 	chunkIds := utils.ChunkSlice(ids, chunkSize)
 

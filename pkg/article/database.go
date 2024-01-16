@@ -79,6 +79,8 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 }
 
 func (engine *Engine) getArticlesToIndex(txchan *sql.Tx) ([]*Article, error) {
+	fmt.Printf("Getting articles to index...\t")
+	defer fmt.Printf("✨\n")
 	res, err := txchan.Query("SELECT url FROM articles WHERE lastFetchAt IS NULL;")
 	if err != nil {
 		return nil, err

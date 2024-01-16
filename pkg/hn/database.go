@@ -26,8 +26,8 @@ func (engine *Engine) save(item *HNItem, txchan *sql.Tx) error {
 }
 
 func (engine *Engine) getExistingIDs(txchan *sql.Tx) ([]int, error) {
-	fmt.Println("Getting existing IDs")
-	defer fmt.Println("Got existing IDs")
+	fmt.Println("Getting existing IDs\t")
+	defer fmt.Printf("❄️\n")
 	res, err := txchan.Query("SELECT id FROM hacker_news")
 	if err != nil {
 		return nil, err
