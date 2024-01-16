@@ -2,6 +2,7 @@ package article
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
@@ -70,6 +71,7 @@ func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 
 	engine.aiMutex.Lock()
 	defer engine.aiMutex.Unlock()
+	fmt.Println(article.Url)
 
 	// AI
 	vec, err := engine.sentenceEmbeddingModel.Embeddings([]string{bodyConcat})

@@ -45,7 +45,7 @@ func (engine *Engine) feedRefreshWorker(jobs <-chan *Feed, results chan<- *Feed)
 	for id := range jobs {
 		err := engine.feedRefresh(id)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(id.Url, err)
 		}
 		results <- id
 	}
