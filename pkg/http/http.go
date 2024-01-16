@@ -102,7 +102,7 @@ func NewRetryableClient() *http.Client {
 				d := net.Dialer{
 					Timeout: time.Duration(1000) * time.Millisecond,
 				}
-				return d.DialContext(ctx, "udp", "1.1.1.1")
+				return d.DialContext(ctx, "udp", "1.1.1.1:53")
 			},
 		},
 	}
