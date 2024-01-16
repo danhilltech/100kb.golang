@@ -79,15 +79,15 @@ func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 
 	article.SentenceEmbedding = vec[0].Vectors
 
-	// es, err := engine.keywordExtractionModel.Extract([]string{bodyConcat})
-	// if err != nil {
-	// 	return err
-	// }
+	es, err := engine.keywordExtractionModel.Extract([]string{bodyConcat})
+	if err != nil {
+		return err
+	}
 
-	// // article.ExtractedKeywords = es[0].Keywords
-	// for _, k := range es[0].Keywords {
-	// 	article.ExtractedKeywords = append(article.ExtractedKeywords, &Keyword{Text: string(k.Text), Score: k.Score})
-	// }
+	// article.ExtractedKeywords = es[0].Keywords
+	for _, k := range es[0].Keywords {
+		article.ExtractedKeywords = append(article.ExtractedKeywords, &Keyword{Text: string(k.Text), Score: k.Score})
+	}
 
 	return nil
 

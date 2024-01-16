@@ -41,6 +41,12 @@ var badClassesAndIds = []string{
 	"disqus_thread",
 	"keep-reading-section",
 	"author-box",
+	"comment-section",
+	"comment",
+	"conversation",
+	"comment-list",
+	"comments",
+	"comments-v2",
 }
 
 func tagIsGoodClassOrId(class string) bool {

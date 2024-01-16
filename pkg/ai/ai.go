@@ -20,6 +20,8 @@ type KeywordExtractionModel struct {
 	model unsafe.Pointer
 }
 
+const maxWordCount = 256
+
 // wget https://huggingface.co/skeskinen/ggml/resolve/main/bert-base-uncased/ggml-model-q4_0.bin?download=true
 // wget https://huggingface.co/mudler/all-MiniLM-L6-v2/resolve/main/ggml-model-q4_0.bin?download=true -O models/bert.bin
 
@@ -39,7 +41,7 @@ func (ai *SentenceEmbeddingModel) Embeddings(texts []string) ([]*Embedding, erro
 	for i := 0; i < len(texts); i++ {
 		in := texts[i]
 		cut := strings.Split(in, " ")
-		l := min(len(cut), 128)
+		l := min(len(cut), maxWordCount)
 
 		textsTrimmed[i] = strings.Join(cut[0:l], " ")
 	}
@@ -95,7 +97,7 @@ func (ai *KeywordExtractionModel) Extract(texts []string) ([]*Keywords, error) {
 	for i := 0; i < len(texts); i++ {
 		in := texts[i]
 		cut := strings.Split(in, " ")
-		l := min(len(cut), 128)
+		l := min(len(cut), maxWordCount)
 
 		textsTrimmed[i] = strings.Join(cut[0:l], " ")
 	}
