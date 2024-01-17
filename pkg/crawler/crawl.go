@@ -120,7 +120,36 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 		}
 		cleanFeed := parsedUrl.ResolveReference(feedUrl)
 
-		hnurl.Feed = cleanFeed.String()
+		v1 := cleanFeed.String()
+
+		h1, err := engine.http.Head(v1)
+		if err != nil {
+			return err
+		}
+
+		if h1.StatusCode < 400 && strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") {
+			hnurl.Feed = v1
+			return nil
+		}
+
+		possibles := []string{"/feed", "/rss", "/rss.xml", "/blog/feed", "/blog/rss", "/blog/rss.xml"}
+
+		for _, poss := range possibles {
+			u := url.URL{}
+			u.Path = poss
+			clean := parsedUrl.ResolveReference(&u)
+
+			v := clean.String()
+			h, err := engine.http.Head(v)
+			if err != nil {
+				return err
+			}
+			if h.StatusCode < 400 && strings.Contains(h.Header.Get("Content-Type"), "application/rss+xml") {
+				hnurl.Feed = v
+				return nil
+			}
+		}
+
 	}
 
 	return nil

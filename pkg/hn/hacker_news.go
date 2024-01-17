@@ -24,11 +24,9 @@ type HNItem struct {
 	Type  HNItemType
 	Time  int
 	Score int
-}
 
-const (
-	HNItemTypeStory = "story"
-)
+	Text string
+}
 
 func NewEngine(db *sql.DB) (*Engine, error) {
 	tr := &http.Transport{MaxIdleConnsPerHost: 1024, TLSHandshakeTimeout: 0 * time.Second}

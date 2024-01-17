@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/danhilltech/100kb.golang/pkg/utils"
+	"mvdan.cc/xurls/v2"
 )
 
 func (engine *Engine) getMaxId() (int, error) {
@@ -54,9 +55,16 @@ func (engine *Engine) getItem(id int) (*HNItem, error) {
 	var item HNItem
 
 	err = json.Unmarshal(body, &item)
-
 	if err != nil {
 		return nil, err
+	}
+
+	if item.Type == "comment" {
+		rxStrict := xurls.Strict()
+		urls := rxStrict.FindAllString(item.Text, 1)
+		if len(urls) >= 1 {
+			item.URL = urls[0]
+		}
 	}
 
 	return &item, nil
@@ -124,11 +132,20 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 
 	fmt.Println("Checking for new HN IDs")
 
+	wanted := map[int]bool{}
+
 	for i := min; i < max; i++ {
-		if utils.InSliceInt(i, existingIds) {
-			continue
+		wanted[i] = true
+	}
+
+	for _, e := range existingIds {
+		wanted[e] = false
+	}
+
+	for i := min; i < max; i++ {
+		if wanted[i] {
+			ids = append(ids, i)
 		}
-		ids = append(ids, i)
 	}
 
 	fmt.Println("Chunking HN IDs")
