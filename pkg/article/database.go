@@ -2,10 +2,11 @@ package article
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 
+	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"github.com/danhilltech/100kb.golang/pkg/utils"
+	"google.golang.org/protobuf/proto"
 )
 
 func (engine *Engine) initDB(db *sql.DB) error {
@@ -15,7 +16,7 @@ func (engine *Engine) initDB(db *sql.DB) error {
 		return err
 	}
 
-	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ? WHERE url = ?;")
+	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ? WHERE url = ?;")
 	if err != nil {
 		return err
 	}
@@ -36,28 +37,28 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 	var sentenceEmbedding []byte
 	var err error
 
-	if len(article.BodyRaw) > 0 {
-		articleBodyRaw, err = json.Marshal(article.BodyRaw)
+	if article.BodyRaw != nil {
+		articleBodyRaw, err = proto.Marshal(article.BodyRaw)
 		if err != nil {
 			return err
 		}
 	}
 
-	if len(article.Body) > 0 {
-		articleBody, err = json.Marshal(article.Body)
+	if article.Body != nil {
+		articleBody, err = proto.Marshal(article.Body)
 		if err != nil {
 			return err
 		}
 	}
 
-	if len(article.SentenceEmbedding) > 0 {
-		sentenceEmbedding, err = json.Marshal(article.SentenceEmbedding)
+	if article.SentenceEmbedding != nil {
+		sentenceEmbedding, err = proto.Marshal(article.SentenceEmbedding)
 		if err != nil {
 			return err
 		}
 	}
-	if len(article.ExtractedKeywords) > 0 {
-		extractedKeywords, err = json.Marshal(article.ExtractedKeywords)
+	if article.ExtractedKeywords != nil {
+		extractedKeywords, err = proto.Marshal(article.ExtractedKeywords)
 		if err != nil {
 			return err
 		}
@@ -65,11 +66,15 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 
 	_, err = txchan.Stmt(engine.dbUpdatePreparedArticle).Exec(
 		utils.NullInt64(article.LastFetchAt),
+		utils.NullInt64(article.LastMetaAt),
 		utils.NullString(string(articleBodyRaw)),
 		utils.NullString(article.Title),
 		utils.NullString(article.Description),
 		utils.NullString(string(articleBody)),
 		utils.NullInt64(article.WordCount),
+		utils.NullInt64(article.H1Count),
+		utils.NullInt64(article.HNCount),
+		utils.NullInt64(article.PCount),
 		utils.NullFloat64(article.FirstPersonRatio),
 		utils.NullString(string(sentenceEmbedding)),
 		utils.NullString(string(extractedKeywords)),
@@ -104,13 +109,14 @@ func (engine *Engine) getArticlesToIndex(txchan *sql.Tx) ([]*Article, error) {
 	return urls, nil
 }
 
-const ARTICLE_SELECT = `url, feedUrl, publishedAt, lastFetchAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords`
+const ARTICLE_SELECT = `url, feedUrl, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
 	var feedUrl string
 	var publishedAt int64
 	var lastFetchAt sql.NullInt64
+	var lastMetaAt sql.NullInt64
 	var title sql.NullString
 	var description sql.NullString
 	var bodyRawJSON []byte
@@ -118,49 +124,58 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var sentenceEmbeddingJSON []byte
 	var extractedKeywordsJSON []byte
 
+	var wordCount, h1Count, hnCount, pCount int64
+	var firstPersonRatio float64
+
 	err := res.Scan(
 		&url,
 		&feedUrl,
 		&publishedAt,
 		&lastFetchAt,
+		&lastMetaAt,
 		&title,
 		&description,
 		&bodyRawJSON,
 		&bodyJSON,
 		&sentenceEmbeddingJSON,
 		&extractedKeywordsJSON,
+		&wordCount,
+		&h1Count,
+		&hnCount,
+		&pCount,
+		&firstPersonRatio,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	var bodyRaw []string
+	var bodyRaw serialize.Content
 	if bodyRawJSON != nil {
-		err = json.Unmarshal(bodyRawJSON, &bodyRaw)
+		err = proto.Unmarshal(bodyRawJSON, &bodyRaw)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	var body []string
+	var body serialize.Content
 	if bodyJSON != nil {
-		err = json.Unmarshal(bodyJSON, &body)
+		err = proto.Unmarshal(bodyJSON, &body)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	var sentenceEmbeding []float32
+	var sentenceEmbeding serialize.Embeddings
 	if sentenceEmbeddingJSON != nil {
-		err = json.Unmarshal(sentenceEmbeddingJSON, &sentenceEmbeding)
+		err = proto.Unmarshal(sentenceEmbeddingJSON, &sentenceEmbeding)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	var extractedKeywords []*Keyword
+	var extractedKeywords serialize.Keywords
 	if extractedKeywordsJSON != nil {
-		err = json.Unmarshal(extractedKeywordsJSON, &extractedKeywords)
+		err = proto.Unmarshal(extractedKeywordsJSON, &extractedKeywords)
 		if err != nil {
 			return nil, err
 		}
@@ -171,19 +186,25 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		FeedUrl:           feedUrl,
 		PublishedAt:       publishedAt,
 		LastFetchAt:       lastFetchAt.Int64,
+		LastMetaAt:        lastFetchAt.Int64,
 		Title:             title.String,
 		Description:       description.String,
-		BodyRaw:           bodyRaw,
-		Body:              body,
-		SentenceEmbedding: sentenceEmbeding,
-		ExtractedKeywords: extractedKeywords,
+		BodyRaw:           &bodyRaw,
+		Body:              &body,
+		SentenceEmbedding: &sentenceEmbeding,
+		ExtractedKeywords: &extractedKeywords,
+		WordCount:         wordCount,
+		H1Count:           h1Count,
+		HNCount:           hnCount,
+		PCount:            pCount,
+		FirstPersonRatio:  firstPersonRatio,
 	}
 
 	return article, nil
 }
 
 func (engine *Engine) getArticlesToMetaData(txchan *sql.Tx) ([]*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE body IS NULL AND bodyRaw IS NOT NULL AND lastFetchAt > 0;", ARTICLE_SELECT))
+	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt > 0 AND lastMetaAt IS NULL;", ARTICLE_SELECT))
 	if err != nil {
 		return nil, err
 	}

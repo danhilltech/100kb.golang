@@ -1,11 +1,21 @@
 package parsing
 
 import (
+	"encoding/json"
 	"io"
 	"strings"
 
+	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"golang.org/x/net/html"
 )
+
+type SimpleNodeType string
+
+type SimpleNode struct {
+	Type     SimpleNodeType
+	Text     string
+	Children []*SimpleNode
+}
 
 // Everything inside these is gobbeld up into a string
 var textTags = []string{"p", "h1", "h2", "h3", "li", "blockquote"}
@@ -19,7 +29,7 @@ func tagIsTextTag(tag string) bool {
 	return false
 }
 
-var badAreas = []string{"nav", "footer", "iframe"}
+var badAreas = []string{"nav", "footer", "iframe", "code", "pre"}
 
 func tagIsGoodArea(tag string) bool {
 	for _, t := range badAreas {
@@ -47,9 +57,22 @@ var badClassesAndIds = []string{
 	"comment-list",
 	"comments",
 	"comments-v2",
+	"copyright",
+	"license",
+	"toolbar",
+	"twitter-tweet",
+	"post-meta",
 }
 
-func tagIsGoodClassOrId(class string) bool {
+var badWildcards = []string{
+	"footer",
+	"dropdown",
+	"hidden",
+}
+
+func tagIsGoodClassOrId(classRaw string) bool {
+	class := strings.ToLower(classRaw)
+
 	classes := strings.Split(class, " ")
 	for _, t := range badClassesAndIds {
 
@@ -57,6 +80,12 @@ func tagIsGoodClassOrId(class string) bool {
 			if c == t {
 				return false
 			}
+		}
+	}
+
+	for _, t := range badWildcards {
+		if strings.Contains(class, t) {
+			return false
 		}
 	}
 	return true
@@ -216,90 +245,132 @@ func replaceMultipleWhitespace(b []byte) []byte {
 	return b[:j]
 }
 
-func HtmlToText(htmlBody io.Reader) ([]string, string, string, error) {
+func walkHtmlNodes(n *html.Node, b *SimpleNode, depth int, title *string, description *string) {
+	if isTitleElement(n) {
+		if n.FirstChild != nil {
+			title = &n.FirstChild.Data
+		}
+	}
+
+	if n.Data == "meta" {
+		desc, ok := extractMetaProperty(n, "description")
+		if ok && description == nil {
+			description = &desc
+		}
+
+		descOg, ok := extractMetaProperty(n, "og:description")
+		if ok && description == nil {
+			description = &descOg
+		}
+
+	}
+
+	if n.Type == html.ElementNode {
+		isSafeClass := true
+		for _, attr := range n.Attr {
+			if attr.Key == "class" || attr.Key == "id" {
+				if !tagIsGoodClassOrId(attr.Val) {
+					isSafeClass = false
+				}
+			}
+		}
+
+		if !tagIsGoodArea(n.Data) || !isSafeClass {
+			return
+		}
+		// Create the new node
+		nB := SimpleNode{
+			Type: SimpleNodeType(n.Data),
+		}
+
+		b.Children = append(b.Children, &nB)
+
+		b = &nB
+
+	}
+	if n.Type == html.TextNode {
+		decendentFromText := false
+
+		p := n.Parent
+		for {
+			if tagIsTextTag(p.Data) {
+				decendentFromText = true
+			}
+			if p.Parent == nil {
+				break
+			}
+			p = p.Parent
+		}
+
+		if decendentFromText && len(n.Data) > 0 {
+			data := []byte(n.Data)
+			clean := replaceMultipleWhitespace(data)
+			newNode := SimpleNode{
+				Text: string(clean),
+				Type: "text",
+			}
+
+			b.Children = append(b.Children, &newNode)
+		}
+	}
+	nextDepth := depth + 1
+
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		walkHtmlNodes(c, b, nextDepth, title, description)
+	}
+}
+
+func walkSimpleNodes(node *SimpleNode, workingNode *SimpleNode, out *[]*serialize.FlatNode) {
+	if tagIsTextTag(string(node.Type)) {
+		workingNode = &SimpleNode{Type: node.Type}
+	}
+
+	if node.Type == "text" && workingNode != nil {
+		workingNode.Text = workingNode.Text + node.Text
+	}
+
+	for _, c := range node.Children {
+		walkSimpleNodes(c, workingNode, out)
+	}
+
+	if tagIsTextTag(string(node.Type)) {
+		txt := strings.TrimSpace(workingNode.Text)
+		if len(txt) > 5 {
+			txt := replaceMultipleWhitespace([]byte(txt))
+
+			flat := &serialize.FlatNode{
+				Type: string(workingNode.Type),
+				Text: string(txt),
+			}
+			*out = append(*out, flat)
+		}
+	}
+}
+
+func HtmlToText(htmlBody io.Reader) ([]*serialize.FlatNode, string, string, error) {
 	z, err := html.Parse(htmlBody)
 
 	if err != nil {
 		return nil, "", "", err
 	}
 
-	var b []string
-
 	var title, description string
 
-	var f func(*html.Node, *[]string, int)
-	f = func(n *html.Node, b *[]string, depth int) {
-		if isTitleElement(n) {
-			if n.FirstChild != nil {
-				title = n.FirstChild.Data
-			}
-		}
+	rootNode := SimpleNode{Type: "root"}
 
-		if n.Data == "meta" {
-			desc, ok := extractMetaProperty(n, "description")
-			if ok && description == "" {
-				description = desc
-			}
+	walkHtmlNodes(z, &rootNode, 0, &title, &description)
 
-			descOg, ok := extractMetaProperty(n, "og:description")
-			if ok && description == "" {
-				description = descOg
-			}
+	// Now parse it into strings
 
-		}
+	var simple []*serialize.FlatNode
 
-		if n.Type == html.ElementNode {
-			isSafeClass := true
-			for _, attr := range n.Attr {
-				if attr.Key == "class" || attr.Key == "id" {
-					if !tagIsGoodClassOrId(attr.Val) {
-						isSafeClass = false
-					}
-				}
-			}
+	walkSimpleNodes(&rootNode, nil, &simple)
 
-			if !tagIsGoodArea(n.Data) || !isSafeClass {
-				return
-			}
-		}
-		if n.Type == html.TextNode {
-			decendentFromText := false
+	return simple, title, description, nil
+}
 
-			p := n.Parent
-			for {
-				if tagIsTextTag(p.Data) {
-					decendentFromText = true
-				}
-				if p.Parent == nil {
-					break
-				}
-				p = p.Parent
-			}
+func (node *SimpleNode) String() string {
+	b, _ := json.MarshalIndent(node, "  ", " ")
+	return string(b)
 
-			if decendentFromText && len(n.Data) > 0 {
-				data := []byte(n.Data)
-				clean := replaceMultipleWhitespace(data)
-				*b = append(*b, string(clean))
-			}
-		}
-		nextDepth := depth + 1
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-
-			f(c, b, nextDepth)
-
-			// if c.Type == html.ElementNode && tagIsTextTag(c.Data) {
-			// 	b.WriteString("\n\n")
-			// }
-		}
-	}
-
-	f(z, &b, 0)
-
-	cleaned := make([]string, len(b))
-
-	for i, str := range b {
-		cleaned[i] = strings.TrimSpace(str)
-	}
-
-	return cleaned, title, description, nil
 }

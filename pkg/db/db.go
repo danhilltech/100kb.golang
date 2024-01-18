@@ -52,14 +52,18 @@ CREATE TABLE IF NOT EXISTS articles (
 	feedUrl TEXT,
 	publishedAt INTEGER,
 	lastFetchAt INTEGER,
+	lastMetaAt INTEGER,
 	title TEXT,
 	description TEXT,
-	bodyRaw TEXT,
-	body TEXT,
+	bodyRaw BLOB,
+	body BLOB,
 	wordCount INTEGER,
+	h1Count INTEGER,
+	hnCount INTEGER,
+	pCount INTEGER,
 	firstPersonRatio REAL,
-	sentenceEmbedding TEXT,
-	extractedKeywords TEXT
+	sentenceEmbedding BLOB,
+	extractedKeywords BLOB
 );
 
 CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);

@@ -127,7 +127,7 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 			return err
 		}
 
-		if h1.StatusCode < 400 && strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") {
+		if h1.StatusCode < 400 && (strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") || strings.Contains(h1.Header.Get("Content-Type"), "application/atom+xml")) {
 			hnurl.Feed = v1
 			return nil
 		}
@@ -144,7 +144,7 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 			if err != nil {
 				return err
 			}
-			if h.StatusCode < 400 && strings.Contains(h.Header.Get("Content-Type"), "application/rss+xml") {
+			if h.StatusCode < 400 && (strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") || strings.Contains(h1.Header.Get("Content-Type"), "application/atom+xml")) {
 				hnurl.Feed = v
 				return nil
 			}
@@ -195,7 +195,7 @@ func extractFeedURL(resp io.Reader) string {
 				isRSS := false
 				url := ""
 				for _, attr := range t.Attr {
-					if attr.Key == "type" && attr.Val == "application/rss+xml" {
+					if attr.Key == "type" && (attr.Val == "application/rss+xml" || attr.Val == "application/atom+xml") {
 						isRSS = true
 					}
 					if attr.Key == "href" {

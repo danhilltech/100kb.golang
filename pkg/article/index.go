@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/danhilltech/100kb.golang/pkg/parsing"
+	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
 // Crawls
@@ -59,7 +60,7 @@ func (engine *Engine) articleIndex(article *Article) error {
 		return nil
 	}
 
-	article.BodyRaw = body
+	article.BodyRaw = &serialize.Content{Content: body}
 	article.Title = title
 	article.Description = description
 

@@ -4,11 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+
+	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
 func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 	// Check we have enough data
-	if article.BodyRaw == nil || len(article.BodyRaw) == 0 {
+	if article.BodyRaw == nil || len(article.BodyRaw.Content) == 0 {
 		return nil
 	}
 
@@ -20,32 +22,43 @@ func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 	var currentCanon []string
 
 	for _, feed := range feedArticles {
-		currentCanon = append(currentCanon, feed.BodyRaw...)
+		for _, para := range feed.BodyRaw.Content {
+			currentCanon = append(currentCanon, strings.ToLower(para.Text))
+		}
 	}
 
 	// unique the content
 
-	var uniqueContent []string
+	var uniqueContent []*serialize.FlatNode
 
-	for _, line := range article.BodyRaw {
-		found := false
-		for _, currLine := range currentCanon {
-			if line == currLine {
-				found = true
+	for _, line := range article.BodyRaw.Content {
+		if len(line.Text) > 0 {
+			found := false
+			for _, currLine := range currentCanon {
+				if strings.ToLower(line.Text) == currLine {
+					found = true
+				}
 			}
-		}
-		if !found && len(line) > 0 {
-			uniqueContent = append(uniqueContent, line)
+			if !found {
+				uniqueContent = append(uniqueContent, line)
+			}
 		}
 	}
 
-	article.Body = uniqueContent
+	article.Body = &serialize.Content{Content: uniqueContent}
 
-	if len(article.Body) == 0 {
+	if len(article.Body.Content) == 0 {
 		return nil
 	}
 
-	bodyConcat := strings.Join(uniqueContent, " ")
+	bodyBuilder := strings.Builder{}
+
+	for _, para := range uniqueContent {
+		bodyBuilder.WriteString(para.Text)
+		bodyBuilder.WriteRune('\n')
+	}
+
+	bodyConcat := bodyBuilder.String()
 
 	// Word count
 	article.WordCount = int64(len(strings.Split(bodyConcat, " ")))
@@ -69,26 +82,59 @@ func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 		article.FirstPersonRatio = 0
 	}
 
-	engine.aiMutex.Lock()
-	defer engine.aiMutex.Unlock()
+	var h1Count, hnCount, pCount int64
+
+	for _, sec := range uniqueContent {
+		switch sec.Type {
+		case "h1":
+			h1Count++
+			continue
+		case "h2", "h3":
+			hnCount++
+			continue
+		case "p", "li":
+			pCount++
+			continue
+		}
+	}
+
+	article.H1Count = h1Count
+	article.HNCount = hnCount
+	article.PCount = pCount
+
+	// engine.aiMutex.Lock()
+	// defer engine.aiMutex.Unlock()
 	fmt.Println(article.Url)
 
-	// AI
-	vec, err := engine.sentenceEmbeddingModel.Embeddings([]string{bodyConcat})
-	if err != nil {
-		return err
-	}
+	if article.WordCount >= 50 {
 
-	article.SentenceEmbedding = vec[0].Vectors
+		var firstPara string
+		for _, c := range uniqueContent {
+			if c.Type == "p" {
+				firstPara = c.Text
+				break
+			}
+		}
 
-	es, err := engine.keywordExtractionModel.Extract([]string{bodyConcat})
-	if err != nil {
-		return err
-	}
+		// AI
+		vec, err := engine.sentenceEmbeddingModel.Embeddings([]string{firstPara})
+		if err != nil {
+			return err
+		}
 
-	// article.ExtractedKeywords = es[0].Keywords
-	for _, k := range es[0].Keywords {
-		article.ExtractedKeywords = append(article.ExtractedKeywords, &Keyword{Text: string(k.Text), Score: k.Score})
+		emnd := serialize.Embedding{Vectors: vec[0].Vectors}
+		article.SentenceEmbedding = &serialize.Embeddings{}
+		article.SentenceEmbedding.Embeddings = append(article.SentenceEmbedding.Embeddings, &emnd)
+
+		es, err := engine.keywordExtractionModel.Extract([]string{firstPara})
+		if err != nil {
+			return err
+		}
+
+		// article.ExtractedKeywords = es[0].Keywords
+		for _, k := range es[0].Keywords {
+			article.ExtractedKeywords.Keywords = append(article.ExtractedKeywords.Keywords, &serialize.Keyword{Text: string(k.Text), Score: k.Score})
+		}
 	}
 
 	return nil

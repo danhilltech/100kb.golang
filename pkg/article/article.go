@@ -3,10 +3,10 @@ package article
 import (
 	"database/sql"
 	"net/http"
-	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/ai"
 	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
+	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
 type Engine struct {
@@ -17,14 +17,9 @@ type Engine struct {
 	sentenceEmbeddingModel *ai.SentenceEmbeddingModel
 	keywordExtractionModel *ai.KeywordExtractionModel
 
-	aiMutex sync.Mutex
+	// aiMutex sync.Mutex
 
 	http *http.Client
-}
-
-type Keyword struct {
-	Text  string
-	Score float32
 }
 
 type Article struct {
@@ -32,16 +27,20 @@ type Article struct {
 	FeedUrl     string
 	PublishedAt int64
 	Html        []byte
-	BodyRaw     []string
+	BodyRaw     *serialize.Content
 	LastFetchAt int64
+	LastMetaAt  int64
 	Title       string
 	Description string
 
-	Body              []string
+	Body              *serialize.Content
 	WordCount         int64
+	H1Count           int64
+	HNCount           int64
+	PCount            int64
 	FirstPersonRatio  float64
-	SentenceEmbedding []float32
-	ExtractedKeywords []*Keyword
+	SentenceEmbedding *serialize.Embeddings
+	ExtractedKeywords *serialize.Keywords
 }
 
 func NewEngine(db *sql.DB) (*Engine, error) {

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package serialize;
+option go_package = "./pkg/serialize";
+
+message FlatNode {
+    string type = 1;
+    string text = 2;
+}
+
+message Content {
+    repeated FlatNode content = 1;
+}
+
+message Embedding {
+    repeated float vectors = 1 [packed=true];
+}
+
+message Embeddings {
+    repeated Embedding embeddings = 1;
+}
+
+message Keyword {
+    string text = 1;
+    float score = 2;
+}
+
+message Keywords {
+    repeated Keyword keywords = 1;
+}

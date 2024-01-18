@@ -53,6 +53,7 @@ func (engine *Engine) feedRefreshWorker(jobs <-chan *Feed, results chan<- *Feed)
 
 // Crawls
 func (engine *Engine) feedRefresh(feed *Feed) error {
+	feed.LastFetchAt = time.Now().Unix()
 	// First check the URL isn't banned
 
 	// crawl it
@@ -74,8 +75,6 @@ func (engine *Engine) feedRefresh(feed *Feed) error {
 	feed.Title = rss.Title
 
 	feed.Articles = make([]article.Article, len(rss.Items))
-
-	feed.LastFetchAt = time.Now().Unix()
 
 	for i, item := range rss.Items {
 		feed.Articles[i] = article.Article{
