@@ -41,14 +41,14 @@ func (engine *Engine) articleIndex(article *Article) error {
 	// crawl it
 	resp, err := engine.http.Get(article.Url)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	defer resp.Body.Close()
 
 	html, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	article.Html = html
@@ -57,7 +57,7 @@ func (engine *Engine) articleIndex(article *Article) error {
 
 	body, title, description, err := parsing.HtmlToText(reader)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	article.BodyRaw = &serialize.Content{Content: body}
