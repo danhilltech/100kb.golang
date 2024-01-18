@@ -30,7 +30,7 @@ func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
 	for _, chunk := range chunkIds {
 		err = engine.doFeedArticleIndex(chunk, workers)
 		if err != nil {
-			return err
+			fmt.Println(err)
 		}
 	}
 
@@ -56,6 +56,7 @@ func (engine *Engine) doFeedArticleIndex(chunk []*Article, workers int) error {
 		// save it
 		err = engine.Update(article, insertTxn)
 		if err != nil {
+			fmt.Println(article.Url)
 			return err
 		}
 	}
@@ -117,7 +118,6 @@ func (engine *Engine) doArticleMeta(chunk []*Article, workers int) error {
 		// save it
 		err = engine.Update(article, insertTxn)
 		if err != nil {
-			fmt.Println(article.Url)
 			return err
 		}
 	}
