@@ -2,6 +2,7 @@ package feed
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/danhilltech/100kb.golang/pkg/crawler"
 )
@@ -21,6 +22,8 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 	if err != nil {
 		return err
 	}
+
+	rand.Shuffle(len(urls), func(i, j int) { urls[i], urls[j] = urls[j], urls[i] })
 
 	chunkIds := crawler.Chunk(urls, chunkSize)
 

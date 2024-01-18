@@ -124,8 +124,8 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var sentenceEmbeddingJSON []byte
 	var extractedKeywordsJSON []byte
 
-	var wordCount, h1Count, hnCount, pCount int64
-	var firstPersonRatio float64
+	var wordCount, h1Count, hnCount, pCount sql.NullInt64
+	var firstPersonRatio sql.NullFloat64
 
 	err := res.Scan(
 		&url,
@@ -193,11 +193,11 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		Body:              &body,
 		SentenceEmbedding: &sentenceEmbeding,
 		ExtractedKeywords: &extractedKeywords,
-		WordCount:         wordCount,
-		H1Count:           h1Count,
-		HNCount:           hnCount,
-		PCount:            pCount,
-		FirstPersonRatio:  firstPersonRatio,
+		WordCount:         wordCount.Int64,
+		H1Count:           h1Count.Int64,
+		HNCount:           hnCount.Int64,
+		PCount:            pCount.Int64,
+		FirstPersonRatio:  firstPersonRatio.Float64,
 	}
 
 	return article, nil
