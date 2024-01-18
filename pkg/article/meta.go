@@ -106,16 +106,14 @@ func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 	// defer engine.aiMutex.Unlock()
 	fmt.Println(article.Url)
 
-	if article.WordCount >= 50 {
-
-		var firstPara string
-		for _, c := range uniqueContent {
-			if c.Type == "p" {
-				firstPara = c.Text
-				break
-			}
+	var firstPara string
+	for _, c := range uniqueContent {
+		if c.Type == "p" && len(c.Text) >= 150 {
+			firstPara = c.Text
+			break
 		}
-
+	}
+	if len(firstPara) >= 150 {
 		// AI
 		vec, err := engine.sentenceEmbeddingModel.Embeddings([]string{firstPara})
 		if err != nil {
