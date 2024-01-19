@@ -69,11 +69,11 @@ CREATE TABLE IF NOT EXISTS articles (
 CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);
 `
 
-func InitDB(name string) (*Database, error) {
+func InitDB(name string, mode string) (*Database, error) {
 	fmt.Printf("creating database\t")
 	defer fmt.Printf("❄️\n")
 
-	sqliteDatabase, err := sql.Open("sqlite3", fmt.Sprintf("file:%s.db?mode=rwc&_journal_mode=WAL&_sync=FULL", name)) // Open the created SQLite File
+	sqliteDatabase, err := sql.Open("sqlite3", fmt.Sprintf("file:%s.db?mode=%s&_journal_mode=WAL&_sync=FULL", name, mode)) // Open the created SQLite File
 	if err != nil {
 		return nil, err
 	}

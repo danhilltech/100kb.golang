@@ -56,8 +56,7 @@ func (engine *Engine) doFeedArticleIndex(chunk []*Article, workers int) error {
 		// save it
 		err = engine.Update(article, insertTxn)
 		if err != nil {
-			fmt.Println(article.Url)
-			return err
+			fmt.Println(article.Url, err)
 		}
 	}
 

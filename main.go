@@ -27,6 +27,7 @@ func main() {
 	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
 	metaWorkers := flag.Int("meta-workers", 4, "number of meta workers")
 	debug := flag.Bool("debug", false, "run debugging tools")
+	mode := flag.String("mode", "index", "which process to run")
 
 	flag.Parse()
 
@@ -36,6 +37,7 @@ func main() {
 	fmt.Printf("  hnFetchSize:\t\t%d\n", *hnFetchSize)
 	fmt.Printf("  metaChunkSize:\t%d\n", *metaChunkSize)
 	fmt.Printf("  metaWorkers:\t\t%d\n", *metaWorkers)
+	fmt.Printf("Mode\t%s", *mode)
 
 	if *debug {
 		// go tool pprof -top http://localhost:6060/debug/pprof/heap
@@ -44,98 +46,138 @@ func main() {
 		}()
 	}
 
-	db, err := db.InitDB("/dbs/output")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer db.StopDB()
+	switch *mode {
+	case "index":
 
-	dbVer, err := db.Version()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	fmt.Printf("sqlite3 version: \t%s\n", dbVer)
+		db, err := db.InitDB("/dbs/output", "rwc")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer db.StopDB()
 
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		db.StopDB()
-		fmt.Println("Interupt\t\t🔥🔥🔥")
+		dbVer, err := db.Version()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Printf("sqlite3 version: \t%s\n", dbVer)
 
-		os.Exit(1)
-	}()
+		c := make(chan os.Signal)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-c
+			db.StopDB()
+			fmt.Println("Interupt\t\t🔥🔥🔥")
 
-	crawlEngine, err := crawler.NewEngine(db.DB)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+			os.Exit(1)
+		}()
 
-	articleEngine, err := article.NewEngine(db.DB)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer articleEngine.Close()
+		crawlEngine, err := crawler.NewEngine(db.DB)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	hnEngine, err := hn.NewEngine(db.DB)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		articleEngine, err := article.NewEngine(db.DB)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer articleEngine.Close()
 
-	feedEngine, err := feed.NewEngine(db.DB, crawlEngine, articleEngine)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		hnEngine, err := hn.NewEngine(db.DB)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	fmt.Println("Engines loaded\t\t🚂🚂🚂")
+		feedEngine, err := feed.NewEngine(db.DB, crawlEngine, articleEngine)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	// Now run tasks
+		fmt.Println("Engines loaded\t\t🚂🚂🚂")
 
-	// 1. Get latest hackernews content
-	err = hnEngine.RunRefresh(*httpChunkSize, *hnFetchSize, *httpWorkers)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		// Now run tasks
 
-	// // 2. Check HN stories for any new feeds
-	err = feedEngine.RunNewFeedSearch(*httpChunkSize, *httpWorkers)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		// 1. Get latest hackernews content
+		err = hnEngine.RunRefresh(*httpChunkSize, *hnFetchSize, *httpWorkers)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	// // 3. Get latest articles from our feeds
-	err = feedEngine.RunFeedRefresh(*httpChunkSize, *httpWorkers)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		// // 2. Check HN stories for any new feeds
+		err = feedEngine.RunNewFeedSearch(*httpChunkSize, *httpWorkers)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	// 4. Crawl any new articles for content
-	err = articleEngine.RunArticleIndex(*httpChunkSize, *httpWorkers)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		// // 3. Get latest articles from our feeds
+		err = feedEngine.RunFeedRefresh(*httpChunkSize, *httpWorkers)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	// 5. Generate metadata for articles
-	err = articleEngine.RunArticleMeta(*metaChunkSize, *metaWorkers)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		// 4. Crawl any new articles for content
+		err = articleEngine.RunArticleIndex(*httpChunkSize, *httpWorkers)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	db.Tidy()
+		// 5. Generate metadata for articles
+		err = articleEngine.RunArticleMeta(*metaChunkSize, *metaWorkers)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	if *debug {
-		<-c
+		db.Tidy()
+
+		if *debug {
+			<-c
+		}
+
+	case "output":
+		db, err := db.InitDB("/dbs/output", "ro")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer db.StopDB()
+
+		dbVer, err := db.Version()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Printf("sqlite3 version: \t%s\n", dbVer)
+
+		c := make(chan os.Signal)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-c
+			db.StopDB()
+			fmt.Println("Interupt\t\t🔥🔥🔥")
+
+			os.Exit(1)
+		}()
+
+		err = CreateOutput(db.DB)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if *debug {
+			<-c
+		}
+
 	}
 
 }

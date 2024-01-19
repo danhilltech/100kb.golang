@@ -251,3 +251,29 @@ func (engine *Engine) getArticlesByFeed(txchan *sql.Tx, feed string, excludeUrl 
 	}
 	return urls, nil
 }
+
+func (engine *Engine) GetAllValid(txchan *sql.Tx) ([]*Article, error) {
+	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastMetaAt IS NOT NULL AND wordCount > 10", ARTICLE_SELECT))
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+
+	var urls []*Article
+
+	for res.Next() {
+		article, err := articleRowScan(res)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, article)
+	}
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+	return urls, nil
+}
