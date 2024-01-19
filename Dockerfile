@@ -65,6 +65,7 @@ RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -
 
 COPY ./lib ./lib
 COPY ./pkg ./pkg
+COPY ./views ./views
 COPY ./*.go .
 COPY ./Cargo.* .
 COPY ./go.mod .
