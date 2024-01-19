@@ -1,6 +1,7 @@
 package parsing
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -2805,6 +2806,44 @@ func TestLong(t *testing.T) {
 		}
 
 		t.Logf("%+q", body)
+	}
+
+}
+
+func TestBasic(t *testing.T) {
+
+	html := `
+		<html>
+			<head>
+				<title>Dan</title>
+				<meta name="description" content="desc">
+			</head>
+		<body>
+			<div>
+				<p>this is <a>some</a> text</p>
+			</div>
+		</body>
+		</html>	
+	`
+
+	reader := strings.NewReader(html)
+
+	body, title, description, err := HtmlToText(reader)
+
+	if err != nil {
+		fmt.Println(err)
+		t.FailNow()
+	}
+
+	if len(body) != 1 {
+		t.Error()
+	}
+	if title != "Dan" {
+		t.Error()
+	}
+	if description != "desc" {
+		fmt.Println(description)
+		t.Error()
 	}
 
 }

@@ -2,6 +2,7 @@ package parsing
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 
@@ -199,6 +200,10 @@ func extractMetaProperty(t *html.Node, prop string) (content string, ok bool) {
 			ok = true
 		}
 
+		if attr.Key == "name" && attr.Val == prop {
+			ok = true
+		}
+
 		if attr.Key == "content" {
 			content = attr.Val
 		}
@@ -247,20 +252,21 @@ func replaceMultipleWhitespace(b []byte) []byte {
 
 func walkHtmlNodes(n *html.Node, b *SimpleNode, depth int, title *string, description *string) {
 	if isTitleElement(n) {
+		fmt.Println(n.FirstChild.Data)
 		if n.FirstChild != nil {
-			title = &n.FirstChild.Data
+			*title = n.FirstChild.Data
 		}
 	}
 
 	if n.Data == "meta" {
 		desc, ok := extractMetaProperty(n, "description")
-		if ok && description == nil {
-			description = &desc
+		if ok && *description == "" {
+			*description = desc
 		}
 
 		descOg, ok := extractMetaProperty(n, "og:description")
-		if ok && description == nil {
-			description = &descOg
+		if ok && *description == "" {
+			*description = descOg
 		}
 
 	}
@@ -361,6 +367,8 @@ func HtmlToText(htmlBody io.Reader) ([]*serialize.FlatNode, string, string, erro
 	walkHtmlNodes(z, &rootNode, 0, &title, &description)
 
 	// Now parse it into strings
+
+	fmt.Println("title", title)
 
 	var simple []*serialize.FlatNode
 
