@@ -252,7 +252,6 @@ func replaceMultipleWhitespace(b []byte) []byte {
 
 func walkHtmlNodes(n *html.Node, b *SimpleNode, depth int, title *string, description *string) {
 	if isTitleElement(n) {
-		fmt.Println(n.FirstChild.Data)
 		if n.FirstChild != nil {
 			*title = n.FirstChild.Data
 		}
