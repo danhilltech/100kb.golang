@@ -1,8 +1,6 @@
 package article
 
 import (
-	"bytes"
-	"io"
 	"strings"
 	"time"
 
@@ -46,16 +44,7 @@ func (engine *Engine) articleIndex(article *Article) error {
 
 	defer resp.Body.Close()
 
-	html, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	article.Html = html
-
-	reader := bytes.NewReader(html)
-
-	body, title, description, err := parsing.HtmlToText(reader)
+	body, title, description, err := parsing.HtmlToText(resp.Body)
 	if err != nil {
 		return err
 	}

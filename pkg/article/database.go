@@ -83,32 +83,6 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 	return err
 }
 
-func (engine *Engine) getArticlesToIndex(txchan *sql.Tx) ([]*Article, error) {
-	fmt.Printf("Getting articles to index...\t")
-	defer fmt.Printf("✨\n")
-	res, err := txchan.Query("SELECT url FROM articles WHERE lastFetchAt IS NULL;")
-	if err != nil {
-		return nil, err
-	}
-	defer res.Close()
-
-	var urls []*Article
-
-	for res.Next() {
-		var url string
-		err = res.Scan(&url)
-		if err != nil {
-			return nil, err
-		}
-
-		urls = append(urls, &Article{Url: url})
-	}
-	if err := res.Err(); err != nil {
-		return nil, err
-	}
-	return urls, nil
-}
-
 const ARTICLE_SELECT = `url, feedUrl, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
@@ -203,6 +177,30 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	return article, nil
 }
 
+func (engine *Engine) getArticlesToIndex(txchan *sql.Tx) ([]*Article, error) {
+	fmt.Printf("Getting articles to index...\t")
+	defer fmt.Printf("✨\n")
+	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt IS NULL;", ARTICLE_SELECT))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	var urls []*Article
+
+	for res.Next() {
+		article, err := articleRowScan(res)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, article)
+	}
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+	return urls, nil
+}
+
 func (engine *Engine) getArticlesToMetaData(txchan *sql.Tx) ([]*Article, error) {
 	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt > 0 AND lastMetaAt IS NULL;", ARTICLE_SELECT))
 	if err != nil {
@@ -213,7 +211,6 @@ func (engine *Engine) getArticlesToMetaData(txchan *sql.Tx) ([]*Article, error) 
 	var urls []*Article
 
 	for res.Next() {
-
 		article, err := articleRowScan(res)
 		if err != nil {
 			return nil, err

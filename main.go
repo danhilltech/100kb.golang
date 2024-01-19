@@ -37,7 +37,7 @@ func main() {
 	fmt.Printf("  hnFetchSize:\t\t%d\n", *hnFetchSize)
 	fmt.Printf("  metaChunkSize:\t%d\n", *metaChunkSize)
 	fmt.Printf("  metaWorkers:\t\t%d\n", *metaWorkers)
-	fmt.Printf("Mode\t%s", *mode)
+	fmt.Printf("Mode\t%s\n", *mode)
 
 	if *debug {
 		// go tool pprof -top http://localhost:6060/debug/pprof/heap

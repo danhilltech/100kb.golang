@@ -1,0 +1,11 @@
+{{template "base.html" .}}
+
+{{define "title"}}{{.Title}}{{end}}
+
+{{define "content"}}
+<ul>
+    {{ range .Data }}
+    <li>{{ .Title }} {{.Url}}</li>
+    {{ end }}
+</ul>
+{{end}}

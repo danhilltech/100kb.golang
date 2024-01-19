@@ -26,7 +26,6 @@ type Article struct {
 	Url         string
 	FeedUrl     string
 	PublishedAt int64
-	Html        []byte
 	BodyRaw     *serialize.Content
 	LastFetchAt int64
 	LastMetaAt  int64
