@@ -2,15 +2,17 @@ package article
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
+	"time"
 
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
 func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 	// Check we have enough data
-	if article.BodyRaw == nil || len(article.BodyRaw.Content) == 0 {
+	article.LastMetaAt = time.Now().Unix()
+
+	if article.BodyRaw == nil {
 		return nil
 	}
 
@@ -101,10 +103,6 @@ func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
 	article.H1Count = h1Count
 	article.HNCount = hnCount
 	article.PCount = pCount
-
-	// engine.aiMutex.Lock()
-	// defer engine.aiMutex.Unlock()
-	fmt.Println(article.Url)
 
 	var firstPara string
 	for _, c := range uniqueContent {

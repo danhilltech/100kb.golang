@@ -118,7 +118,7 @@ func (engine *Engine) doArticleMeta(chunk []*Article, workers int) error {
 		// save it
 		err = engine.Update(article, insertTxn)
 		if err != nil {
-			return err
+			fmt.Println(article.Url, err)
 		}
 	}
 
