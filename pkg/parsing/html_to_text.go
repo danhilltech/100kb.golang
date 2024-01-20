@@ -2,7 +2,6 @@ package parsing
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
 
@@ -364,10 +363,6 @@ func HtmlToText(htmlBody io.Reader) ([]*serialize.FlatNode, string, string, erro
 	rootNode := SimpleNode{Type: "root"}
 
 	walkHtmlNodes(z, &rootNode, 0, &title, &description)
-
-	// Now parse it into strings
-
-	fmt.Println("title", title)
 
 	var simple []*serialize.FlatNode
 
