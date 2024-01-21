@@ -31,6 +31,7 @@ type Article struct {
 	LastMetaAt  int64
 	Title       string
 	Description string
+	HTML        []byte
 
 	Body              *serialize.Content
 	WordCount         int64
@@ -40,6 +41,8 @@ type Article struct {
 	FirstPersonRatio  float64
 	SentenceEmbedding *serialize.Embeddings
 	ExtractedKeywords *serialize.Keywords
+
+	HumanClassification int64
 }
 
 func NewEngine(db *sql.DB) (*Engine, error) {

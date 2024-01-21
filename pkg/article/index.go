@@ -1,11 +1,9 @@
 package article
 
 import (
+	"io"
 	"strings"
 	"time"
-
-	"github.com/danhilltech/100kb.golang/pkg/parsing"
-	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
 // Crawls
@@ -44,14 +42,12 @@ func (engine *Engine) articleIndex(article *Article) error {
 
 	defer resp.Body.Close()
 
-	body, title, description, err := parsing.HtmlToText(resp.Body)
+	html, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 
-	article.BodyRaw = &serialize.Content{Content: body}
-	article.Title = title
-	article.Description = description
+	article.HTML = html
 
 	return nil
 

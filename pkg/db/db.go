@@ -63,7 +63,9 @@ CREATE TABLE IF NOT EXISTS articles (
 	pCount INTEGER,
 	firstPersonRatio REAL,
 	sentenceEmbedding BLOB,
-	extractedKeywords BLOB
+	extractedKeywords BLOB,
+	humanClassification INTEGER,
+	html BLOB
 );
 
 CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);

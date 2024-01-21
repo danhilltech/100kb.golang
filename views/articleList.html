@@ -5,7 +5,23 @@
 {{define "content"}}
 <ul>
     {{ range .Data }}
-    <li>{{ .Title }} {{.Url}}</li>
+    <li><a href="{{.Url}}">{{ .GetTitle }}</a> <br />
+        S: {{.GetScore}} | FPR: {{.GetFPR}} | K: {{.GetKeywords}}<br />
+        {{.GetPublishedAt}}
+        <form action="http://localhost:8080/human" method="POST">
+            <select name="classification" id="classification" onchange="this.form.submit(); return false;">
+                <option value="0" {{ if eq .GetHumanClassification 0 }}selected="selected" {{ end }}>Unknown</option>
+                <option value="1" {{ if eq .GetHumanClassification 1 }}selected="selected" {{ end }}>Bad</option>
+                <option value="2" {{ if eq .GetHumanClassification 2 }}selected="selected" {{ end }}>Poor</option>
+                <option value="3" {{ if eq .GetHumanClassification 3 }}selected="selected" {{ end }}>Fine</option>
+                <option value="4" {{ if eq .GetHumanClassification 4 }}selected="selected" {{ end }}>Good</option>
+                <option value="5" {{ if eq .GetHumanClassification 5 }}selected="selected" {{ end }}>Perfect</option>
+            </select>
+            <input type="hidden" name="url" value="{{.Url}}" />
+        </form>
+
+
+    </li>
     {{ end }}
 </ul>
 {{end}}

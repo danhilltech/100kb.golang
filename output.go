@@ -16,6 +16,7 @@ import (
 type RenderEngine struct {
 	templates *template.Template
 	outputDir string
+	db        *sql.DB
 
 	articles []*article.Article
 }
@@ -30,7 +31,7 @@ var pageSize = 100
 //go:embed views/*.html
 var tmplFS embed.FS
 
-func NewRenderEnding(outputDir string, articles []*article.Article) *RenderEngine {
+func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB) *RenderEngine {
 	funcMap := template.FuncMap{
 		// "inc": inc,
 	}
@@ -45,6 +46,7 @@ func NewRenderEnding(outputDir string, articles []*article.Article) *RenderEngin
 		templates: templates,
 		articles:  articles,
 		outputDir: outputDir,
+		db:        db,
 	}
 }
 
@@ -72,12 +74,14 @@ func CreateOutput(db *sql.DB) error {
 		return err
 	}
 
-	engine := NewRenderEnding("output", articles)
+	engine := NewRenderEnding("output", articles, db)
 
 	err = engine.ArticleLists()
 	if err != nil {
 		return err
 	}
+
+	engine.runHttp()
 
 	return nil
 
@@ -85,21 +89,29 @@ func CreateOutput(db *sql.DB) error {
 
 func (engine *RenderEngine) ArticleLists() error {
 
-	articleCount := len(engine.articles)
+	articlesFiltered := []*article.Article{}
+
+	for _, a := range engine.articles {
+		if a.FirstPersonRatio > 0.02 {
+			articlesFiltered = append(articlesFiltered, a)
+		}
+	}
+
+	articleCount := len(articlesFiltered)
 
 	numPages := int(math.Ceil(float64(articleCount) / float64(pageSize)))
 	fmt.Printf("Articles:\t%d\n", articleCount)
 	fmt.Printf("Page size:\t%d\n", pageSize)
 	fmt.Printf("Pages:\t%d\n", numPages)
 
-	sort.Slice(engine.articles, func(i, j int) bool {
-		return engine.articles[i].PublishedAt > engine.articles[j].PublishedAt
+	sort.Slice(articlesFiltered, func(i, j int) bool {
+		return articlesFiltered[i].Score() > articlesFiltered[j].Score()
 	})
 
-	for page := 0; page < numPages; page++ {
+	for page := 0; page < numPages-1; page++ {
 		start := page * pageSize
 		end := (page + 1) * pageSize
-		pageArticles := engine.articles[start:end]
+		pageArticles := articlesFiltered[start:end]
 
 		err := engine.articleListsPage(page, pageArticles)
 		if err != nil {
@@ -123,8 +135,6 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 		return err
 	}
 	defer f.Close()
-
-	fmt.Println(articles[0].Title, articles[0].Description)
 
 	pageData := PageData{
 		Title: "test",

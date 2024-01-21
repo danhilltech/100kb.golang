@@ -16,7 +16,7 @@ func (engine *Engine) initDB(db *sql.DB) error {
 		return err
 	}
 
-	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ? WHERE url = ?;")
+	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ?, humanClassification = ?, html = ? WHERE url = ?;")
 	if err != nil {
 		return err
 	}
@@ -78,12 +78,14 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 		utils.NullFloat64(article.FirstPersonRatio),
 		utils.NullString(string(sentenceEmbedding)),
 		utils.NullString(string(extractedKeywords)),
+		utils.NullInt64(article.HumanClassification),
+		article.HTML,
 		article.Url,
 	)
 	return err
 }
 
-const ARTICLE_SELECT = `url, feedUrl, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio`
+const ARTICLE_SELECT = `url, feedUrl, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio, humanClassification, html`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
@@ -98,8 +100,11 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var sentenceEmbeddingJSON []byte
 	var extractedKeywordsJSON []byte
 
+	var html []byte
+
 	var wordCount, h1Count, hnCount, pCount sql.NullInt64
 	var firstPersonRatio sql.NullFloat64
+	var humanClassification sql.NullInt64
 
 	err := res.Scan(
 		&url,
@@ -118,6 +123,8 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&hnCount,
 		&pCount,
 		&firstPersonRatio,
+		&humanClassification,
+		&html,
 	)
 	if err != nil {
 		return nil, err
@@ -156,22 +163,24 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	}
 
 	article := &Article{
-		Url:               url,
-		FeedUrl:           feedUrl,
-		PublishedAt:       publishedAt,
-		LastFetchAt:       lastFetchAt.Int64,
-		LastMetaAt:        lastFetchAt.Int64,
-		Title:             title.String,
-		Description:       description.String,
-		BodyRaw:           &bodyRaw,
-		Body:              &body,
-		SentenceEmbedding: &sentenceEmbeding,
-		ExtractedKeywords: &extractedKeywords,
-		WordCount:         wordCount.Int64,
-		H1Count:           h1Count.Int64,
-		HNCount:           hnCount.Int64,
-		PCount:            pCount.Int64,
-		FirstPersonRatio:  firstPersonRatio.Float64,
+		Url:                 url,
+		FeedUrl:             feedUrl,
+		PublishedAt:         publishedAt,
+		LastFetchAt:         lastFetchAt.Int64,
+		LastMetaAt:          lastFetchAt.Int64,
+		Title:               title.String,
+		Description:         description.String,
+		BodyRaw:             &bodyRaw,
+		Body:                &body,
+		SentenceEmbedding:   &sentenceEmbeding,
+		ExtractedKeywords:   &extractedKeywords,
+		WordCount:           wordCount.Int64,
+		H1Count:             h1Count.Int64,
+		HNCount:             hnCount.Int64,
+		PCount:              pCount.Int64,
+		FirstPersonRatio:    firstPersonRatio.Float64,
+		HumanClassification: humanClassification.Int64,
+		HTML:                html,
 	}
 
 	return article, nil
@@ -224,7 +233,7 @@ func (engine *Engine) getArticlesToMetaData(txchan *sql.Tx) ([]*Article, error) 
 }
 
 func (engine *Engine) getArticlesByFeed(txchan *sql.Tx, feed string, excludeUrl string) ([]*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE feedUrl = ? AND url != ?", ARTICLE_SELECT), feed, excludeUrl)
+	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE feedUrl = ? AND bodyRaw IS NOT NULL AND url != ?", ARTICLE_SELECT), feed, excludeUrl)
 
 	if err != nil {
 		return nil, err

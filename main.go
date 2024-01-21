@@ -144,7 +144,7 @@ func main() {
 		}
 
 	case "output":
-		db, err := db.InitDB("/dbs/output", "ro")
+		db, err := db.InitDB("/dbs/output", "rw")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
