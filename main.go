@@ -28,6 +28,7 @@ func main() {
 	metaWorkers := flag.Int("meta-workers", 4, "number of meta workers")
 	debug := flag.Bool("debug", false, "run debugging tools")
 	mode := flag.String("mode", "index", "which process to run")
+	cacheDir := flag.String("cache-dir", ".cache", "where to cache html")
 
 	flag.Parse()
 
@@ -45,6 +46,15 @@ func main() {
 			log.Println(http.ListenAndServe("localhost:6060", nil))
 		}()
 	}
+
+	// res, domains, err := adblock.Filter([]string{"myid"}, []string{"map-ad"}, []string{"/sc-tagmanager/test"}, "https://www.google.com")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
+	// }
+
+	// fmt.Println(res)
+	// fmt.Println(domains)
 
 	switch *mode {
 	case "index":
@@ -79,7 +89,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		articleEngine, err := article.NewEngine(db.DB)
+		articleEngine, err := article.NewEngine(db.DB, *cacheDir)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -130,8 +140,58 @@ func main() {
 			os.Exit(1)
 		}
 
+		db.Tidy()
+
+		if *debug {
+			<-c
+		}
+
+	case "meta":
+
+		db, err := db.InitDB("/dbs/output", "rw")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer db.StopDB()
+
+		dbVer, err := db.Version()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Printf("sqlite3 version: \t%s\n", dbVer)
+
+		c := make(chan os.Signal)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-c
+			db.StopDB()
+			fmt.Println("Interupt\t\t🔥🔥🔥")
+
+			os.Exit(1)
+		}()
+
+		articleEngine, err := article.NewEngine(db.DB, *cacheDir)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		defer articleEngine.Close()
+
+		fmt.Println("Engines loaded\t\t🚂🚂🚂")
+
+		// Now run tasks
+
 		// 5. Generate metadata for articles
 		err = articleEngine.RunArticleMeta(*metaChunkSize, *metaWorkers)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		// 6. Second pass metas
+		err = articleEngine.RunArticleMetaPassII(*metaChunkSize, *metaWorkers)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -168,7 +228,7 @@ func main() {
 			os.Exit(1)
 		}()
 
-		err = CreateOutput(db.DB)
+		err = CreateOutput(db.DB, *cacheDir)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

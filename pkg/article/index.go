@@ -1,7 +1,6 @@
 package article
 
 import (
-	"io"
 	"strings"
 	"time"
 )
@@ -42,13 +41,11 @@ func (engine *Engine) articleIndex(article *Article) error {
 
 	defer resp.Body.Close()
 
-	html, err := io.ReadAll(resp.Body)
+	k, err := article.getHTMLKey()
 	if err != nil {
 		return err
 	}
 
-	article.HTML = html
-
-	return nil
+	return engine.cache.WriteStream(k, resp.Body, true)
 
 }

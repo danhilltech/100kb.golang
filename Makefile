@@ -7,6 +7,11 @@ lib/libgobert.so: $(RUST_SRC)
 	mkdir -p lib
 	@cp target/release/libgobert.so lib/libgobert.so
 
+lib/libgoadblock.so: $(RUST_SRC)
+	cargo build --release
+	mkdir -p lib
+	@cp target/release/libgoadblock.so lib/libgoadblock.so
+
 # lib/gobert-cbindgen.h: $(RUST_SRC)
 # 	@cd lib/gobert && cbindgen . --lang c -o ../gobert-cbindgen.h
 
@@ -16,9 +21,11 @@ pkg/ai/sentence_embedding.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/gobert/src/sentence_embedding.proto
 pkg/serialize/article.pb.go: pkg/serialize/article.proto
 	@protoc -I=. --go_out=. ./pkg/serialize/article.proto
+pkg/parsing/adblock.pb.go: ${GO_PROTO_SRC}
+	@protoc -I=. --go_out=. ./lib/goadblock/src/adblock.proto
 
 .PHONY: build
-build: lib/libgobert.so lib/gobert-cbindgen.h pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go
+build: lib/libgobert.so lib/libgoadblock.so lib/gobert-cbindgen.h pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go
 	go build -ldflags="-r $(ROOT_DIR)lib" -buildvcs=false
 
 .PHONY: clean

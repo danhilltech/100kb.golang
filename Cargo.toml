@@ -2,4 +2,5 @@
 resolver="2"
 members = [
     "lib/gobert",
+    "lib/goadblock"
 ]

@@ -2,7 +2,6 @@ package parsing
 
 import (
 	"encoding/json"
-	"io"
 	"strings"
 
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
@@ -20,25 +19,7 @@ type SimpleNode struct {
 // Everything inside these is gobbeld up into a string
 var textTags = []string{"p", "h1", "h2", "h3", "li", "blockquote"}
 
-func tagIsTextTag(tag string) bool {
-	for _, t := range textTags {
-		if t == tag {
-			return true
-		}
-	}
-	return false
-}
-
 var badAreas = []string{"nav", "footer", "iframe", "code", "pre"}
-
-func tagIsGoodArea(tag string) bool {
-	for _, t := range badAreas {
-		if t == tag {
-			return false
-		}
-	}
-	return true
-}
 
 var badClassesAndIds = []string{
 	"share",
@@ -68,27 +49,6 @@ var badWildcards = []string{
 	"footer",
 	"dropdown",
 	"hidden",
-}
-
-func tagIsGoodClassOrId(classRaw string) bool {
-	class := strings.ToLower(classRaw)
-
-	classes := strings.Split(class, " ")
-	for _, t := range badClassesAndIds {
-
-		for _, c := range classes {
-			if c == t {
-				return false
-			}
-		}
-	}
-
-	for _, t := range badWildcards {
-		if strings.Contains(class, t) {
-			return false
-		}
-	}
-	return true
 }
 
 var whitespaceTable = [256]bool{
@@ -193,6 +153,28 @@ func isTitleElement(n *html.Node) bool {
 	return n.Type == html.ElementNode && n.Data == "title"
 }
 
+func isIncludeNode(n *html.Node) bool {
+	for _, attr := range n.Attr {
+		if attr.Key == "data-action" && attr.Val == "include" {
+			return true
+		}
+	}
+	if n.Parent != nil {
+		return isIncludeNode(n.Parent)
+	}
+
+	return false
+}
+
+func tagIsTextTag(t SimpleNodeType) bool {
+	for _, c := range textTags {
+		if c == string(t) {
+			return true
+		}
+	}
+	return false
+}
+
 func extractMetaProperty(t *html.Node, prop string) (content string, ok bool) {
 	for _, attr := range t.Attr {
 		if attr.Key == "property" && attr.Val == prop {
@@ -272,14 +254,14 @@ func walkHtmlNodes(n *html.Node, b *SimpleNode, depth int, title *string, descri
 	if n.Type == html.ElementNode {
 		isSafeClass := true
 		for _, attr := range n.Attr {
-			if attr.Key == "class" || attr.Key == "id" {
-				if !tagIsGoodClassOrId(attr.Val) {
+			if attr.Key == "data-action" {
+				if attr.Val == "skip" || attr.Val == "block" {
 					isSafeClass = false
 				}
 			}
 		}
 
-		if !tagIsGoodArea(n.Data) || !isSafeClass {
+		if !isSafeClass {
 			return
 		}
 		// Create the new node
@@ -297,7 +279,7 @@ func walkHtmlNodes(n *html.Node, b *SimpleNode, depth int, title *string, descri
 
 		p := n.Parent
 		for {
-			if tagIsTextTag(p.Data) {
+			if isIncludeNode(p) {
 				decendentFromText = true
 			}
 			if p.Parent == nil {
@@ -325,7 +307,7 @@ func walkHtmlNodes(n *html.Node, b *SimpleNode, depth int, title *string, descri
 }
 
 func walkSimpleNodes(node *SimpleNode, workingNode *SimpleNode, out *[]*serialize.FlatNode) {
-	if tagIsTextTag(string(node.Type)) {
+	if tagIsTextTag(node.Type) {
 		workingNode = &SimpleNode{Type: node.Type}
 	}
 
@@ -337,7 +319,7 @@ func walkSimpleNodes(node *SimpleNode, workingNode *SimpleNode, out *[]*serializ
 		walkSimpleNodes(c, workingNode, out)
 	}
 
-	if tagIsTextTag(string(node.Type)) {
+	if tagIsTextTag(node.Type) {
 		txt := strings.TrimSpace(workingNode.Text)
 		if len(txt) > 5 {
 			txt := replaceMultipleWhitespace([]byte(txt))
@@ -351,12 +333,7 @@ func walkSimpleNodes(node *SimpleNode, workingNode *SimpleNode, out *[]*serializ
 	}
 }
 
-func HtmlToText(htmlBody io.Reader) ([]*serialize.FlatNode, string, string, error) {
-	z, err := html.Parse(htmlBody)
-
-	if err != nil {
-		return nil, "", "", err
-	}
+func (engine *Engine) HtmlToText(z *html.Node) ([]*serialize.FlatNode, string, string, error) {
 
 	var title, description string
 

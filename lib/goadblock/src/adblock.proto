@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package adblock.content;
+option go_package = "./pkg/parsing";
+
+message FilterRequest {
+    repeated string classes = 1;
+    repeated string ids = 2;
+    repeated string urls = 3;
+    string base_url = 4;
+}
+
+message FilterResponse {
+    repeated string matches = 1;
+    repeated string blocked_domains = 2;
+}
+
+message Rules {
+    repeated string rules = 1;
+}

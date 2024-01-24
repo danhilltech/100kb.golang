@@ -100,7 +100,7 @@ func NewRetryableClient() *http.Client {
 			PreferGo: true,
 			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 				d := net.Dialer{
-					Timeout: time.Duration(1000) * time.Millisecond,
+					Timeout: time.Duration(1500) * time.Millisecond,
 				}
 				return d.DialContext(ctx, "udp", "1.1.1.1:53")
 			},
@@ -114,7 +114,7 @@ func NewRetryableClient() *http.Client {
 	transport := &retryableTransport{
 		transport: &http.Transport{
 			Dial:                  dialTimeout,
-			ResponseHeaderTimeout: 3 * time.Second,
+			ResponseHeaderTimeout: 6 * time.Second,
 			MaxIdleConns:          100,
 			MaxConnsPerHost:       100,
 			MaxIdleConnsPerHost:   100,

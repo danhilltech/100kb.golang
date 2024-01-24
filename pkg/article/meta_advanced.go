@@ -1,37 +1,16 @@
 package article
 
 import (
-	"bytes"
 	"database/sql"
 	"strings"
 	"time"
 
-	"github.com/danhilltech/100kb.golang/pkg/parsing"
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
-func (engine *Engine) articleMeta(tx *sql.Tx, article *Article) error {
+func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 	// Check we have enough data
 	article.LastMetaAt = time.Now().Unix()
-
-	if article.HTML == nil {
-		return nil
-	}
-
-	if len(article.HTML) < 1024 {
-		return nil
-	}
-
-	rdr := bytes.NewReader(article.HTML)
-
-	body, title, description, err := parsing.HtmlToText(rdr)
-	if err != nil {
-		return err
-	}
-
-	article.BodyRaw = &serialize.Content{Content: body}
-	article.Title = title
-	article.Description = description
 
 	feedArticles, err := engine.getArticlesByFeed(tx, article.FeedUrl, article.Url)
 	if err != nil {

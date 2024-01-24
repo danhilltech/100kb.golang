@@ -28,3 +28,4 @@ dbs/*.db
 dbs/*.db*
 log.txt
 output/**/*.html
+.cache/**/*.txt

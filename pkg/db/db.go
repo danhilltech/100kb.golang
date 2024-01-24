@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS articles (
 	publishedAt INTEGER,
 	lastFetchAt INTEGER,
 	lastMetaAt INTEGER,
+	lastContentExtractAt INTEGER,
 	title TEXT,
 	description TEXT,
 	bodyRaw BLOB,

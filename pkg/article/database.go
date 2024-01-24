@@ -16,7 +16,7 @@ func (engine *Engine) initDB(db *sql.DB) error {
 		return err
 	}
 
-	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ?, humanClassification = ?, html = ? WHERE url = ?;")
+	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ?, humanClassification = ?, lastContentExtractAt = ?, badCount = ? WHERE url = ?;")
 	if err != nil {
 		return err
 	}
@@ -79,13 +79,14 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 		utils.NullString(string(sentenceEmbedding)),
 		utils.NullString(string(extractedKeywords)),
 		utils.NullInt64(article.HumanClassification),
-		article.HTML,
+		utils.NullInt64(article.LastContentExtractAt),
+		utils.NullInt64(article.BadCount),
 		article.Url,
 	)
 	return err
 }
 
-const ARTICLE_SELECT = `url, feedUrl, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio, humanClassification, html`
+const ARTICLE_SELECT = `url, feedUrl, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio, humanClassification, lastContentExtractAt, badCount`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
@@ -93,6 +94,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var publishedAt int64
 	var lastFetchAt sql.NullInt64
 	var lastMetaAt sql.NullInt64
+	var lastContentExtractAt sql.NullInt64
 	var title sql.NullString
 	var description sql.NullString
 	var bodyRawJSON []byte
@@ -100,9 +102,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var sentenceEmbeddingJSON []byte
 	var extractedKeywordsJSON []byte
 
-	var html []byte
-
-	var wordCount, h1Count, hnCount, pCount sql.NullInt64
+	var wordCount, h1Count, hnCount, pCount, badCount sql.NullInt64
 	var firstPersonRatio sql.NullFloat64
 	var humanClassification sql.NullInt64
 
@@ -124,7 +124,8 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&pCount,
 		&firstPersonRatio,
 		&humanClassification,
-		&html,
+		&lastContentExtractAt,
+		&badCount,
 	)
 	if err != nil {
 		return nil, err
@@ -163,24 +164,25 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	}
 
 	article := &Article{
-		Url:                 url,
-		FeedUrl:             feedUrl,
-		PublishedAt:         publishedAt,
-		LastFetchAt:         lastFetchAt.Int64,
-		LastMetaAt:          lastFetchAt.Int64,
-		Title:               title.String,
-		Description:         description.String,
-		BodyRaw:             &bodyRaw,
-		Body:                &body,
-		SentenceEmbedding:   &sentenceEmbeding,
-		ExtractedKeywords:   &extractedKeywords,
-		WordCount:           wordCount.Int64,
-		H1Count:             h1Count.Int64,
-		HNCount:             hnCount.Int64,
-		PCount:              pCount.Int64,
-		FirstPersonRatio:    firstPersonRatio.Float64,
-		HumanClassification: humanClassification.Int64,
-		HTML:                html,
+		Url:                  url,
+		FeedUrl:              feedUrl,
+		PublishedAt:          publishedAt,
+		LastFetchAt:          lastFetchAt.Int64,
+		LastMetaAt:           lastFetchAt.Int64,
+		LastContentExtractAt: lastContentExtractAt.Int64,
+		Title:                title.String,
+		Description:          description.String,
+		BodyRaw:              &bodyRaw,
+		Body:                 &body,
+		SentenceEmbedding:    &sentenceEmbeding,
+		ExtractedKeywords:    &extractedKeywords,
+		WordCount:            wordCount.Int64,
+		H1Count:              h1Count.Int64,
+		HNCount:              hnCount.Int64,
+		PCount:               pCount.Int64,
+		FirstPersonRatio:     firstPersonRatio.Float64,
+		HumanClassification:  humanClassification.Int64,
+		BadCount:             badCount.Int64,
 	}
 
 	return article, nil
@@ -210,8 +212,30 @@ func (engine *Engine) getArticlesToIndex(txchan *sql.Tx) ([]*Article, error) {
 	return urls, nil
 }
 
-func (engine *Engine) getArticlesToMetaData(txchan *sql.Tx) ([]*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt > 0 AND lastMetaAt IS NULL;", ARTICLE_SELECT))
+func (engine *Engine) getArticlesToContentExtract(txchan *sql.Tx) ([]*Article, error) {
+	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt > 0 AND lastContentExtractAt IS NULL;", ARTICLE_SELECT))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	var urls []*Article
+
+	for res.Next() {
+		article, err := articleRowScan(res)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, article)
+	}
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+	return urls, nil
+}
+
+func (engine *Engine) getArticlesToMetaDataAdvanved(txchan *sql.Tx) ([]*Article, error) {
+	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastContentExtractAt > 0 AND lastMetaAt IS NULL;", ARTICLE_SELECT))
 	if err != nil {
 		return nil, err
 	}

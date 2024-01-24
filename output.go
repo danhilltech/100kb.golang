@@ -50,9 +50,9 @@ func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB) 
 	}
 }
 
-func CreateOutput(db *sql.DB) error {
+func CreateOutput(db *sql.DB, cacheDir string) error {
 
-	articleEngine, err := article.NewEngine(db)
+	articleEngine, err := article.NewEngine(db, cacheDir)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
