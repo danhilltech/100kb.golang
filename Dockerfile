@@ -76,6 +76,8 @@ RUN chown -R builder:builder /opt
 RUN chmod -R 755 /opt
 USER builder
 
+RUN go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+
 # # Build the Go app
 RUN --mount=type=cache,id=rustcache,target=/usr/local/cargo/registry,uid=1000,gid=1000 \
     --mount=type=cache,id=gomod,target=/go/pkg/mod,uid=1000,gid=1000 \
