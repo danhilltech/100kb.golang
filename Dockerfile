@@ -76,7 +76,8 @@ RUN chown -R builder:builder /opt
 RUN chmod -R 755 /opt
 USER builder
 
-RUN go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 # # Build the Go app
 RUN --mount=type=cache,id=rustcache,target=/usr/local/cargo/registry,uid=1000,gid=1000 \
