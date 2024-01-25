@@ -68,7 +68,7 @@ func (engine *Engine) GetURLsToCrawl(txchan *sql.Tx) ([]*UrlToCrawl, error) {
 		}
 		u, err := url.Parse(urlScanned)
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		domain := u.Hostname()
