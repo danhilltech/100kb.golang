@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS articles (
 	h1Count INTEGER,
 	hnCount INTEGER,
 	pCount INTEGER,
+	badCount INTEGER,
 	firstPersonRatio REAL,
 	sentenceEmbedding BLOB,
 	extractedKeywords BLOB,

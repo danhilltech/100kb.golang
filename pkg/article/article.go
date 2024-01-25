@@ -53,12 +53,14 @@ type Article struct {
 
 func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
 	engine := Engine{}
+	var err error
 
-	engine.initDB(db)
+	err = engine.initDB(db)
+	if err != nil {
+		return nil, err
+	}
 
 	engine.http = retryhttp.NewRetryableClient()
-
-	var err error
 
 	engine.sentenceEmbeddingModel, err = ai.NewSentenceEmbeddingModel()
 	if err != nil {

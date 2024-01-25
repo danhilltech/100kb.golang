@@ -54,6 +54,9 @@ RUN git config --global --add safe.directory /opt
 USER builder
 
 
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 ENV TERM xterm
@@ -76,8 +79,6 @@ RUN chown -R builder:builder /opt
 RUN chmod -R 755 /opt
 USER builder
 
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 # # Build the Go app
 RUN --mount=type=cache,id=rustcache,target=/usr/local/cargo/registry,uid=1000,gid=1000 \

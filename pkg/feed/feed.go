@@ -34,7 +34,10 @@ type Feed struct {
 func NewEngine(db *sql.DB, crawlEngine *crawler.Engine, articleEngine *article.Engine) (*Engine, error) {
 	engine := Engine{crawlEngine: crawlEngine, articleEngine: articleEngine}
 
-	engine.initDB(db)
+	err := engine.initDB(db)
+	if err != nil {
+		return nil, err
+	}
 
 	engine.http = retryhttp.NewRetryableClient()
 
