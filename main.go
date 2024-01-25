@@ -77,8 +77,8 @@ func main() {
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		go func() {
 			<-c
-			db.StopDB()
 			fmt.Println("Interupt\t\t🔥🔥🔥")
+			db.StopDB()
 
 			os.Exit(1)
 		}()
@@ -134,6 +134,7 @@ func main() {
 		}
 
 		// 4. Crawl any new articles for content
+		fmt.Println("hi", db.DB)
 		err = articleEngine.RunArticleIndex(*httpChunkSize, *httpWorkers)
 		if err != nil {
 			fmt.Println(err)
