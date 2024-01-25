@@ -65,19 +65,14 @@ ENV ZSH_THEME agnoster
 # run the installation script  
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 
-COPY ./lib ./lib
-COPY ./pkg ./pkg
-COPY ./views ./views
-COPY ./*.go .
-COPY ./Cargo.* .
-COPY ./go.mod .
-COPY ./go.sum .
-COPY ./Makefile .
-# USER root
-# RUN chown -R builder:builder /app
-# RUN chmod -R 755 /app
-# USER builder
-
+COPY --chown=builder:builder --chmod=755 ./lib ./lib
+COPY --chown=builder:builder --chmod=755 ./pkg ./pkg
+COPY --chown=builder:builder --chmod=755 ./views ./views
+COPY --chown=builder:builder --chmod=755 ./*.go .
+COPY --chown=builder:builder --chmod=755 ./Cargo.* .
+COPY --chown=builder:builder --chmod=755 ./go.mod .
+COPY --chown=builder:builder --chmod=755 ./go.sum .
+COPY --chown=builder:builder --chmod=755 ./Makefile .
 
 # # Build the Go app
 RUN --mount=type=cache,id=rustcache,target=/usr/local/cargo/registry,uid=1000,gid=1000 \

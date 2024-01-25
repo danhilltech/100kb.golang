@@ -35,6 +35,8 @@ clean:
 	@go clean
 	@rm -f 100kb.golang
 	@rm -rf target/*
+	@rm -rf cache/*
+	@rm -rf dbs/output*
 
 .PHONY: godefs
 godefs:
