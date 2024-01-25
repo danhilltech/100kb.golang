@@ -5,12 +5,12 @@ REV := $(shell git rev-parse HEAD)
 lib/libgobert.so: $(RUST_SRC)
 	cargo build --release
 	mkdir -p lib
-	@cp target/release/libgobert.so lib/libgobert.so
+	@mv target/release/libgobert.so lib/libgobert.so
 
 lib/libgoadblock.so: $(RUST_SRC)
 	cargo build --release
 	mkdir -p lib
-	@cp target/release/libgoadblock.so lib/libgoadblock.so
+	@mv target/release/libgoadblock.so lib/libgoadblock.so
 
 # lib/gobert-cbindgen.h: $(RUST_SRC)
 # 	@cd lib/gobert && cbindgen . --lang c -o ../gobert-cbindgen.h
@@ -44,7 +44,7 @@ dockerbuild:
 
 .PHONY: dockerbuild
 dockerterm:
-	docker run --gpus all --rm --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./cache,target=/cache -it 100kb.golang zsh 
+	docker run --gpus all --rm --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache -it --entrypoint zsh  100kb.golang
 
 .PHONY: index
 index:
@@ -52,7 +52,7 @@ index:
 
 .PHONY: output
 output:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./cache,target=/cache 100kb.golang -mode=output > log.txt 2>&1
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=output > log.txt 2>&1
 
 
 .PHONY: transfer
