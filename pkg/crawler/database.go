@@ -83,7 +83,15 @@ func (engine *Engine) GetURLsToCrawl(txchan *sql.Tx) ([]*UrlToCrawl, error) {
 		return nil, err
 	}
 
-	res, err := txchan.Query("SELECT FIRST_VALUE(url) OVER (PARTITION BY domain ORDER BY addedAt DESC) AS url FROM candidate_urls WHERE lastCrawlAt IS NULL;")
+	res, err := txchan.Query(`SELECT url, rn, scnt FROM (
+		SELECT url, 
+		ROW_NUMBER() OVER (PARTITION BY domain ORDER BY addedAt DESC) AS rn, 
+		length(url) - LENGTH(REPLACE(url, "/", "")) as scnt
+		FROM candidate_urls WHERE lastCrawlAt IS NULL AND domain IS NOT NULL
+	) inn
+	WHERE rn <= 2 
+	AND scnt >= 4;`)
+
 	if err != nil {
 		return nil, err
 	}
