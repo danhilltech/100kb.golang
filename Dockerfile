@@ -74,10 +74,10 @@ COPY ./Cargo.* .
 COPY ./go.mod .
 COPY ./go.sum .
 COPY ./Makefile .
-# USER root
-# RUN chown -R builder:builder /opt
-# RUN chmod -R 755 /opt
-# USER builder
+USER root
+RUN chown -R builder:builder /opt/lib
+RUN chmod -R 755 /opt/lib
+USER builder
 
 
 # # Build the Go app
