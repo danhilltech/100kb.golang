@@ -12,12 +12,7 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 	// Check we have enough data
 	article.LastContentExtractAt = time.Now().Unix()
 
-	k, err := article.getHTMLKey()
-	if err != nil {
-		return err
-	}
-
-	htmlStream, err := engine.cache.ReadStream(k, false)
+	htmlStream, err := engine.cache.ReadStream(article.Url)
 	if err != nil {
 		return err
 	}

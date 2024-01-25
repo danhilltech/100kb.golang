@@ -1,11 +1,5 @@
 package article
 
-import (
-	"fmt"
-	"hash/fnv"
-	"net/url"
-)
-
 func Chunk(slice []*Article, chunkSize int) [][]*Article {
 	var chunks [][]*Article
 	for i := 0; i < len(slice); i += chunkSize {
@@ -21,18 +15,4 @@ func Chunk(slice []*Article, chunkSize int) [][]*Article {
 	}
 
 	return chunks
-}
-
-func (a *Article) getHTMLKey() (string, error) {
-	u, err := url.Parse(a.Url)
-	if err != nil {
-		return "", err
-	}
-
-	keyHash := fnv.New64()
-
-	k := u.EscapedPath() + u.Query().Encode()
-
-	keyHash.Write([]byte(k))
-	return fmt.Sprintf("%s/%v", u.Hostname(), keyHash.Sum64()), nil
 }

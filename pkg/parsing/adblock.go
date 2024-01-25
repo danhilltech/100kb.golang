@@ -6,6 +6,7 @@ package parsing
 */
 import "C"
 import (
+	"embed"
 	_ "embed"
 	"fmt"
 	"net/url"
@@ -23,19 +24,37 @@ type AdblockEngine struct {
 	mutex  sync.Mutex
 }
 
-//go:embed data/easylist.txt
-var easylist string
+//go:embed data/*.txt
+var adbLists embed.FS
 
 func NewAdblockEngine() (*AdblockEngine, error) {
 
-	req := Rules{}
+	req := RuleGroups{}
 
-	rules := strings.Split(easylist, "\n")
+	files, err := adbLists.ReadDir("data")
+	if err != nil {
+		return nil, err
+	}
 
-	fmt.Printf("Adblock loading %d rules...\n", len(rules))
+	var cnt int
+
+	for _, list := range files {
+		contents, err := adbLists.ReadFile(fmt.Sprintf("data/%s", list.Name()))
+		if err != nil {
+			return nil, err
+		}
+		rules := strings.Split(string(contents), "\n")
+
+		cnt += len(rules)
+
+		rs := Rules{}
+		rs.Rules = rules
+
+		req.Filters = append(req.Filters, &rs)
+	}
+
+	fmt.Printf("Adblock loading %d rules...\n", cnt)
 	defer fmt.Printf("Adblock loaded\n")
-
-	req.Rules = rules
 
 	reqBytes, err := proto.Marshal(&req)
 	if err != nil {
@@ -73,7 +92,9 @@ func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []strin
 
 	urlsClean := []string{}
 
-	for _, u := range urls {
+	for _, uRaw := range urls {
+
+		u := strings.TrimSpace(uRaw)
 		if strings.HasPrefix(u, "mailto:") {
 			continue
 		}
@@ -84,6 +105,15 @@ func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []strin
 			continue
 		}
 		if strings.HasPrefix(u, "javascript:") {
+			continue
+		}
+		if strings.HasPrefix(u, "tel:") {
+			continue
+		}
+		if strings.HasPrefix(u, "file:") {
+			continue
+		}
+		if strings.HasPrefix(u, "sms:") {
 			continue
 		}
 

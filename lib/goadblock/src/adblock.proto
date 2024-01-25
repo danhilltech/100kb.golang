@@ -18,3 +18,7 @@ message FilterResponse {
 message Rules {
     repeated string rules = 1;
 }
+
+message RuleGroups {
+    repeated Rules filters = 1;
+}

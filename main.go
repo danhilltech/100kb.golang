@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	_ "net/http/pprof"
@@ -22,22 +24,33 @@ func main() {
 	fmt.Println("Running\t\t\t🔥🔥🔥")
 
 	httpChunkSize := flag.Int("http-chunk-size", 100, "number of http chunks")
-	httpWorkers := flag.Int("http-workers", 20, "number of http workers")
+	// httpWorkers := flag.Int("http-workers", 20, "number of http workers")
 	hnFetchSize := flag.Int("hn-fetch-size", 10_000, "number of hn links to get")
 	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
-	metaWorkers := flag.Int("meta-workers", 4, "number of meta workers")
+	// metaWorkers := flag.Int("meta-workers", 4, "number of meta workers")
 	debug := flag.Bool("debug", false, "run debugging tools")
 	mode := flag.String("mode", "index", "which process to run")
 	cacheDir := flag.String("cache-dir", ".cache", "where to cache html")
+	utilization := flag.Float64("util", 1.0, "pcnt of cores to use")
 
 	flag.Parse()
 
+	cores := runtime.NumCPU()
+
 	fmt.Println("Config:")
 	fmt.Printf("  httpChunkSize:\t%d\n", *httpChunkSize)
-	fmt.Printf("  httpWorkers:\t\t%d\n", *httpWorkers)
 	fmt.Printf("  hnFetchSize:\t\t%d\n", *hnFetchSize)
 	fmt.Printf("  metaChunkSize:\t%d\n", *metaChunkSize)
-	fmt.Printf("  metaWorkers:\t\t%d\n", *metaWorkers)
+
+	fmt.Printf("  utilization:\t\t%0.2f\n", *utilization)
+
+	httpWorkers := int(math.Floor(float64(cores) * *utilization * 4.0))
+	metaWorkers := int(math.Floor(float64(cores) * *utilization * 0.5))
+
+	fmt.Printf("  cores:\t\t%d\n", cores)
+	fmt.Printf("  httpWorkers:\t\t%d\n", httpWorkers)
+	fmt.Printf("  httpWorkers:\t\t%d\n", metaWorkers)
+
 	fmt.Printf("Mode\t%s\n", *mode)
 
 	if *debug {
@@ -46,15 +59,6 @@ func main() {
 			log.Println(http.ListenAndServe("localhost:6060", nil))
 		}()
 	}
-
-	// res, domains, err := adblock.Filter([]string{"myid"}, []string{"map-ad"}, []string{"/sc-tagmanager/test"}, "https://www.google.com")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
-
-	// fmt.Println(res)
-	// fmt.Println(domains)
 
 	switch *mode {
 	case "index":
@@ -83,7 +87,7 @@ func main() {
 			os.Exit(1)
 		}()
 
-		crawlEngine, err := crawler.NewEngine(db.DB)
+		crawlEngine, err := crawler.NewEngine(db.DB, *cacheDir)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -113,29 +117,28 @@ func main() {
 		// Now run tasks
 
 		// 1. Get latest hackernews content
-		err = hnEngine.RunRefresh(*httpChunkSize, *hnFetchSize, *httpWorkers)
+		err = hnEngine.RunRefresh(*httpChunkSize, *hnFetchSize, httpWorkers)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
 		// // 2. Check HN stories for any new feeds
-		err = feedEngine.RunNewFeedSearch(*httpChunkSize, *httpWorkers)
+		err = feedEngine.RunNewFeedSearch(*httpChunkSize, httpWorkers)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
 		// // 3. Get latest articles from our feeds
-		err = feedEngine.RunFeedRefresh(*httpChunkSize, *httpWorkers)
+		err = feedEngine.RunFeedRefresh(*httpChunkSize, httpWorkers)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
 		// 4. Crawl any new articles for content
-		fmt.Println("hi", db.DB)
-		err = articleEngine.RunArticleIndex(*httpChunkSize, *httpWorkers)
+		err = articleEngine.RunArticleIndex(*httpChunkSize, httpWorkers)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -185,14 +188,14 @@ func main() {
 		// Now run tasks
 
 		// 5. Generate metadata for articles
-		err = articleEngine.RunArticleMeta(*metaChunkSize, *metaWorkers)
+		err = articleEngine.RunArticleMeta(*metaChunkSize, metaWorkers)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
 		// 6. Second pass metas
-		err = articleEngine.RunArticleMetaPassII(*metaChunkSize, *metaWorkers)
+		err = articleEngine.RunArticleMetaPassII(*metaChunkSize, metaWorkers)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

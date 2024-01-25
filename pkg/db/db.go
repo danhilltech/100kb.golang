@@ -31,13 +31,11 @@ CREATE TABLE IF NOT EXISTS hacker_news (
 
 CREATE UNIQUE INDEX IF NOT EXISTS hacker_news_url ON hacker_news(url);
 
-CREATE TABLE IF NOT EXISTS crawls (
+CREATE TABLE IF NOT EXISTS candidate_urls (
 	url TEXT PRIMARY KEY,
 	hackerNewsId INTEGER,
 	lastCrawlAt INTEGER
 );
-
-CREATE INDEX IF NOT EXISTS crawls_hackerNewsId ON crawls(hackerNewsId);
 
 CREATE TABLE IF NOT EXISTS feeds (
 	url TEXT PRIMARY KEY,

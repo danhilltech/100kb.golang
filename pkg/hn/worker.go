@@ -3,8 +3,10 @@ package hn
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/danhilltech/100kb.golang/pkg/utils"
 	"mvdan.cc/xurls/v2"
@@ -61,8 +63,11 @@ func (engine *Engine) getItem(id int) (*HNItem, error) {
 
 	if item.Type == "comment" {
 		rxStrict := xurls.Strict()
-		urls := rxStrict.FindAllString(item.Text, 1)
-		if len(urls) >= 1 {
+
+		txt := html.UnescapeString(item.Text)
+
+		urls := rxStrict.FindAllString(txt, 1)
+		if len(urls) >= 1 && strings.HasPrefix(urls[0], "https://") {
 			item.URL = urls[0]
 		}
 	}

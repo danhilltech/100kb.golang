@@ -155,6 +155,7 @@ pub extern "C" fn keyword_extraction(
     }
 
     let mut output_vec = vec![];
+
     output_vec.reserve(output.encoded_len());
 
     output.encode(&mut output_vec).unwrap();

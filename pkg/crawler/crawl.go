@@ -9,18 +9,20 @@ import (
 	"strings"
 
 	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
+	"github.com/danhilltech/100kb.golang/pkg/utils"
 	"golang.org/x/net/html"
 )
 
 type Engine struct {
-	dbInsertPreparedCrawl *sql.Stmt
-	http                  *http.Client
+	dbInsertPreparedCandidate *sql.Stmt
+	dbUpdatePreparedCandidate *sql.Stmt
+	http                      *http.Client
+	cache                     *utils.Cache
 }
 
 type UrlToCrawl struct {
-	HackerNewsID int
-	Url          string
-	Feed         string
+	Url  string
+	Feed string
 }
 
 var BANNED_URLS = []string{
@@ -50,9 +52,26 @@ var BANNED_URLS = []string{
 	"www.coindesk.com",
 	"mailchi.mp",
 	"techcrunch.com",
+	"youtu.be",
+	"www.wsj.com",
+	"www.wired.com",
+	"www.washingtonpost.com",
+	"www.theguardian.com",
+	"www.reddit.com",
+	"www.reuters.com",
+	"www.nytimes.com",
+	"www.npr.com",
+	"news.ycombinator.com",
+	"i.imgur.com",
+	"en.wikipedia.org",
+	"en.m.wikipedia.org",
+	"archive.is",
+	"archive.ph",
+	"docs.google.com",
+	"pinterest.com",
 }
 
-func NewEngine(db *sql.DB) (*Engine, error) {
+func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
 	engine := Engine{}
 
 	err := engine.initDB(db)
@@ -61,6 +80,8 @@ func NewEngine(db *sql.DB) (*Engine, error) {
 	}
 
 	engine.http = retryhttp.NewRetryableClient()
+
+	engine.cache = utils.NewDiskCache(cachePath)
 
 	return &engine, nil
 }
@@ -76,10 +97,10 @@ func (engine *Engine) crawlURLForFeedWorker(jobs <-chan *UrlToCrawl, results cha
 }
 
 // Crawls
-func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
+func (engine *Engine) crawlURLForFeed(candidate *UrlToCrawl) error {
 	// First check the URL isn't banned
 
-	parsedUrl, err := url.Parse(hnurl.Url)
+	parsedUrl, err := url.Parse(candidate.Url)
 	if err != nil {
 		return err
 	}
@@ -95,17 +116,15 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 	}
 
 	// crawl it
-	resp, err := engine.http.Get(hnurl.Url)
+	resp, err := engine.cache.Get(candidate.Url, engine.http)
 	if err != nil {
 		return err
 	}
 
-	defer resp.Body.Close()
-
-	feed := extractFeedURL(resp.Body)
+	feed := extractFeedURL(resp)
 
 	// Make sure we flush it
-	io.Copy(io.Discard, resp.Body)
+	io.Copy(io.Discard, resp)
 
 	// Check for malformed
 	if strings.HasPrefix(feed, "//") {
@@ -128,7 +147,7 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 		}
 
 		if h1.StatusCode < 400 && (strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") || strings.Contains(h1.Header.Get("Content-Type"), "application/atom+xml")) {
-			hnurl.Feed = v1
+			candidate.Feed = v1
 			return nil
 		}
 
@@ -145,7 +164,7 @@ func (engine *Engine) crawlURLForFeed(hnurl *UrlToCrawl) error {
 				return err
 			}
 			if h.StatusCode < 400 && (strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") || strings.Contains(h1.Header.Get("Content-Type"), "application/atom+xml")) {
-				hnurl.Feed = v
+				candidate.Feed = v
 				return nil
 			}
 		}

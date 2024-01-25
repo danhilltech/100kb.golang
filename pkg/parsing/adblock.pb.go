@@ -193,6 +193,53 @@ func (x *Rules) GetRules() []string {
 	return nil
 }
 
+type RuleGroups struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Filters []*Rules `protobuf:"bytes,1,rep,name=filters,proto3" json:"filters,omitempty"`
+}
+
+func (x *RuleGroups) Reset() {
+	*x = RuleGroups{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_lib_goadblock_src_adblock_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RuleGroups) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RuleGroups) ProtoMessage() {}
+
+func (x *RuleGroups) ProtoReflect() protoreflect.Message {
+	mi := &file_lib_goadblock_src_adblock_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RuleGroups.ProtoReflect.Descriptor instead.
+func (*RuleGroups) Descriptor() ([]byte, []int) {
+	return file_lib_goadblock_src_adblock_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RuleGroups) GetFilters() []*Rules {
+	if x != nil {
+		return x.Filters
+	}
+	return nil
+}
+
 var File_lib_goadblock_src_adblock_proto protoreflect.FileDescriptor
 
 var file_lib_goadblock_src_adblock_proto_rawDesc = []byte{
@@ -213,7 +260,11 @@ var file_lib_goadblock_src_adblock_proto_rawDesc = []byte{
 	0x03, 0x28, 0x09, 0x52, 0x0e, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x65, 0x64, 0x44, 0x6f, 0x6d, 0x61,
 	0x69, 0x6e, 0x73, 0x22, 0x1d, 0x0a, 0x05, 0x52, 0x75, 0x6c, 0x65, 0x73, 0x12, 0x14, 0x0a, 0x05,
 	0x72, 0x75, 0x6c, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x05, 0x72, 0x75, 0x6c,
-	0x65, 0x73, 0x42, 0x0f, 0x5a, 0x0d, 0x2e, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x61, 0x72, 0x73,
+	0x65, 0x73, 0x22, 0x3e, 0x0a, 0x0a, 0x52, 0x75, 0x6c, 0x65, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x73,
+	0x12, 0x30, 0x0a, 0x07, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x16, 0x2e, 0x61, 0x64, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x2e, 0x63, 0x6f, 0x6e, 0x74,
+	0x65, 0x6e, 0x74, 0x2e, 0x52, 0x75, 0x6c, 0x65, 0x73, 0x52, 0x07, 0x66, 0x69, 0x6c, 0x74, 0x65,
+	0x72, 0x73, 0x42, 0x0f, 0x5a, 0x0d, 0x2e, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x61, 0x72, 0x73,
 	0x69, 0x6e, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
@@ -229,18 +280,20 @@ func file_lib_goadblock_src_adblock_proto_rawDescGZIP() []byte {
 	return file_lib_goadblock_src_adblock_proto_rawDescData
 }
 
-var file_lib_goadblock_src_adblock_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_lib_goadblock_src_adblock_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_lib_goadblock_src_adblock_proto_goTypes = []interface{}{
 	(*FilterRequest)(nil),  // 0: adblock.content.FilterRequest
 	(*FilterResponse)(nil), // 1: adblock.content.FilterResponse
 	(*Rules)(nil),          // 2: adblock.content.Rules
+	(*RuleGroups)(nil),     // 3: adblock.content.RuleGroups
 }
 var file_lib_goadblock_src_adblock_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: adblock.content.RuleGroups.filters:type_name -> adblock.content.Rules
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_lib_goadblock_src_adblock_proto_init() }
@@ -285,6 +338,18 @@ func file_lib_goadblock_src_adblock_proto_init() {
 				return nil
 			}
 		}
+		file_lib_goadblock_src_adblock_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RuleGroups); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -292,7 +357,7 @@ func file_lib_goadblock_src_adblock_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_lib_goadblock_src_adblock_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

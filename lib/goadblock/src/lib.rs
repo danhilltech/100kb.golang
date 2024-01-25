@@ -25,12 +25,14 @@ pub extern "C" fn new_adblock(
     let bytes_raw = unsafe { std::slice::from_raw_parts(req, *req_size) };
     let bytes: Vec<u8> = Vec::from(bytes_raw);
 
-    let request = goadblock::Rules::decode(&mut Cursor::new(bytes)).unwrap();
+    let request = goadblock::RuleGroups::decode(&mut Cursor::new(bytes)).unwrap();
 
     let debug_info = false;
     let mut filter_set = FilterSet::new(debug_info);
-    filter_set.add_filters(&request.rules, ParseOptions::default());
 
+    for rules in request.filters.iter() {
+        filter_set.add_filters(&rules.rules, ParseOptions::default());
+    }
     let engine = Engine::from_filter_set(filter_set, true);
 
     let m2: AdblockEngine = AdblockEngine { engine: engine };

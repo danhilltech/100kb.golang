@@ -3,14 +3,16 @@ GO_PROTO_SRC = $(shell find ./lib -type f -name '*.proto' -not -path "./target/*
 REV := $(shell git rev-parse HEAD)
 
 lib/libgobert.so: $(RUST_SRC)
+	rm target/release/libgobert.so || true
 	cargo build --release
 	mkdir -p lib
-	@mv target/release/libgobert.so lib/libgobert.so
+	@cp target/release/libgobert.so lib/libgobert.so
 
 lib/libgoadblock.so: $(RUST_SRC)
+	rm target/release/libgoadblock.so || true
 	cargo build --release
 	mkdir -p lib
-	@mv target/release/libgoadblock.so lib/libgoadblock.so
+	@cp target/release/libgoadblock.so lib/libgoadblock.so
 
 # lib/gobert-cbindgen.h: $(RUST_SRC)
 # 	@cd lib/gobert && cbindgen . --lang c -o ../gobert-cbindgen.h

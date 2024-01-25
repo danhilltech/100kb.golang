@@ -27,7 +27,7 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 
 	chunkIds := crawler.Chunk(urls, chunkSize)
 
-	fmt.Printf("Checking %d HN urls for feeds in %d chunks\n", len(urls), len(chunkIds))
+	fmt.Printf("Checking %d urls for feeds in %d chunks\n", len(urls), len(chunkIds))
 
 	for _, chunk := range chunkIds {
 		err = engine.doFeedSearchChunk(chunk, workers)
@@ -61,7 +61,7 @@ func (engine *Engine) doFeedSearchChunk(chunk []*crawler.UrlToCrawl, workers int
 			}
 		}
 
-		err = engine.crawlEngine.AddURL(i, insertTxn)
+		err = engine.crawlEngine.TrackCandidateCrawl(i, insertTxn)
 		if err != nil {
 			fmt.Println(err)
 		}

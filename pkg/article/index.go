@@ -34,18 +34,11 @@ func (engine *Engine) articleIndex(article *Article) error {
 	}
 
 	// crawl it
-	resp, err := engine.http.Get(article.Url)
+	_, err = engine.cache.Get(article.Url, engine.http)
 	if err != nil {
 		return err
 	}
 
-	defer resp.Body.Close()
-
-	k, err := article.getHTMLKey()
-	if err != nil {
-		return err
-	}
-
-	return engine.cache.WriteStream(k, resp.Body, true)
+	return nil
 
 }
