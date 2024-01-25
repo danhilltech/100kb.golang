@@ -24,10 +24,8 @@ func main() {
 	fmt.Println("Running\t\t\t🔥🔥🔥")
 
 	httpChunkSize := flag.Int("http-chunk-size", 100, "number of http chunks")
-	// httpWorkers := flag.Int("http-workers", 20, "number of http workers")
 	hnFetchSize := flag.Int("hn-fetch-size", 10_000, "number of hn links to get")
 	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
-	// metaWorkers := flag.Int("meta-workers", 4, "number of meta workers")
 	debug := flag.Bool("debug", false, "run debugging tools")
 	mode := flag.String("mode", "index", "which process to run")
 	cacheDir := flag.String("cache-dir", ".cache", "where to cache html")
@@ -49,7 +47,7 @@ func main() {
 
 	fmt.Printf("  cores:\t\t%d\n", cores)
 	fmt.Printf("  httpWorkers:\t\t%d\n", httpWorkers)
-	fmt.Printf("  httpWorkers:\t\t%d\n", metaWorkers)
+	fmt.Printf("  metaWorkers:\t\t%d\n", metaWorkers)
 
 	fmt.Printf("Mode\t%s\n", *mode)
 

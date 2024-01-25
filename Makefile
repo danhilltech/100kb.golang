@@ -35,7 +35,7 @@ clean:
 	@go clean
 	@rm -f 100kb.golang
 	@rm -rf target/*
-	@rm -rf cache/*
+	@rm -rf .cache/*
 	@rm -rf dbs/output*
 
 .PHONY: godefs
@@ -52,7 +52,13 @@ dockerterm:
 
 .PHONY: index
 index:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=index -http-workers=50 -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=index -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+
+.PHONY: meta
+meta:
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=meta -util=0.8 -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+
+
 
 .PHONY: output
 output:
