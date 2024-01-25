@@ -44,15 +44,14 @@ RUN curl -fsSL --insecure -o libtorch.zip $LIBTORCH_URL \
     && rm libtorch.zip
 
 
-WORKDIR /opt
+WORKDIR /app
 
-RUN chown -R builder:builder /opt
-RUN chmod -R 755 /opt
+RUN chown -R builder:builder /app
+RUN chmod -R 755 /app
 RUN mkdir -p /go && chmod -R 777 /go
-RUN git config --global --add safe.directory /opt
+RUN git config --global --add safe.directory /app
 
 USER builder
-
 
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
@@ -74,15 +73,15 @@ COPY ./Cargo.* .
 COPY ./go.mod .
 COPY ./go.sum .
 COPY ./Makefile .
-USER root
-RUN chown -R builder:builder /opt/lib
-RUN chmod -R 755 /opt/lib
-USER builder
+# USER root
+# RUN chown -R builder:builder /app
+# RUN chmod -R 755 /app
+# USER builder
 
 
 # # Build the Go app
 RUN --mount=type=cache,id=rustcache,target=/usr/local/cargo/registry,uid=1000,gid=1000 \
-    --mount=type=cache,id=rustbuild,target=/opt/target,uid=1000,gid=1000 \
+    --mount=type=cache,id=rustbuild,target=/app/target,uid=1000,gid=1000 \
     --mount=type=cache,id=gomod,target=/go/pkg/mod,uid=1000,gid=1000 \
     --mount=type=cache,id=gobuild,target=/home/builder/.cache/go-build,uid=1000,gid=1000 \
     --mount=type=cache,id=gobuildtmp,target=/tmp/go-build,uid=1000,gid=1000 \
