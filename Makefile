@@ -46,9 +46,9 @@ dockerbuild:
 dockerterm:
 	docker run --gpus all --rm --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./cache,target=/cache -it 100kb.golang zsh 
 
-.PHONY: run
-run:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./cache,target=/cache 100kb.golang -mode=index -http-workers=50 -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+.PHONY: index
+index:
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=index -http-workers=50 -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
 
 .PHONY: output
 output:

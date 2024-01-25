@@ -6,6 +6,7 @@ import (
 )
 
 func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
+	fmt.Println("dan", engine.db)
 	txn, err := engine.db.Begin()
 	if err != nil {
 		return err
