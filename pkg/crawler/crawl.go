@@ -69,6 +69,10 @@ var BANNED_URLS = []string{
 	"archive.ph",
 	"docs.google.com",
 	"pinterest.com",
+	"stackoverflow.com",
+	"m.youtube.com",
+	"web.archive.org",
+	"phys.org",
 }
 
 func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {

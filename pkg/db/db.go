@@ -34,7 +34,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS hacker_news_url ON hacker_news(url);
 CREATE TABLE IF NOT EXISTS candidate_urls (
 	url TEXT PRIMARY KEY,
 	hackerNewsId INTEGER,
-	lastCrawlAt INTEGER
+	addedAt INTEGER NOT NULL,
+	lastCrawlAt INTEGER,
+	domain TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS feeds (

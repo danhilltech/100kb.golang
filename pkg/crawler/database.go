@@ -2,13 +2,14 @@ package crawler
 
 import (
 	"database/sql"
+	"net/url"
 	"time"
 )
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
 
-	engine.dbInsertPreparedCandidate, err = db.Prepare("INSERT INTO candidate_urls(url) VALUES(?) ON CONFLICT(url) DO NOTHING;")
+	engine.dbInsertPreparedCandidate, err = db.Prepare("INSERT INTO candidate_urls(url, domain, addedAt) VALUES(?, ?, ?) ON CONFLICT(url) DO NOTHING;")
 	if err != nil {
 		return err
 	}
@@ -20,8 +21,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	return nil
 }
 
-func (engine *Engine) AddCandidateURL(u string, txchan *sql.Tx) error {
-	_, err := txchan.Stmt(engine.dbInsertPreparedCandidate).Exec(u)
+func (engine *Engine) AddCandidateURL(u string, domain string, txchan *sql.Tx) error {
+	_, err := txchan.Stmt(engine.dbInsertPreparedCandidate).Exec(u, domain, time.Now().Unix())
 	return err
 }
 
@@ -60,12 +61,19 @@ func (engine *Engine) GetURLsToCrawl(txchan *sql.Tx) ([]*UrlToCrawl, error) {
 	}
 	defer missingFromHN.Close()
 	for missingFromHN.Next() {
-		var url string
-		err = missingFromHN.Scan(&url)
+		var urlScanned string
+		err = missingFromHN.Scan(&urlScanned)
 		if err != nil {
 			return nil, err
 		}
-		_, err := txchan.Stmt(engine.dbInsertPreparedCandidate).Exec(url)
+		u, err := url.Parse(urlScanned)
+		if err != nil {
+			return nil, err
+		}
+
+		domain := u.Hostname()
+
+		err = engine.AddCandidateURL(urlScanned, domain, txchan)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +83,7 @@ func (engine *Engine) GetURLsToCrawl(txchan *sql.Tx) ([]*UrlToCrawl, error) {
 		return nil, err
 	}
 
-	res, err := txchan.Query("SELECT url FROM candidate_urls WHERE lastCrawlAt IS NULL;")
+	res, err := txchan.Query("SELECT FIRST_VALUE(url) OVER (PARTITION BY domain ORDER BY addedAt DESC) AS url FROM candidate_urls WHERE lastCrawlAt IS NULL;")
 	if err != nil {
 		return nil, err
 	}
