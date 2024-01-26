@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"io"
@@ -121,16 +122,14 @@ func (engine *Engine) crawlURLForFeed(candidate *UrlToCrawl) error {
 	}
 
 	// crawl it
-	resp, err := engine.cache.Get(candidate.Url, engine.http)
+	res, err := engine.cache.Get(candidate.Url, engine.http)
 	if err != nil {
 		return err
 	}
-	defer resp.Close()
+
+	resp := bytes.NewReader(res)
 
 	feed := extractFeedURL(resp)
-
-	// Make sure we flush it
-	io.Copy(io.Discard, resp)
 
 	// Check for malformed
 	if strings.HasPrefix(feed, "//") {

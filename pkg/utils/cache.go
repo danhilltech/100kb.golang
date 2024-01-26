@@ -86,11 +86,16 @@ func (c *Cache) WriteStream(in string, s io.Reader) error {
 	return nil
 }
 
-func (c *Cache) Get(url string, client *http.Client) (io.ReadCloser, error) {
+func (c *Cache) Get(url string, client *http.Client) ([]byte, error) {
 	// check disk first
 	disk, _ := c.ReadStream(url)
 	if disk != nil {
-		return disk, nil
+		byt, err := io.ReadAll(disk)
+		if err != nil {
+			return nil, err
+		}
+
+		return byt, nil
 	}
 
 	res, err := client.Get(url)
@@ -99,10 +104,12 @@ func (c *Cache) Get(url string, client *http.Client) (io.ReadCloser, error) {
 	}
 	defer res.Body.Close()
 
-	byt, err := io.ReadAll(res.Body)
+	byt, err := io.ReadAll(io.LimitReader(res.Body, 1000000))
 	if err != nil {
 		return nil, err
 	}
+
+	io.Copy(io.Discard, res.Body)
 
 	diskW := bytes.NewReader(byt)
 
@@ -111,8 +118,6 @@ func (c *Cache) Get(url string, client *http.Client) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	outW := bytes.NewReader(byt)
-
-	return io.NopCloser(outW), nil
+	return byt, nil
 
 }

@@ -1,7 +1,6 @@
 package article
 
 import (
-	"io"
 	"strings"
 	"time"
 )
@@ -35,12 +34,10 @@ func (engine *Engine) articleIndex(article *Article) error {
 	}
 
 	// crawl it
-	res, err := engine.cache.Get(article.Url, engine.http)
+	_, err = engine.cache.Get(article.Url, engine.http)
 	if err != nil {
 		return err
 	}
-	defer res.Close()
-	io.Copy(io.Discard, res)
 
 	return nil
 
