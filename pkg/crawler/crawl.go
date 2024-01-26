@@ -125,6 +125,7 @@ func (engine *Engine) crawlURLForFeed(candidate *UrlToCrawl) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Close()
 
 	feed := extractFeedURL(resp)
 

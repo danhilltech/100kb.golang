@@ -168,7 +168,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		FeedUrl:              feedUrl,
 		PublishedAt:          publishedAt,
 		LastFetchAt:          lastFetchAt.Int64,
-		LastMetaAt:           lastFetchAt.Int64,
+		LastMetaAt:           lastMetaAt.Int64,
 		LastContentExtractAt: lastContentExtractAt.Int64,
 		Title:                title.String,
 		Description:          description.String,

@@ -16,6 +16,7 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 	if err != nil {
 		return err
 	}
+	defer htmlStream.Close()
 
 	htmlDoc, err := html.Parse(htmlStream)
 

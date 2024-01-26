@@ -117,6 +117,14 @@ func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []strin
 			continue
 		}
 
+		if strings.HasPrefix(u, "feed:") {
+			continue
+		}
+
+		if strings.HasPrefix(u, "skype:") {
+			continue
+		}
+
 		uP, err := url.Parse(u)
 		if err != nil {
 			return nil, nil, err

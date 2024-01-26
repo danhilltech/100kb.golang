@@ -86,7 +86,7 @@ func (c *Cache) WriteStream(in string, s io.Reader) error {
 	return nil
 }
 
-func (c *Cache) Get(url string, client *http.Client) (io.Reader, error) {
+func (c *Cache) Get(url string, client *http.Client) (io.ReadCloser, error) {
 	// check disk first
 	disk, _ := c.ReadStream(url)
 	if disk != nil {
@@ -98,13 +98,21 @@ func (c *Cache) Get(url string, client *http.Client) (io.Reader, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
-	var buf bytes.Buffer
-	tee := io.TeeReader(res.Body, &buf)
-	err = c.WriteStream(url, tee)
+
+	byt, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return tee, nil
+	diskW := bytes.NewReader(byt)
+
+	err = c.WriteStream(url, diskW)
+	if err != nil {
+		return nil, err
+	}
+
+	outW := bytes.NewReader(byt)
+
+	return io.NopCloser(outW), nil
 
 }
