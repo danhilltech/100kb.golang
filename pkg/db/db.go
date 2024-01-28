@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS hacker_news (
 	score INTEGER
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS hacker_news_url ON hacker_news(url);
+CREATE INDEX IF NOT EXISTS hacker_news_url ON hacker_news(url);
 
 CREATE TABLE IF NOT EXISTS url_requests (
 	url TEXT PRIMARY KEY,

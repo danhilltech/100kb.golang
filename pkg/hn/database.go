@@ -10,7 +10,7 @@ import (
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
-	engine.dbInsertPreparedHN, err = db.Prepare("INSERT INTO hacker_news(id, url, author, type, addedAt, postedAt, score, domain) VALUES(?, ?, ?, ?, ?, ?, ?, ?)  ON CONFLICT(url) DO NOTHING")
+	engine.dbInsertPreparedHN, err = db.Prepare("INSERT INTO hacker_news(id, url, author, type, addedAt, postedAt, score, domain) VALUES(?, ?, ?, ?, ?, ?, ?, ?)  ON CONFLICT(id) DO NOTHING")
 	if err != nil {
 		return err
 	}
