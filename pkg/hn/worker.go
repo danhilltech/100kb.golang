@@ -150,7 +150,6 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 	}
 
 	for j := 1; j <= len(ids); j++ {
-		fmt.Println(ids[j-1])
 		jobs <- ids[j-1]
 	}
 	close(jobs)

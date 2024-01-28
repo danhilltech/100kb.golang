@@ -230,7 +230,7 @@ func (c *Client) headCheck(u string, n int) bool {
 		return c.headCheck(loc, n+1)
 	}
 
-	if !strings.Contains(head.Header.Get("Content-Type"), "text/html") {
+	if !strings.Contains(head.Header.Get("Content-Type"), "text/html") && !strings.Contains(head.Header.Get("Content-Type"), "application/rss") {
 		return false
 	}
 
