@@ -1,8 +1,12 @@
 package article
 
 import (
+	"bytes"
 	"database/sql"
+	"fmt"
+	"io"
 	"time"
+	"unicode/utf8"
 
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"golang.org/x/net/html"
@@ -12,13 +16,28 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 	// Check we have enough data
 	article.LastContentExtractAt = time.Now().Unix()
 
-	htmlStream, err := engine.cache.ReadStream(article.Url)
+	htmlStream, err := engine.http.Get(article.Url)
 	if err != nil {
 		return err
 	}
-	defer htmlStream.Close()
+	defer htmlStream.Body.Close()
 
-	htmlDoc, err := html.Parse(htmlStream)
+	fullBody, err := io.ReadAll(htmlStream.Body)
+	if err != nil {
+		return err
+	}
+	if len(fullBody) > 500000 { // Don't bother parsing anything over 500kb uncompressed
+		fmt.Printf("Skipping %s as body too large at %d bytes\n", article.Url, len(fullBody))
+		return nil
+	}
+	if !utf8.Valid(fullBody) {
+		fmt.Printf("Skipping %s as body not valid utf8\n", article.Url)
+		return nil
+	}
+
+	r := bytes.NewReader(fullBody)
+
+	htmlDoc, err := html.Parse(r)
 
 	if err != nil {
 		return err

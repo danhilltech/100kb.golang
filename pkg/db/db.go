@@ -22,6 +22,7 @@ const DB_INIT_SCRIPT = `
 CREATE TABLE IF NOT EXISTS hacker_news (
 	id INTEGER PRIMARY KEY,
     url TEXT,
+	domain TEXT,
     author TEXT,
 	type TEXT,
     addedAt INTEGER NOT NULL,
@@ -31,25 +32,27 @@ CREATE TABLE IF NOT EXISTS hacker_news (
 
 CREATE UNIQUE INDEX IF NOT EXISTS hacker_news_url ON hacker_news(url);
 
-CREATE TABLE IF NOT EXISTS candidate_urls (
+CREATE TABLE IF NOT EXISTS url_requests (
 	url TEXT PRIMARY KEY,
-	hackerNewsId INTEGER,
-	addedAt INTEGER NOT NULL,
-	lastCrawlAt INTEGER,
-	domain TEXT NOT NULL
+	domain TEXT NOT NULL,
+	lastAttemptAt INTEGER,
+	status TEXT,
+	contentType TEXT
 );
 
-CREATE TABLE IF NOT EXISTS feeds (
-	url TEXT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS domains (
+	domain TEXT PRIMARY KEY,
+	feedUrl TEXT,
 	lastFetchAt INTEGER,
-	title TEXT,
-	description TEXT,
+	feedTitle TEXT,
 	language TEXT
+
 );
 
 CREATE TABLE IF NOT EXISTS articles (
 	url TEXT PRIMARY KEY,
 	feedUrl TEXT,
+	domain TEXT,
 	publishedAt INTEGER,
 	lastFetchAt INTEGER,
 	lastMetaAt INTEGER,
@@ -65,9 +68,7 @@ CREATE TABLE IF NOT EXISTS articles (
 	badCount INTEGER,
 	firstPersonRatio REAL,
 	sentenceEmbedding BLOB,
-	extractedKeywords BLOB,
-	humanClassification INTEGER,
-	html BLOB
+	extractedKeywords BLOB
 );
 
 CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);

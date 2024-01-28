@@ -1,8 +1,8 @@
 package article
 
 import (
-	"database/sql"
 	"fmt"
+	"time"
 )
 
 func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
@@ -21,84 +21,57 @@ func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
 		return err
 	}
 
-	chunkIds := Chunk(articles, chunkSize)
+	fmt.Printf("Generating %d article metas\n", len(articles))
 
-	fmt.Printf("Generating %d article metas %d chunks\n", len(articles), len(chunkIds))
+	txn, err = engine.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer txn.Rollback()
 
-	for _, chunk := range chunkIds {
-		err = engine.doArticleMeta(chunk, workers)
+	a := 0
+	t := time.Now().UnixMilli()
+
+	for _, article := range articles {
+		a++
+		err := engine.articleExtractContent(txn, article)
 		if err != nil {
 			fmt.Println(err)
+			err = engine.Update(article, txn)
+			if err != nil {
+				fmt.Println(article.Url, err)
+			}
+
+			continue
 		}
-	}
 
-	return nil
-}
-
-func (engine *Engine) doArticleMeta(chunk []*Article, workers int) error {
-	fmt.Printf("Chunk...\t\t")
-	defer fmt.Printf("✅\n")
-
-	insertTxn, err := engine.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer insertTxn.Rollback()
-
-	err = engine.articleMetas(insertTxn, chunk, workers)
-	if err != nil {
-		return err
-	}
-
-	for _, article := range chunk {
-		// save it
-		err = engine.Update(article, insertTxn)
+		err = engine.Update(article, txn)
 		if err != nil {
 			fmt.Println(article.Url, err)
+			continue
+		}
+
+		if a > 0 && a%chunkSize == 0 {
+			diff := time.Now().UnixMilli() - t
+			qps := (float64(chunkSize) / float64(diff)) * 1000
+			t = time.Now().UnixMilli()
+			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
+			err = txn.Commit()
+			if err != nil {
+				return err
+			}
+			txn, err = engine.db.Begin()
+			if err != nil {
+				return err
+			}
 		}
 	}
+	fmt.Printf("\tdone %d/%d\n", a, len(articles))
 
-	err = insertTxn.Commit()
+	err = txn.Commit()
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (engine *Engine) articleMetaWorker(tx *sql.Tx, jobs <-chan *Article, results chan<- *Article) {
-	for id := range jobs {
-		err := engine.articleExtractContent(tx, id)
-		if err != nil {
-			fmt.Println(err)
-		}
-		results <- id
-	}
-}
-
-// Crawls
-
-func (engine *Engine) articleMetas(tx *sql.Tx, articles []*Article, workers int) error {
-
-	jobs := make(chan *Article, len(articles))
-	results := make(chan *Article, len(articles))
-
-	for w := 1; w <= workers; w++ {
-		go engine.articleMetaWorker(tx, jobs, results)
-	}
-
-	for j := 1; j <= len(articles); j++ {
-		jobs <- articles[j-1]
-	}
-	close(jobs)
-
-	items := make([]*Article, len(articles))
-
-	for a := 1; a <= len(articles); a++ {
-		b := <-results
-		items[a-1] = b
-	}
-
-	return nil
-
 }

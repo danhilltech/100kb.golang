@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -10,11 +11,11 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
+	"time"
 
 	_ "net/http/pprof"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
-	"github.com/danhilltech/100kb.golang/pkg/crawler"
 	"github.com/danhilltech/100kb.golang/pkg/db"
 	"github.com/danhilltech/100kb.golang/pkg/feed"
 	"github.com/danhilltech/100kb.golang/pkg/hn"
@@ -51,11 +52,16 @@ func main() {
 
 	fmt.Printf("Mode\t%s\n", *mode)
 
+	debugPrinterCtx, cancelDebugPrinter := context.WithCancel(context.Background())
+
 	if *debug {
 		// go tool pprof -top http://localhost:6060/debug/pprof/heap
 		go func() {
 			log.Println(http.ListenAndServe("localhost:6060", nil))
 		}()
+
+		go debugPrinter(debugPrinterCtx)
+
 	}
 
 	switch *mode {
@@ -85,12 +91,6 @@ func main() {
 			os.Exit(1)
 		}()
 
-		crawlEngine, err := crawler.NewEngine(db.DB, *cacheDir)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
 		articleEngine, err := article.NewEngine(db.DB, *cacheDir)
 		if err != nil {
 			fmt.Println(err)
@@ -104,7 +104,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		feedEngine, err := feed.NewEngine(db.DB, crawlEngine, articleEngine)
+		feedEngine, err := feed.NewEngine(db.DB, articleEngine, *cacheDir)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -145,6 +145,7 @@ func main() {
 		db.Tidy()
 
 		if *debug {
+			cancelDebugPrinter()
 			<-c
 		}
 
@@ -202,6 +203,7 @@ func main() {
 		db.Tidy()
 
 		if *debug {
+			cancelDebugPrinter()
 			<-c
 		}
 
@@ -237,9 +239,39 @@ func main() {
 		}
 
 		if *debug {
+			cancelDebugPrinter()
 			<-c
 		}
 
 	}
 
+}
+
+func debugPrinter(ctx context.Context) {
+
+	i := 0
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if i == 6 {
+				printMemUsage()
+				i = 0
+			}
+
+			time.Sleep(500 * time.Millisecond)
+			i++
+		}
+	}
+}
+
+func printMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	fmt.Printf("Alloc = %v MiB", m.Alloc/1024/1024)
+	fmt.Printf("\tTotalAlloc = %v MiB", m.TotalAlloc/1024/1024)
+	fmt.Printf("\tSys = %v MiB", m.Sys/1024/1024)
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
 }

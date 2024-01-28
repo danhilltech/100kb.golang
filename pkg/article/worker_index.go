@@ -3,7 +3,15 @@ package article
 import (
 	"fmt"
 	"math/rand"
+	"time"
+
+	"github.com/danhilltech/100kb.golang/pkg/http"
 )
+
+type ArticleWithHttp struct {
+	Article  *Article
+	Response *http.URLRequest
+}
 
 func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
 	txn, err := engine.db.Begin()
@@ -22,65 +30,10 @@ func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
 
 	rand.Shuffle(len(articles), func(i, j int) { articles[i], articles[j] = articles[j], articles[i] })
 
-	chunkIds := Chunk(articles, chunkSize)
-
-	fmt.Printf("Crawling %d new articles in %d chunks\n", len(articles), len(chunkIds))
-
-	for _, chunk := range chunkIds {
-		err = engine.doFeedArticleIndex(chunk, workers)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-
-	return nil
-}
-
-func (engine *Engine) doFeedArticleIndex(chunk []*Article, workers int) error {
-	fmt.Printf("Chunk...\t\t")
-	defer fmt.Printf("✅\n")
-
-	insertTxn, err := engine.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer insertTxn.Rollback()
-
-	err = engine.articleIndexes(chunk, workers)
-	if err != nil {
-		return err
-	}
-
-	for _, article := range chunk {
-		// save it
-		err = engine.Update(article, insertTxn)
-		if err != nil {
-			fmt.Println(article.Url, err)
-		}
-	}
-
-	err = insertTxn.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (engine *Engine) articleIndexWorker(jobs <-chan *Article, results chan<- *Article) {
-	for id := range jobs {
-		err := engine.articleIndex(id)
-		if err != nil {
-			fmt.Println(err)
-		}
-		results <- id
-	}
-}
-
-func (engine *Engine) articleIndexes(articles []*Article, workers int) error {
+	fmt.Printf("Crawling %d new articles\n", len(articles))
 
 	jobs := make(chan *Article, len(articles))
-	results := make(chan *Article, len(articles))
+	results := make(chan *ArticleWithHttp, len(articles))
 
 	for w := 1; w <= workers; w++ {
 		go engine.articleIndexWorker(jobs, results)
@@ -91,13 +44,60 @@ func (engine *Engine) articleIndexes(articles []*Article, workers int) error {
 	}
 	close(jobs)
 
-	items := make([]*Article, len(articles))
-
-	for a := 1; a <= len(articles); a++ {
-		b := <-results
-		items[a-1] = b
+	txn, err = engine.db.Begin()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	t := time.Now().UnixMilli()
+	for a := 0; a < len(articles); a++ {
+		articleWithHttp := <-results
 
+		if articleWithHttp.Response != nil {
+			err = articleWithHttp.Response.Save(txn)
+			if err != nil {
+				return err
+			}
+		}
+
+		// save it
+		err = engine.Update(articleWithHttp.Article, txn)
+		if err != nil {
+			fmt.Println(articleWithHttp.Article.Url, err)
+			continue
+		}
+
+		if a > 0 && a%chunkSize == 0 {
+			diff := time.Now().UnixMilli() - t
+			qps := (float64(chunkSize) / float64(diff)) * 1000
+			t = time.Now().UnixMilli()
+			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
+			err = txn.Commit()
+			if err != nil {
+				return err
+			}
+			txn, err = engine.db.Begin()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("\tdone %d\n", len(articles))
+
+	return nil
+}
+
+func (engine *Engine) articleIndexWorker(jobs <-chan *Article, results chan<- *ArticleWithHttp) {
+	for id := range jobs {
+		res, err := engine.articleIndex(id)
+		if err != nil {
+			fmt.Println(err)
+		}
+		results <- &ArticleWithHttp{Article: id, Response: res}
+	}
 }

@@ -1,44 +1,25 @@
 package article
 
 import (
-	"strings"
+	"io"
 	"time"
+
+	"github.com/danhilltech/100kb.golang/pkg/http"
 )
 
 // Crawls
-func (engine *Engine) articleIndex(article *Article) error {
+func (engine *Engine) articleIndex(article *Article) (*http.URLRequest, error) {
 
 	article.LastFetchAt = time.Now().Unix()
 
-	// Check its a good url
-	if strings.HasSuffix(article.Url, ".mp4") {
-		return nil
-	}
-	if strings.HasSuffix(article.Url, ".mp3") {
-		return nil
-	}
-	if strings.HasSuffix(article.Url, ".pdf") {
-		return nil
-	}
-	if !strings.HasPrefix(article.Url, "http") {
-		return nil
-	}
-
-	head, err := engine.http.Head(article.Url)
-	if err != nil {
-		return nil
-	}
-	defer head.Body.Close()
-	if !strings.Contains(head.Header.Get("Content-Type"), "text/html") {
-		return nil
-	}
-
 	// crawl it
-	_, err = engine.cache.Get(article.Url, engine.http)
+	resp, err := engine.http.GetWithSafety(article.Url)
 	if err != nil {
-		return err
+		return resp, err
 	}
+	defer resp.Response.Body.Close()
+	io.Copy(io.Discard, resp.Response.Body)
 
-	return nil
+	return resp, nil
 
 }

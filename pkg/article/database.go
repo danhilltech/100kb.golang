@@ -11,12 +11,12 @@ import (
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
-	engine.dbInsertPreparedArticle, err = db.Prepare("INSERT INTO articles(url, feedUrl, publishedAt) VALUES(?, ?, ?) ON CONFLICT(url) DO NOTHING;")
+	engine.dbInsertPreparedArticle, err = db.Prepare("INSERT INTO articles(url, feedUrl, domain, publishedAt) VALUES(?, ?, ?, ?) ON CONFLICT(url) DO NOTHING;")
 	if err != nil {
 		return err
 	}
 
-	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ?, humanClassification = ?, lastContentExtractAt = ?, badCount = ? WHERE url = ?;")
+	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ?, lastContentExtractAt = ?, badCount = ? WHERE url = ?;")
 	if err != nil {
 		return err
 	}
@@ -25,8 +25,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	return nil
 }
 
-func (engine *Engine) Insert(article *Article, feedUrl string, txchan *sql.Tx) error {
-	_, err := txchan.Stmt(engine.dbInsertPreparedArticle).Exec(article.Url, feedUrl, article.PublishedAt)
+func (engine *Engine) Insert(article *Article, feedUrl string, domain string, txchan *sql.Tx) error {
+	_, err := txchan.Stmt(engine.dbInsertPreparedArticle).Exec(article.Url, feedUrl, domain, article.PublishedAt)
 	return err
 }
 
@@ -78,7 +78,6 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 		utils.NullFloat64(article.FirstPersonRatio),
 		utils.NullString(string(sentenceEmbedding)),
 		utils.NullString(string(extractedKeywords)),
-		utils.NullInt64(article.HumanClassification),
 		utils.NullInt64(article.LastContentExtractAt),
 		utils.NullInt64(article.BadCount),
 		article.Url,
@@ -86,11 +85,12 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 	return err
 }
 
-const ARTICLE_SELECT = `url, feedUrl, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio, humanClassification, lastContentExtractAt, badCount`
+const ARTICLE_SELECT = `url, feedUrl, domain, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio, lastContentExtractAt, badCount`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
 	var feedUrl string
+	var domain string
 	var publishedAt int64
 	var lastFetchAt sql.NullInt64
 	var lastMetaAt sql.NullInt64
@@ -104,11 +104,11 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 
 	var wordCount, h1Count, hnCount, pCount, badCount sql.NullInt64
 	var firstPersonRatio sql.NullFloat64
-	var humanClassification sql.NullInt64
 
 	err := res.Scan(
 		&url,
 		&feedUrl,
+		&domain,
 		&publishedAt,
 		&lastFetchAt,
 		&lastMetaAt,
@@ -123,7 +123,6 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&hnCount,
 		&pCount,
 		&firstPersonRatio,
-		&humanClassification,
 		&lastContentExtractAt,
 		&badCount,
 	)
@@ -181,7 +180,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		HNCount:              hnCount.Int64,
 		PCount:               pCount.Int64,
 		FirstPersonRatio:     firstPersonRatio.Float64,
-		HumanClassification:  humanClassification.Int64,
+		Domain:               domain,
 		BadCount:             badCount.Int64,
 	}
 

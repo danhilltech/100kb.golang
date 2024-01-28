@@ -18,10 +18,6 @@ func (article *Article) GetScore() string {
 	return fmt.Sprintf("%0.4f", article.Score())
 }
 
-func (article *Article) GetHumanClassification() int64 {
-	return article.HumanClassification
-}
-
 func (article *Article) GetKeywords() string {
 	b := strings.Builder{}
 

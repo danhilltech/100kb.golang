@@ -18,12 +18,13 @@ type Engine struct {
 type HNItemType string
 
 type HNItem struct {
-	ID    int
-	URL   string
-	By    string
-	Type  HNItemType
-	Time  int
-	Score int
+	ID     int
+	URL    string
+	Domain string
+	By     string
+	Type   HNItemType
+	Time   int
+	Score  int
 
 	Text string
 }

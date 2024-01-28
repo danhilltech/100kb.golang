@@ -2,13 +2,11 @@ package article
 
 import (
 	"database/sql"
-	"net/http"
 
 	"github.com/danhilltech/100kb.golang/pkg/ai"
 	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
 	"github.com/danhilltech/100kb.golang/pkg/parsing"
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
-	"github.com/danhilltech/100kb.golang/pkg/utils"
 )
 
 type Engine struct {
@@ -22,13 +20,13 @@ type Engine struct {
 
 	// aiMutex sync.Mutex
 
-	http  *http.Client
-	cache *utils.Cache
+	http *retryhttp.Client
 }
 
 type Article struct {
 	Url                  string
 	FeedUrl              string
+	Domain               string
 	PublishedAt          int64
 	BodyRaw              *serialize.Content
 	LastFetchAt          int64
@@ -46,8 +44,6 @@ type Article struct {
 	FirstPersonRatio  float64
 	SentenceEmbedding *serialize.Embeddings
 	ExtractedKeywords *serialize.Keywords
-
-	HumanClassification int64
 }
 
 func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
@@ -59,7 +55,10 @@ func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
 		return nil, err
 	}
 
-	engine.http = retryhttp.NewRetryableClient()
+	engine.http, err = retryhttp.NewClient(cachePath)
+	if err != nil {
+		return nil, err
+	}
 
 	engine.sentenceEmbeddingModel, err = ai.NewSentenceEmbeddingModel()
 	if err != nil {
@@ -75,8 +74,6 @@ func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	engine.cache = utils.NewDiskCache(cachePath)
 
 	return &engine, nil
 }

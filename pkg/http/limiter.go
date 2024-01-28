@@ -94,8 +94,8 @@ func (r *Limiter) AllowHost(a string) bool {
 
 // String returns a printable representation of the limiter
 func (r Limiter) String() string {
-	return fmt.Sprintf("ratelimiter: Global %0.2f rps, Per host %4.2 rps, LRU cache %d entries",
-		r.g, r.p, r.cache)
+	return "" //fmt.Sprintf("ratelimiter: Global %0.2f rps, Per host %4.2 rps, LRU cache %d entries",
+	// r.g, r.p, r.cache)
 }
 
 // get or create a new per-host rate limiter.

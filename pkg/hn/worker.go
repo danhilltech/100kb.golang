@@ -6,9 +6,10 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
-	"github.com/danhilltech/100kb.golang/pkg/utils"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -72,6 +73,15 @@ func (engine *Engine) getItem(id int) (*HNItem, error) {
 		}
 	}
 
+	if item.URL != "" {
+		u, err := url.Parse(item.URL)
+		if err != nil {
+			item.URL = ""
+		} else {
+			item.Domain = u.Hostname()
+		}
+	}
+
 	return &item, nil
 }
 
@@ -83,29 +93,6 @@ func (engine *Engine) getItemWorker(jobs <-chan int, results chan<- *HNItem) {
 		}
 		results <- item
 	}
-}
-
-func (engine *Engine) getItems(ids []int, workers int) ([]*HNItem, error) {
-	jobs := make(chan int, len(ids))
-	results := make(chan *HNItem, len(ids))
-
-	for w := 1; w <= workers; w++ {
-		go engine.getItemWorker(jobs, results)
-	}
-
-	for j := 1; j <= len(ids); j++ {
-		jobs <- ids[j-1]
-	}
-	close(jobs)
-
-	items := make([]*HNItem, len(ids))
-
-	for a := 1; a <= len(ids); a++ {
-		b := <-results
-		items[a-1] = b
-	}
-
-	return items, nil
 }
 
 // Gets the latest content from Hacker news
@@ -135,8 +122,6 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 		return err
 	}
 
-	fmt.Println("Checking for new HN IDs")
-
 	wanted := map[int]bool{}
 
 	for i := min; i < max; i++ {
@@ -153,45 +138,58 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 		}
 	}
 
-	fmt.Println("Chunking HN IDs")
+	fmt.Printf("Getting %d HN items\n", len(ids))
 
-	chunkIds := utils.ChunkSlice(ids, chunkSize)
+	jobs := make(chan int, len(ids))
+	results := make(chan *HNItem, len(ids))
 
-	fmt.Printf("Getting %d HN items in %d chunks\n", len(ids), len(chunkIds))
-
-	for _, chunk := range chunkIds {
-		err = engine.doHackerNewsChunk(chunk, workers)
-		if err != nil {
-			return err
-		}
+	for w := 1; w <= workers; w++ {
+		go engine.getItemWorker(jobs, results)
 	}
-	return nil
-}
 
-func (engine *Engine) doHackerNewsChunk(chunk []int, workers int) error {
-	fmt.Printf("Chunk...\t\t")
-	defer fmt.Printf("✅\n")
-	items, err := engine.getItems(chunk, workers)
-	if err != nil {
-		return err
+	for j := 1; j <= len(ids); j++ {
+		jobs <- ids[j-1]
 	}
+	close(jobs)
 
 	insertTxn, err := engine.db.Begin()
 	defer insertTxn.Rollback()
-
 	if err != nil {
 		return err
 	}
-	for _, item := range items {
+
+	t := time.Now().UnixMilli()
+
+	for a := 1; a <= len(ids); a++ {
+		item := <-results
+
 		err = engine.save(item, insertTxn)
 		if err != nil {
 			return err
 		}
+
+		if a > 0 && a%chunkSize == 0 {
+			diff := time.Now().UnixMilli() - t
+			qps := (float64(chunkSize) / float64(diff)) * 1000
+			t = time.Now().UnixMilli()
+			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(ids), qps)
+			err = insertTxn.Commit()
+			if err != nil {
+				return err
+			}
+			insertTxn, err = engine.db.Begin()
+			if err != nil {
+				return err
+			}
+		}
+
 	}
+	fmt.Printf("\tdone %d\n", len(ids))
 
 	err = insertTxn.Commit()
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
