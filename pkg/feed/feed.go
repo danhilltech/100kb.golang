@@ -2,8 +2,6 @@ package feed
 
 import (
 	"database/sql"
-	"net/http"
-	"time"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
@@ -14,7 +12,6 @@ type Engine struct {
 	dbUpdatePreparedFeed *sql.Stmt
 	db                   *sql.DB
 	articleEngine        *article.Engine
-	http                 *http.Client
 	httpCrawl            *retryhttp.Client
 }
 
@@ -36,10 +33,10 @@ func NewEngine(db *sql.DB, articleEngine *article.Engine, cacheDir string) (*Eng
 		return nil, err
 	}
 
-	tr := &http.Transport{MaxIdleConnsPerHost: 1024, TLSHandshakeTimeout: 0 * time.Second}
-	hnClient := &http.Client{Transport: tr}
+	// tr := &http.Transport{MaxIdleConnsPerHost: 1024, TLSHandshakeTimeout: 0 * time.Second}
+	// hnClient := &http.Client{Transport: tr}
 
-	engine.http = hnClient
+	// engine.http = hnClient
 
 	engine.httpCrawl, err = retryhttp.NewClient(cacheDir)
 	if err != nil {

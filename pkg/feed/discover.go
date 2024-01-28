@@ -161,7 +161,7 @@ func (engine *Engine) extractFeed(candidate string) (string, *http.URLRequest, e
 
 		v1 := cleanFeed.String()
 
-		h1, err := engine.http.Head(v1)
+		h1, err := engine.httpCrawl.Head(v1)
 		if err != nil {
 			return "", res, err
 		}
@@ -178,7 +178,7 @@ func (engine *Engine) extractFeed(candidate string) (string, *http.URLRequest, e
 			clean := parsedUrl.ResolveReference(&u)
 
 			v := clean.String()
-			h, err := engine.http.Head(v)
+			h, err := engine.httpCrawl.Head(v)
 			if err != nil {
 				return "", res, err
 			}
