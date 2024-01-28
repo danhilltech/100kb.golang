@@ -40,11 +40,13 @@ func (engine *Engine) getMaxId() (int, error) {
 }
 
 func (engine *Engine) getItem(id int) (*HNItem, error) {
+	tmpItem := &HNItem{ID: id}
+
 	resp, err := engine.client.Get(fmt.Sprintf("%s/item/%d.json", HN_BASE, id))
 
 	// handle the error if there is one
 	if err != nil {
-		return nil, err
+		return tmpItem, err
 	}
 
 	defer resp.Body.Close()
@@ -52,14 +54,14 @@ func (engine *Engine) getItem(id int) (*HNItem, error) {
 	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
-		return nil, err
+		return tmpItem, err
 	}
 
 	var item HNItem
 
 	err = json.Unmarshal(body, &item)
 	if err != nil {
-		return nil, err
+		return tmpItem, err
 	}
 
 	if item.Type == "comment" {

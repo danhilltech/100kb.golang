@@ -17,8 +17,10 @@ func (engine *Engine) articleIndex(article *Article) (*http.URLRequest, error) {
 	if err != nil {
 		return resp, err
 	}
-	defer resp.Response.Body.Close()
-	io.Copy(io.Discard, resp.Response.Body)
+	if resp != nil && resp.Response != nil {
+		defer resp.Response.Body.Close()
+		io.Copy(io.Discard, resp.Response.Body)
+	}
 
 	return resp, nil
 
