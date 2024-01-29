@@ -114,9 +114,11 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 			return err
 		}
 
-		emnd := serialize.Embedding{Vectors: vec[0].Vectors}
-		article.SentenceEmbedding = &serialize.Embeddings{}
-		article.SentenceEmbedding.Embeddings = append(article.SentenceEmbedding.Embeddings, &emnd)
+		if len(vec) > 0 {
+			emnd := serialize.Embedding{Vectors: vec[0].Vectors}
+			article.SentenceEmbedding = &serialize.Embeddings{}
+			article.SentenceEmbedding.Embeddings = append(article.SentenceEmbedding.Embeddings, &emnd)
+		}
 
 		es, err := engine.keywordExtractionModel.Extract([]string{firstPara})
 		if err != nil {
@@ -124,8 +126,10 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 		}
 
 		// article.ExtractedKeywords = es[0].Keywords
-		for _, k := range es[0].Keywords {
-			article.ExtractedKeywords.Keywords = append(article.ExtractedKeywords.Keywords, &serialize.Keyword{Text: string(k.Text), Score: k.Score})
+		if len(es) > 0 {
+			for _, k := range es[0].Keywords {
+				article.ExtractedKeywords.Keywords = append(article.ExtractedKeywords.Keywords, &serialize.Keyword{Text: string(k.Text), Score: k.Score})
+			}
 		}
 	}
 
