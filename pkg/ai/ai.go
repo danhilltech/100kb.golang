@@ -62,7 +62,9 @@ func (ai *SentenceEmbeddingModel) Embeddings(texts []string) ([]*Embedding, erro
 	reqPtr := unsafe.Pointer(&reqBytes[0])
 
 	cout := C.sentence_embedding((*C.SharedSentenceEmbeddingModel)(ai.model), (*C.uchar)(reqPtr), (*C.size_t)(creqSize), (*C.size_t)(coutSize))
-	defer C.drop_bytesarray(cout)
+	if outSize > 0 {
+		defer C.drop_bytesarray(cout)
+	}
 
 	var chunks SentenceEmbeddingResponse
 
@@ -118,7 +120,9 @@ func (ai *KeywordExtractionModel) Extract(texts []string) ([]*Keywords, error) {
 	reqPtr := unsafe.Pointer(&reqBytes[0])
 
 	cout := C.keyword_extraction((*C.SharedKeywordExtractionModel)(ai.model), (*C.uchar)(reqPtr), (*C.size_t)(creqSize), (*C.size_t)(coutSize))
-	defer C.drop_bytesarray(cout)
+	if outSize > 0 {
+		defer C.drop_bytesarray(cout)
+	}
 
 	var chunks KeywordResponse
 
