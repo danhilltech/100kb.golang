@@ -162,7 +162,7 @@ func (engine *RenderEngine) articlePage(article *article.Article) error {
 		return err
 	}
 
-	f, err := os.OpenFile(engine.getFilePath(fmt.Sprintf("article/%s.html", article.Url)), os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.OpenFile(engine.getFilePath(fmt.Sprintf("article/%s.html", article.GetSlug())), os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}

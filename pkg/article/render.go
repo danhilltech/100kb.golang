@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/danhilltech/100kb.golang/pkg/utils"
 )
 
 func (article *Article) GetTitle() string {
@@ -16,6 +18,10 @@ func (article *Article) GetFPR() string {
 
 func (article *Article) GetScore() string {
 	return fmt.Sprintf("%0.4f", article.Score())
+}
+
+func (article *Article) GetSlug() string {
+	return utils.Slugify(article.Url)
 }
 
 func (article *Article) GetKeywords() string {
