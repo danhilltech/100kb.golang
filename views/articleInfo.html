@@ -1,0 +1,27 @@
+{{template "base.html" .}}
+
+{{define "title"}}{{.Title}}{{end}}
+
+{{define "content"}}
+<div>
+    <div>
+        <h1>{{.Title}}</h1>
+        {{ range .Body }}
+        {{if .Type == "p"}}
+        <p>{{.Text}}</p>
+        {{else if .Type == "h1"}}
+        <h1>{{.Text}}</h1>
+        {{else if .Type == "h2"}}
+        <h2>{{.Text}}</h2>
+        {{else if .Type == "h3"}}
+        <h3>{{.Text}}</h3>
+        {{else if .Type == "li"}}
+        <p>-- {{.Text}}</p>
+        {{else}}
+        <div>{{.Type}} {{.Text}}</div>
+        {{end}}
+        {{ end }}
+    </div>
+    <div><iframe src="{{.URL}}"></iframe></div>
+</div>
+{{end}}

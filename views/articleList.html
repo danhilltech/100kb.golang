@@ -5,7 +5,7 @@
 {{define "content"}}
 <ul>
     {{ range .Data }}
-    <li><a href="{{.Url}}">{{ .GetTitle }}</a> <br />
+    <li><a href="/article/{{.Url}}">{{ .GetTitle }}</a> <br />
         S: {{.GetScore}} | FPR: {{.GetFPR}} | K: {{.GetKeywords}}<br />
         {{.GetPublishedAt}}
     </li>

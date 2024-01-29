@@ -117,7 +117,13 @@ func (engine *RenderEngine) ArticleLists() error {
 		if err != nil {
 			return err
 		}
+	}
 
+	for _, article := range articlesFiltered {
+		err := engine.articlePage(article)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -142,6 +148,32 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 	}
 
 	err = engine.templates.ExecuteTemplate(f, "articleList.html", pageData)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (engine *RenderEngine) articlePage(article *article.Article) error {
+
+	err := os.MkdirAll(filepath.Join(engine.outputDir, "article"), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(engine.getFilePath(fmt.Sprintf("article/%s.html", article.Url)), os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	pageData := PageData{
+		Title: article.Title,
+		Data:  article,
+	}
+
+	err = engine.templates.ExecuteTemplate(f, "articleInfo.html", pageData)
 	if err != nil {
 		return err
 	}

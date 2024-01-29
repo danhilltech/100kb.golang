@@ -70,7 +70,7 @@ pub extern "C" fn sentence_embedding(
 
     let mut output = ai::SentenceEmbeddingResponse::default();
 
-    if (embd_groups.is_some()) {
+    if embd_groups.is_some() {
         for group in embd_groups.unwrap().iter() {
             let mut kg = ai::Embedding::default();
             kg.vectors = group.to_vec();
