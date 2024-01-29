@@ -6,7 +6,7 @@
 <div>
     <div>
         <h1>{{.Title}}</h1>
-        {{ range .Body }}
+        {{ range .Body.Content }}
         {{if (eq .Type "p")}}
         <p>{{.Text}}</p>
         {{else if (eq .Type "h1")}}
