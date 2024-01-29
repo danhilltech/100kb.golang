@@ -60,14 +60,22 @@ pub extern "C" fn sentence_embedding(
 
     let sentences = ai::SentenceEmbeddingRequest::decode(&mut Cursor::new(bytes)).unwrap();
 
-    let embd_groups = model.model.encode(&sentences.texts).unwrap();
+    let embd_groups: Option<Vec<Vec<f32>>> = match model.model.encode(&sentences.texts) {
+        Ok(r) => Some(r),
+        Err(error) => {
+            println!("{}", error);
+            None
+        }
+    };
 
     let mut output = ai::SentenceEmbeddingResponse::default();
 
-    for group in embd_groups.iter() {
-        let mut kg = ai::Embedding::default();
-        kg.vectors = group.to_vec();
-        output.texts.push(kg);
+    if (embd_groups.is_some()) {
+        for group in embd_groups.unwrap().iter() {
+            let mut kg = ai::Embedding::default();
+            kg.vectors = group.to_vec();
+            output.texts.push(kg);
+        }
     }
 
     let mut output_vec = vec![];
@@ -138,20 +146,29 @@ pub extern "C" fn keyword_extraction(
 
     let sentences = ai::KeywordRequest::decode(&mut Cursor::new(bytes)).unwrap();
 
-    let key_groups = model.model.predict(&sentences.texts).unwrap();
+    let key_groups: Option<Vec<Vec<rust_bert::pipelines::keywords_extraction::Keyword>>> =
+        match model.model.predict(&sentences.texts) {
+            Ok(r) => Some(r),
+            Err(error) => {
+                println!("{}", error);
+                None
+            }
+        };
 
     let mut output = ai::KeywordResponse::default();
 
-    for group in key_groups.iter() {
-        let mut kg = ai::Keywords::default();
+    if key_groups.is_some() {
+        for group in key_groups.unwrap().iter() {
+            let mut kg = ai::Keywords::default();
 
-        for keyword in group.iter() {
-            let mut kw = ai::Keyword::default();
-            kw.text = keyword.text.clone().into_bytes();
-            kw.score = keyword.score.clone();
-            kg.keywords.push(kw);
+            for keyword in group.iter() {
+                let mut kw = ai::Keyword::default();
+                kw.text = keyword.text.clone().into_bytes();
+                kw.score = keyword.score.clone();
+                kg.keywords.push(kw);
+            }
+            output.texts.push(kg);
         }
-        output.texts.push(kg);
     }
 
     let mut output_vec = vec![];
