@@ -2,10 +2,10 @@ package article
 
 import (
 	"fmt"
+	"hash/fnv"
+	"html/template"
 	"strings"
 	"time"
-
-	"github.com/danhilltech/100kb.golang/pkg/utils"
 )
 
 func (article *Article) GetTitle() string {
@@ -21,7 +21,10 @@ func (article *Article) GetScore() string {
 }
 
 func (article *Article) GetSlug() string {
-	return utils.Slugify(article.Url)
+	keyHash := fnv.New64()
+
+	keyHash.Write([]byte(article.Url))
+	return fmt.Sprintf("article-%d.html", keyHash.Sum64())
 }
 
 func (article *Article) GetKeywords() string {
@@ -39,4 +42,44 @@ func (article *Article) GetPublishedAt() string {
 	d := time.Unix(article.PublishedAt, 0)
 
 	return d.Format(time.UnixDate)
+}
+
+func (article *Article) GetHTML() template.HTML {
+	w := strings.Builder{}
+
+	for _, c := range article.Body.Content {
+		switch c.Type {
+		case "p":
+			w.WriteString("<p>")
+			w.WriteString(c.Text)
+			w.WriteString("</p>")
+		case "h1":
+			w.WriteString("<h1>")
+			w.WriteString(c.Text)
+			w.WriteString("</h1>")
+		case "h2":
+			w.WriteString("<h2>")
+			w.WriteString(c.Text)
+			w.WriteString("</h2>")
+		case "h3":
+			w.WriteString("<h3>")
+			w.WriteString(c.Text)
+			w.WriteString("</h3>")
+		case "li":
+			w.WriteString("<li>")
+			w.WriteString(c.Text)
+			w.WriteString("</li>")
+		default:
+			w.WriteString("<")
+			w.WriteString(c.Type)
+			w.WriteString(">")
+
+			w.WriteString(c.Text)
+
+			w.WriteString("</")
+			w.WriteString(c.Type)
+			w.WriteString(">")
+		}
+	}
+	return template.HTML(w.String())
 }

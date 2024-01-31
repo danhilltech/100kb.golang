@@ -52,7 +52,7 @@ dockerterm:
 
 .PHONY: index
 index:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=index -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=index -http-chunk-size=200 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
 
 .PHONY: meta
 meta:

@@ -13,6 +13,8 @@ import (
 	"mvdan.cc/xurls/v2"
 )
 
+// 39,190,942
+
 func (engine *Engine) getMaxId() (int, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/maxitem.json", HN_BASE))
 	// handle the error if there is one

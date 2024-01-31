@@ -43,7 +43,7 @@ func main() {
 
 	fmt.Printf("  utilization:\t\t%0.2f\n", *utilization)
 
-	httpWorkers := int(math.Floor(float64(cores) * *utilization * 4.0))
+	httpWorkers := int(math.Floor(float64(cores) * *utilization * 8.0))
 	metaWorkers := int(math.Floor(float64(cores) * *utilization * 0.5))
 
 	fmt.Printf("  cores:\t\t%d\n", cores)
@@ -56,8 +56,9 @@ func main() {
 
 	if *debug {
 		// go tool pprof -top http://localhost:6060/debug/pprof/heap
+		fmt.Println("Starting debug pprof...")
 		go func() {
-			log.Println(http.ListenAndServe("localhost:6060", nil))
+			log.Println(http.ListenAndServe(":6060", nil))
 		}()
 
 		go debugPrinter(debugPrinterCtx)

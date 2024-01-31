@@ -59,11 +59,11 @@ RUN bash /tmp/setup.sh \
   && apt-get clean -y
 
 RUN chsh -s /usr/bin/zsh vscode
+RUN mkdir -p /dbs
 
 # [Optional] Uncomment the next lines to use go get to install anything else you need
 USER vscode
 
-RUN mkdir -p /dbs
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 

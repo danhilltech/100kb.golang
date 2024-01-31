@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"io/fs"
 	"math"
 	"os"
 	"path/filepath"
@@ -14,7 +15,7 @@ import (
 )
 
 type RenderEngine struct {
-	templates *template.Template
+	templates map[string]*template.Template
 	outputDir string
 	db        *sql.DB
 
@@ -28,26 +29,42 @@ type PageData struct {
 
 var pageSize = 100
 
-//go:embed views/*.html
+//go:embed views/*.html views/layouts/*.html
 var tmplFS embed.FS
 
-func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB) *RenderEngine {
-	funcMap := template.FuncMap{
-		// "inc": inc,
+//go:embed views/static/*
+var staticFS embed.FS
+
+func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB) (*RenderEngine, error) {
+	// funcMap := template.FuncMap{
+	// 	// "inc": inc,
+	// }
+
+	templates := make(map[string]*template.Template)
+
+	tmplFiles, err := fs.ReadDir(tmplFS, "views")
+	if err != nil {
+		return nil, err
 	}
 
-	templates := template.Must(template.New("").Funcs(funcMap).ParseFS(tmplFS, "views/*.html"))
+	for _, tmpl := range tmplFiles {
+		if tmpl.IsDir() {
+			continue
+		}
 
-	for _, t := range templates.Templates() {
-		fmt.Println(t.Name())
+		pt, err := template.ParseFS(tmplFS, "views/"+tmpl.Name(), "views/layouts/*html")
+		if err != nil {
+			return nil, err
+		}
+
+		templates[tmpl.Name()] = pt
 	}
-
 	return &RenderEngine{
 		templates: templates,
 		articles:  articles,
 		outputDir: outputDir,
 		db:        db,
-	}
+	}, nil
 }
 
 func CreateOutput(db *sql.DB, cacheDir string) error {
@@ -74,9 +91,17 @@ func CreateOutput(db *sql.DB, cacheDir string) error {
 		return err
 	}
 
-	engine := NewRenderEnding("output", articles, db)
+	engine, err := NewRenderEnding("output", articles, db)
+	if err != nil {
+		return err
+	}
 
 	err = engine.ArticleLists()
+	if err != nil {
+		return err
+	}
+
+	err = engine.StaticFiles()
 	if err != nil {
 		return err
 	}
@@ -87,12 +112,45 @@ func CreateOutput(db *sql.DB, cacheDir string) error {
 
 }
 
+func (engine *RenderEngine) StaticFiles() error {
+	files, err := staticFS.ReadDir("views/static")
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(filepath.Join(engine.outputDir, "static"), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		bytes, err := staticFS.ReadFile("views/static/" + f.Name())
+		if err != nil {
+			return err
+		}
+
+		f, err := os.Create(engine.getFilePath(fmt.Sprintf("static/%s", f.Name())))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		_, err = f.Write(bytes)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
 func (engine *RenderEngine) ArticleLists() error {
 
 	articlesFiltered := []*article.Article{}
 
 	for _, a := range engine.articles {
-		if a.FirstPersonRatio > 0.02 {
+		if a.FirstPersonRatio > 0.02 && a.Score() > 0 {
 			articlesFiltered = append(articlesFiltered, a)
 		}
 	}
@@ -130,13 +188,12 @@ func (engine *RenderEngine) ArticleLists() error {
 }
 
 func (engine *RenderEngine) articleListsPage(page int, articles []*article.Article) error {
-
 	err := os.MkdirAll(filepath.Join(engine.outputDir, "page"), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(engine.getFilePath(fmt.Sprintf("page/%d.html", page)), os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.Create(engine.getFilePath(fmt.Sprintf("page/%d.html", page)))
 	if err != nil {
 		return err
 	}
@@ -147,9 +204,10 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 		Data:  articles,
 	}
 
-	err = engine.templates.ExecuteTemplate(f, "articleList.html", pageData)
+	err = engine.templates["articleList.html"].Execute(f, pageData)
 	if err != nil {
-		return err
+		// return err
+		fmt.Println("DAN", err)
 	}
 
 	return nil
@@ -162,7 +220,7 @@ func (engine *RenderEngine) articlePage(article *article.Article) error {
 		return err
 	}
 
-	f, err := os.OpenFile(engine.getFilePath(fmt.Sprintf("article/%s.html", article.GetSlug())), os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.Create(engine.getFilePath(fmt.Sprintf("article/%s", article.GetSlug())))
 	if err != nil {
 		return err
 	}
@@ -173,7 +231,7 @@ func (engine *RenderEngine) articlePage(article *article.Article) error {
 		Data:  article,
 	}
 
-	err = engine.templates.ExecuteTemplate(f, "articleInfo.html", pageData)
+	err = engine.templates["articleInfo.html"].Execute(f, pageData)
 	if err != nil {
 		return err
 	}

@@ -1,27 +1,15 @@
-{{template "base.html" .}}
+{{template "main" .}}
 
 {{define "title"}}{{.Title}}{{end}}
 
 {{define "content"}}
-<div>
-    <div>
-        <h1>{{.Title}}</h1>
-        {{ range .Body.Content }}
-        {{if (eq .Type "p")}}
-        <p>{{.Text}}</p>
-        {{else if (eq .Type "h1")}}
-        <h1>{{.Text}}</h1>
-        {{else if (eq .Type "h2")}}
-        <h2>{{.Text}}</h2>
-        {{else if (eq .Type "h3")}}
-        <h3>{{.Text}}</h3>
-        {{else if (eq .Type "li")}}
-        <p>-- {{.Text}}</p>
-        {{else}}
-        <div>{{.Type}} {{.Text}}</div>
-        {{end}}
-        {{ end }}
+<div class="info-wrapper">
+    <div class="info-left">
+        <h1>{{.Data.Title}}</h1>
+        <div>
+            {{.Data.GetHTML}}
+        </div>
     </div>
-    <div><iframe src="{{.URL}}"></iframe></div>
+    <div class="info-right"><iframe src="{{.Data.Url}}"></iframe></div>
 </div>
 {{end}}

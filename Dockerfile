@@ -65,9 +65,9 @@ ENV ZSH_THEME agnoster
 # run the installation script  
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 
-COPY --chown=builder:builder --chmod=755 ./lib ./lib
-COPY --chown=builder:builder --chmod=755 ./pkg ./pkg
-COPY --chown=builder:builder --chmod=755 ./views ./views
+COPY --chown=builder:builder --chmod=755 ./lib/ ./lib/
+COPY --chown=builder:builder --chmod=755 ./pkg/ ./pkg/
+COPY --chown=builder:builder --chmod=755 ./views/ ./views/
 COPY --chown=builder:builder --chmod=755 ./*.go .
 COPY --chown=builder:builder --chmod=755 ./Cargo.* .
 COPY --chown=builder:builder --chmod=755 ./go.mod .
