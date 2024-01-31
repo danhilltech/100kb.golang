@@ -20,6 +20,10 @@ type KeywordExtractionModel struct {
 	model unsafe.Pointer
 }
 
+type ZeroShotModel struct {
+	model unsafe.Pointer
+}
+
 const maxWordCount = 256
 
 // wget https://huggingface.co/skeskinen/ggml/resolve/main/bert-base-uncased/ggml-model-q4_0.bin?download=true
@@ -138,4 +142,64 @@ func (ai *KeywordExtractionModel) Extract(texts []string) ([]*Keywords, error) {
 
 func (ai *KeywordExtractionModel) Close() {
 	C.drop_keyword_extraction((*C.SharedKeywordExtractionModel)(ai.model))
+}
+
+func NewZeroShotModel() (*ZeroShotModel, error) {
+
+	a := C.new_zero_shot()
+
+	return &ZeroShotModel{model: unsafe.Pointer(a)}, nil
+
+}
+
+func (ai *ZeroShotModel) Predict(texts []string, labels []string) ([]*ZeroShotClassifications, error) {
+
+	req := ZeroShotRequest{}
+
+	textsTrimmed := make([]string, len(texts))
+
+	for i := 0; i < len(texts); i++ {
+		in := texts[i]
+		cut := strings.Split(in, " ")
+		l := min(len(cut), maxWordCount)
+
+		textsTrimmed[i] = strings.Join(cut[0:l], " ")
+	}
+
+	req.Texts = textsTrimmed
+
+	req.Labels = labels
+
+	reqBytes, err := proto.Marshal(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	var outSize uintptr
+
+	reqSize := uintptr(len(reqBytes))
+
+	coutSize := unsafe.Pointer(&outSize)
+	creqSize := unsafe.Pointer(&reqSize)
+	reqPtr := unsafe.Pointer(&reqBytes[0])
+
+	cout := C.zero_shot((*C.SharedZeroShotModel)(ai.model), (*C.uchar)(reqPtr), (*C.size_t)(creqSize), (*C.size_t)(coutSize))
+	if outSize > 0 {
+		defer C.drop_bytesarray(cout)
+	}
+
+	var chunks ZeroShotResponse
+
+	protoBuf := unsafe.Slice((*byte)(cout), outSize)
+
+	err = proto.Unmarshal(protoBuf, &chunks)
+	if err != nil {
+		return nil, err
+	}
+
+	return chunks.Sentences, nil
+}
+
+func (ai *ZeroShotModel) Close() {
+	C.drop_zero_shot((*C.SharedZeroShotModel)(ai.model))
 }

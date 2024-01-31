@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package ai.zero_shot;
+option go_package = "./pkg/ai";
+
+message ZeroShotRequest {
+    repeated string texts = 1;
+    repeated string labels = 2;
+}
+
+message ZeroShotClassification {
+    bytes label = 1;
+    float score = 2;
+}
+
+message ZeroShotClassifications {
+    repeated ZeroShotClassification classifications = 1;
+}
+
+message ZeroShotResponse {
+    repeated ZeroShotClassifications sentences = 1;
+}

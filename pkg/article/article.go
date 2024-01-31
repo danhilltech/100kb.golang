@@ -16,9 +16,8 @@ type Engine struct {
 
 	sentenceEmbeddingModel *ai.SentenceEmbeddingModel
 	keywordExtractionModel *ai.KeywordExtractionModel
+	zeroShotModel          *ai.ZeroShotModel
 	parser                 *parsing.Engine
-
-	// aiMutex sync.Mutex
 
 	http *retryhttp.Client
 }
@@ -44,6 +43,7 @@ type Article struct {
 	FirstPersonRatio  float64
 	SentenceEmbedding *serialize.Embeddings
 	ExtractedKeywords *serialize.Keywords
+	Classifications   *serialize.Keywords
 }
 
 func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
@@ -66,6 +66,11 @@ func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
 	}
 
 	engine.keywordExtractionModel, err = ai.NewKeywordExtractionModel()
+	if err != nil {
+		return nil, err
+	}
+
+	engine.zeroShotModel, err = ai.NewZeroShotModel()
 	if err != nil {
 		return nil, err
 	}

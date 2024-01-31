@@ -3,12 +3,14 @@ package main
 import (
 	"database/sql"
 	"embed"
+	"encoding/csv"
 	"fmt"
 	"io/fs"
 	"math"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"text/template"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
@@ -96,6 +98,11 @@ func CreateOutput(db *sql.DB, cacheDir string) error {
 		return err
 	}
 
+	err = engine.WriteCSV()
+	if err != nil {
+		return err
+	}
+
 	err = engine.ArticleLists()
 	if err != nil {
 		return err
@@ -110,6 +117,34 @@ func CreateOutput(db *sql.DB, cacheDir string) error {
 
 	return nil
 
+}
+
+func (engine *RenderEngine) WriteCSV() error {
+	file, err := os.Create(engine.getFilePath("articles.csv"))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	csvwriter := csv.NewWriter(file)
+
+	var data [][]string
+	for _, a := range engine.articles {
+		row := []string{
+			a.Url,
+			a.Domain,
+			a.FeedUrl,
+			a.Title,
+			strconv.Itoa(int(a.WordCount)),
+			strconv.Itoa(int(a.PCount)),
+			strconv.Itoa(int(a.H1Count)),
+			strconv.Itoa(int(a.HNCount)),
+			strconv.Itoa(int(a.BadCount)),
+			strconv.FormatFloat(a.FirstPersonRatio, 'f', 4, 64),
+		}
+		data = append(data, row)
+	}
+	return csvwriter.WriteAll(data)
 }
 
 func (engine *RenderEngine) StaticFiles() error {

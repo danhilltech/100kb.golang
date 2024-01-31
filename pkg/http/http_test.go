@@ -66,19 +66,19 @@ func TestCachedRequestWithTxn(t *testing.T) {
 	}
 	defer txn.Rollback()
 
-	resp, err := engine.GetWithTxn(u, txn)
+	resp, err := engine.GetWithSafety(u)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
-	defer resp.Body.Close()
+	defer resp.Response.Body.Close()
 
 	err = txn.Commit()
 	if err != nil {
 		t.Error(err)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Response.Body)
 	if err != nil {
 		t.Error(err)
 	}

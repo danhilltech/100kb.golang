@@ -8,6 +8,8 @@ import (
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
+var zeroShotLabels = []string{"technology", "life", "family", "science", "politics", "news"}
+
 func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 	// Check we have enough data
 	article.LastMetaAt = time.Now().Unix()
@@ -100,37 +102,91 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 	article.HNCount = hnCount
 	article.PCount = pCount
 
-	var firstPara string
+	var summaryTexts []string
 	for _, c := range uniqueContent {
-		if c.Type == "p" && len(c.Text) >= 150 {
-			firstPara = c.Text
-			break
+		if c.Type == "h1" || c.Type == "h2" || c.Type == "h3" {
+			summaryTexts = append(summaryTexts, c.Text)
+
 		}
 	}
-	if len(firstPara) >= 150 {
+
+	if len(summaryTexts) > 0 {
 		// AI
-		vec, err := engine.sentenceEmbeddingModel.Embeddings([]string{firstPara})
+		vecs, err := engine.sentenceEmbeddingModel.Embeddings(summaryTexts)
 		if err != nil {
 			return err
 		}
 
-		if len(vec) > 0 {
-			emnd := serialize.Embedding{Vectors: vec[0].Vectors}
+		if len(vecs) > 0 {
 			article.SentenceEmbedding = &serialize.Embeddings{}
-			article.SentenceEmbedding.Embeddings = append(article.SentenceEmbedding.Embeddings, &emnd)
-		}
-
-		es, err := engine.keywordExtractionModel.Extract([]string{firstPara})
-		if err != nil {
-			return err
-		}
-
-		// article.ExtractedKeywords = es[0].Keywords
-		if len(es) > 0 {
-			for _, k := range es[0].Keywords {
-				article.ExtractedKeywords.Keywords = append(article.ExtractedKeywords.Keywords, &serialize.Keyword{Text: string(k.Text), Score: k.Score})
+			for _, vec := range vecs {
+				emnd := serialize.Embedding{Vectors: vec.Vectors}
+				article.SentenceEmbedding.Embeddings = append(article.SentenceEmbedding.Embeddings, &emnd)
 			}
 		}
+
+		ess, err := engine.keywordExtractionModel.Extract(summaryTexts)
+		if err != nil {
+			return err
+		}
+
+		kwds := map[string][]float32{}
+
+		if len(ess) > 0 {
+			for _, es := range ess {
+				for _, k := range es.Keywords {
+					if kwds[string(k.Text)] == nil {
+						kwds[string(k.Text)] = []float32{}
+					}
+					kwds[string(k.Text)] = append(kwds[string(k.Text)], k.Score)
+
+				}
+			}
+
+			for k, ss := range kwds {
+
+				score := float32(0.0)
+				for _, s := range ss {
+					score += s
+				}
+				score = score / float32(len(ss))
+
+				article.ExtractedKeywords.Keywords = append(article.ExtractedKeywords.Keywords, &serialize.Keyword{Text: k, Score: score})
+			}
+
+		}
+
+		zcs, err := engine.zeroShotModel.Predict(summaryTexts, zeroShotLabels)
+		if err != nil {
+			return err
+		}
+
+		zeroshots := map[string][]float32{}
+
+		if len(zcs) > 0 {
+			for _, es := range zcs {
+				for _, k := range es.Classifications {
+					if zeroshots[string(k.Label)] == nil {
+						zeroshots[string(k.Label)] = []float32{}
+					}
+					zeroshots[string(k.Label)] = append(zeroshots[string(k.Label)], k.Score)
+
+				}
+			}
+
+			for k, ss := range zeroshots {
+
+				score := float32(0.0)
+				for _, s := range ss {
+					score += s
+				}
+				score = score / float32(len(ss))
+
+				article.Classifications.Keywords = append(article.Classifications.Keywords, &serialize.Keyword{Text: k, Score: score})
+			}
+
+		}
+
 	}
 
 	return nil

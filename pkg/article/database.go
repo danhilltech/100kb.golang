@@ -16,7 +16,7 @@ func (engine *Engine) initDB(db *sql.DB) error {
 		return err
 	}
 
-	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ?, lastContentExtractAt = ?, badCount = ? WHERE url = ?;")
+	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ?, lastContentExtractAt = ?, badCount = ?, classifications = ? WHERE url = ?;")
 	if err != nil {
 		return err
 	}
@@ -35,6 +35,7 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 	var articleBody []byte
 	var extractedKeywords []byte
 	var sentenceEmbedding []byte
+	var classifications []byte
 	var err error
 
 	if article.BodyRaw != nil {
@@ -63,6 +64,12 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 			return err
 		}
 	}
+	if article.Classifications != nil {
+		classifications, err = proto.Marshal(article.Classifications)
+		if err != nil {
+			return err
+		}
+	}
 
 	_, err = txchan.Stmt(engine.dbUpdatePreparedArticle).Exec(
 		utils.NullInt64(article.LastFetchAt),
@@ -80,12 +87,13 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 		utils.NullString(string(extractedKeywords)),
 		utils.NullInt64(article.LastContentExtractAt),
 		utils.NullInt64(article.BadCount),
+		utils.NullString(string(classifications)),
 		article.Url,
 	)
 	return err
 }
 
-const ARTICLE_SELECT = `url, feedUrl, domain, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio, lastContentExtractAt, badCount`
+const ARTICLE_SELECT = `url, feedUrl, domain, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio, lastContentExtractAt, badCount, classifications`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
@@ -101,6 +109,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var bodyJSON []byte
 	var sentenceEmbeddingJSON []byte
 	var extractedKeywordsJSON []byte
+	var classificationsJSON []byte
 
 	var wordCount, h1Count, hnCount, pCount, badCount sql.NullInt64
 	var firstPersonRatio sql.NullFloat64
@@ -125,6 +134,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&firstPersonRatio,
 		&lastContentExtractAt,
 		&badCount,
+		&classificationsJSON,
 	)
 	if err != nil {
 		return nil, err
@@ -162,6 +172,14 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		}
 	}
 
+	var classifications serialize.Keywords
+	if classificationsJSON != nil {
+		err = proto.Unmarshal(classificationsJSON, &classifications)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	article := &Article{
 		Url:                  url,
 		FeedUrl:              feedUrl,
@@ -182,6 +200,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		FirstPersonRatio:     firstPersonRatio.Float64,
 		Domain:               domain,
 		BadCount:             badCount.Int64,
+		Classifications:      &classifications,
 	}
 
 	return article, nil

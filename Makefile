@@ -21,13 +21,15 @@ pkg/ai/keywords.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/gobert/src/keywords.proto
 pkg/ai/sentence_embedding.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/gobert/src/sentence_embedding.proto
+pkg/ai/zero_shot.pb.go: ${GO_PROTO_SRC}
+	@protoc -I=. --go_out=. ./lib/gobert/src/zero_shot.proto
 pkg/serialize/article.pb.go: pkg/serialize/article.proto
 	@protoc -I=. --go_out=. ./pkg/serialize/article.proto
 pkg/parsing/adblock.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/goadblock/src/adblock.proto
 
 .PHONY: build
-build: lib/libgobert.so lib/libgoadblock.so lib/gobert-cbindgen.h pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go
+build: lib/libgobert.so lib/libgoadblock.so lib/gobert-cbindgen.h pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go pkg/ai/zero_shot.pb.go
 	go build -ldflags="-r $(ROOT_DIR)lib" -buildvcs=false
 
 .PHONY: clean
@@ -48,21 +50,21 @@ dockerbuild:
 
 .PHONY: dockerbuild
 dockerterm:
-	docker run --gpus all --rm --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache -it --entrypoint zsh  100kb.golang
+	docker run --gpus all --rm --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/models  -it --entrypoint zsh  100kb.golang
 
 .PHONY: index
 index:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=index -http-chunk-size=200 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/models 100kb.golang -mode=index -http-chunk-size=200 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
 
 .PHONY: meta
 meta:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache 100kb.golang -mode=meta -util=0.8 -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/models 100kb.golang -mode=meta -util=0.8 -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
 
 
 
 .PHONY: output
 output:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache --mount type=bind,source=./output,target=/app/output -p 8080:8080 100kb.golang -mode=output > log.txt 2>&1
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/models --mount type=bind,source=./output,target=/app/output -p 8080:8080 100kb.golang -mode=output > log.txt 2>&1
 
 
 .PHONY: transfer
