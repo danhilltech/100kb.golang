@@ -184,3 +184,7 @@ iframe {
     width: 100%;
     height: 100%;
 }
+
+.submit-button {
+    width: 84px;
+}

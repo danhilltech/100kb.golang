@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 )
@@ -47,4 +48,8 @@ func (engine *RenderEngine) handleScore(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// rand.Seed(time.Now().Unix())
+	article := engine.articles[rand.Intn(len(engine.articles))]
+
+	http.Redirect(w, r, fmt.Sprintf("/article/%s", article.GetSlug()), http.StatusMovedPermanently)
 }

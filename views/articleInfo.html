@@ -8,10 +8,28 @@
     <div class="info-left">
         <form method="POST" action="/score">
             <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
-            <input type="hidden" id="Score" name="Score" value="1" />
-            <button type="submit" name="1">1</button>
-
-
+            <input type="hidden" id="score" name="score" value="1" />
+            <button type="submit" name="1" class="submit-button">1</button>
+        </form>
+        <form method="POST" action="/score">
+            <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
+            <input type="hidden" id="score" name="score" value="2" />
+            <button type="submit" name="2" class="submit-button">2</button>
+        </form>
+        <form method="POST" action="/score">
+            <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
+            <input type="hidden" id="score" name="score" value="3" />
+            <button type="submit" name="3" class="submit-button">3</button>
+        </form>
+        <form method="POST" action="/score">
+            <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
+            <input type="hidden" id="score" name="score" value="4" />
+            <button type="submit" name="4" class="submit-button">4</button>
+        </form>
+        <form method="POST" action="/score">
+            <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
+            <input type="hidden" id="score" name="score" value="5" />
+            <button type="submit" name="5" class="submit-button">5</button>
         </form>
 
         <h1>{{.Data.Title}}</h1>
