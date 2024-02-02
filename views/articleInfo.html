@@ -3,8 +3,17 @@
 {{define "title"}}{{.Title}}{{end}}
 
 {{define "content"}}
+
 <div class="info-wrapper">
     <div class="info-left">
+        <form method="POST" action="/score">
+            <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
+            <input type="hidden" id="Score" name="Score" value="1" />
+            <button type="submit" name="1">1</button>
+
+
+        </form>
+
         <h1>{{.Data.Title}}</h1>
         <div>
             {{.Data.GetHTML}}

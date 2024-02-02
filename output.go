@@ -156,7 +156,6 @@ func (engine *RenderEngine) WriteCSV() error {
 			strconv.Itoa(int(a.HNCount)),
 			strconv.Itoa(int(a.BadCount)),
 			strconv.FormatFloat(a.FirstPersonRatio, 'f', 4, 64),
-			strconv.FormatFloat(float64(a.Classifications.Keywords["technology"].Score), 'f', 4, 64),
 		}
 		data = append(data, row)
 	}
