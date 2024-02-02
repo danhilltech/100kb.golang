@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var trackFile = "scored.csv"
+var trackFile = "output/scored.csv"
 
 type ScoreRequest struct {
 	URL   string
