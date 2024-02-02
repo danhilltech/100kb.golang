@@ -197,29 +197,29 @@ func (engine *RenderEngine) StaticFiles() error {
 
 func (engine *RenderEngine) ArticleLists() error {
 
-	articlesFiltered := []*article.Article{}
+	// articlesFiltered := []*article.Article{}
 
-	for _, a := range engine.articles {
-		if a.FirstPersonRatio > 0.02 && a.Score() > 0 {
-			articlesFiltered = append(articlesFiltered, a)
-		}
-	}
+	// for _, a := range engine.articles {
+	// 	if a.FirstPersonRatio > 0.02 && a.Score() > 0 {
+	// 		articlesFiltered = append(articlesFiltered, a)
+	// 	}
+	// }
 
-	articleCount := len(articlesFiltered)
+	articleCount := len(engine.articles)
 
 	numPages := int(math.Ceil(float64(articleCount) / float64(pageSize)))
 	fmt.Printf("Articles:\t%d\n", articleCount)
 	fmt.Printf("Page size:\t%d\n", pageSize)
 	fmt.Printf("Pages:\t%d\n", numPages)
 
-	sort.Slice(articlesFiltered, func(i, j int) bool {
-		return articlesFiltered[i].Score() > articlesFiltered[j].Score()
+	sort.Slice(engine.articles, func(i, j int) bool {
+		return engine.articles[i].Score() > engine.articles[j].Score()
 	})
 
 	for page := 0; page < numPages-1; page++ {
 		start := page * pageSize
 		end := (page + 1) * pageSize
-		pageArticles := articlesFiltered[start:end]
+		pageArticles := engine.articles[start:end]
 
 		err := engine.articleListsPage(page, pageArticles)
 		if err != nil {
@@ -227,7 +227,7 @@ func (engine *RenderEngine) ArticleLists() error {
 		}
 	}
 
-	for _, article := range articlesFiltered {
+	for _, article := range engine.articles {
 		err := engine.articlePage(article)
 		if err != nil {
 			return err
