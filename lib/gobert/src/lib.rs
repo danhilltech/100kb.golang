@@ -1,11 +1,14 @@
 use prost::Message;
-use rust_bert::pipelines::keywords_extraction::{KeywordExtractionConfig, KeywordExtractionModel};
+use rust_bert::pipelines::keywords_extraction::{
+    KeywordExtractionConfig, KeywordExtractionModel, KeywordScorerType,
+};
 use rust_bert::pipelines::sentence_embeddings::{
     SentenceEmbeddingsBuilder, SentenceEmbeddingsConfig, SentenceEmbeddingsModelType,
 };
 use rust_bert::pipelines::zero_shot_classification::ZeroShotClassificationModel;
 use std::io::Cursor;
 use std::ptr;
+use tch::Cuda;
 
 pub mod ai {
     include!(concat!(env!("OUT_DIR"), "/ai.keywords.rs"));
@@ -111,11 +114,17 @@ pub extern "C" fn new_keyword_extraction() -> *mut SharedKeywordExtractionModel 
         sentence_embeddings_config: SentenceEmbeddingsConfig::from(
             SentenceEmbeddingsModelType::AllMiniLmL6V2,
         ),
-        // scorer_type: KeywordScorerType::MaxSum,
-        ngram_range: (1, 1),
-        num_keywords: 3,
+        scorer_type: KeywordScorerType::MaximalMarginRelevance,
+        ngram_range: (1, 2),
+        num_keywords: 5,
         ..Default::default()
     };
+
+    if Cuda::cudnn_is_available() {
+        println!("CUDA IS AVAILABLE")
+    } else {
+        println!("CUDA IS NOT AVAILABLE")
+    }
 
     let keyword_extraction_model = KeywordExtractionModel::new(keyword_extraction_config).unwrap();
 
@@ -152,6 +161,8 @@ pub extern "C" fn keyword_extraction(
     let bytes: Vec<u8> = Vec::from(bytes_raw);
 
     let sentences = ai::KeywordRequest::decode(&mut Cursor::new(bytes)).unwrap();
+
+    println!("{:?}", sentences);
 
     let key_groups: Option<Vec<Vec<rust_bert::pipelines::keywords_extraction::Keyword>>> =
         match model.model.predict(&sentences.texts) {

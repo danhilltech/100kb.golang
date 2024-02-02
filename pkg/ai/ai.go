@@ -6,7 +6,6 @@ package ai
 */
 import "C"
 import (
-	"strings"
 	"unsafe"
 
 	"google.golang.org/protobuf/proto"
@@ -40,17 +39,17 @@ func NewSentenceEmbeddingModel() (*SentenceEmbeddingModel, error) {
 func (ai *SentenceEmbeddingModel) Embeddings(texts []string) ([]*Embedding, error) {
 
 	req := SentenceEmbeddingRequest{}
-	textsTrimmed := make([]string, len(texts))
+	// textsTrimmed := make([]string, len(texts))
 
-	for i := 0; i < len(texts); i++ {
-		in := texts[i]
-		cut := strings.Split(in, " ")
-		l := min(len(cut), maxWordCount)
+	// for i := 0; i < len(texts); i++ {
+	// 	in := texts[i]
+	// 	cut := strings.Split(in, " ")
+	// 	l := min(len(cut), maxWordCount)
 
-		textsTrimmed[i] = strings.Join(cut[0:l], " ")
-	}
+	// 	textsTrimmed[i] = strings.Join(cut[0:l], " ")
+	// }
 
-	req.Texts = textsTrimmed
+	req.Texts = texts
 
 	reqBytes, err := proto.Marshal(&req)
 	if err != nil {
@@ -98,17 +97,17 @@ func (ai *KeywordExtractionModel) Extract(texts []string) ([]*Keywords, error) {
 
 	req := KeywordRequest{}
 
-	textsTrimmed := make([]string, len(texts))
+	// textsTrimmed := make([]string, len(texts))
 
-	for i := 0; i < len(texts); i++ {
-		in := texts[i]
-		cut := strings.Split(in, " ")
-		l := min(len(cut), maxWordCount)
+	// for i := 0; i < len(texts); i++ {
+	// 	in := texts[i]
+	// 	cut := strings.Split(in, " ")
+	// 	l := min(len(cut), maxWordCount)
 
-		textsTrimmed[i] = strings.Join(cut[0:l], " ")
-	}
+	// 	textsTrimmed[i] = strings.Join(cut[0:l], " ")
+	// }
 
-	req.Texts = textsTrimmed
+	req.Texts = texts
 
 	reqBytes, err := proto.Marshal(&req)
 	if err != nil {
@@ -156,14 +155,14 @@ func (ai *ZeroShotModel) Predict(texts []string, labels []string) ([]*ZeroShotCl
 
 	req := ZeroShotRequest{}
 
-	textsTrimmed := make([]string, len(texts))
+	maxLen := len(texts)
+	if maxLen > 32 {
+		maxLen = 32
+	}
 
-	for i := 0; i < len(texts); i++ {
-		in := texts[i]
-		cut := strings.Split(in, " ")
-		l := min(len(cut), maxWordCount)
-
-		textsTrimmed[i] = strings.Join(cut[0:l], " ")
+	textsTrimmed := make([]string, maxLen)
+	for i := 0; i < maxLen; i++ {
+		textsTrimmed[i] = texts[i]
 	}
 
 	req.Texts = textsTrimmed

@@ -63,6 +63,7 @@ ENV TERM xterm
 ENV ZSH_THEME agnoster
 
 ENV RUSTBERT_CACHE /app/models
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/app/lib
 
 # run the installation script  
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
