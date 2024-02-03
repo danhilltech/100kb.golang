@@ -27,7 +27,7 @@ _obj
 dbs/*.db
 dbs/*.db*
 log.txt
-output/**/*.html
+output/*
+output
 .cache/**/*.txt
-output/*.csv
 models/*
