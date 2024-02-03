@@ -4,32 +4,51 @@
 
 {{define "content"}}
 
+<script lang="javascript">
+    window.addEventListener(
+        "keydown",
+        (event) => {
+            if (event.defaultPrevented) {
+                return; // Should do nothing if the default action has been cancelled
+            }
+
+            let handled = false;
+            if (event.key !== undefined) {
+                // Handle the event with KeyboardEvent.key
+                handled = true;
+                console.log("key", event.key)
+            } else if (event.keyCode !== undefined) {
+                // Handle the event with KeyboardEvent.keyCode
+                handled = true;
+                console.log("keyCode", event.keyCode)
+            }
+
+            if (handled) {
+                // Suppress "double action" if event handled
+                event.preventDefault();
+            }
+        },
+        true,
+    );
+
+</script>
+
 <div class="info-wrapper">
     <div class="info-left">
-        <form method="POST" action="/score">
+        <form method="POST" action="/score" name="form1" id="form1">
             <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
             <input type="hidden" id="score" name="score" value="1" />
-            <button type="submit" name="1" class="submit-button">1</button>
+            <button type="submit" name="1" class="submit-button">Bad</button>
         </form>
-        <form method="POST" action="/score">
-            <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
-            <input type="hidden" id="score" name="score" value="2" />
-            <button type="submit" name="2" class="submit-button">2</button>
-        </form>
-        <form method="POST" action="/score">
+        <form method="POST" action="/score" name="form2" id="form2">
             <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
             <input type="hidden" id="score" name="score" value="3" />
-            <button type="submit" name="3" class="submit-button">3</button>
+            <button type="submit" name="3" class="submit-button">Ok</button>
         </form>
-        <form method="POST" action="/score">
-            <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
-            <input type="hidden" id="score" name="score" value="4" />
-            <button type="submit" name="4" class="submit-button">4</button>
-        </form>
-        <form method="POST" action="/score">
+        <form method="POST" action="/score" name="form3" id="form3">
             <input type="hidden" id="url" name="url" value="{{.Data.Url}}" />
             <input type="hidden" id="score" name="score" value="5" />
-            <button type="submit" name="5" class="submit-button">5</button>
+            <button type="submit" name="5" class="submit-button">Great</button>
         </form>
 
         <h1>{{.Data.Title}}</h1>
