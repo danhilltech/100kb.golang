@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+
+	"github.com/danhilltech/100kb.golang/pkg/article"
 )
 
 var trackFile = "output/scored.csv"
@@ -48,8 +50,16 @@ func (engine *RenderEngine) handleScore(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	articlesFiltered := []*article.Article{}
+
+	for _, a := range engine.articles {
+		if a.FirstPersonRatio > 0.03 && a.WordCount > 200 && a.WordCount < 2000 && a.BadCount < 50 {
+			articlesFiltered = append(articlesFiltered, a)
+		}
+	}
+
 	// rand.Seed(time.Now().Unix())
-	article := engine.articles[rand.Intn(len(engine.articles))]
+	article := articlesFiltered[rand.Intn(len(articlesFiltered))]
 
 	http.Redirect(w, r, fmt.Sprintf("/article/%s", article.GetSlug()), http.StatusMovedPermanently)
 }
