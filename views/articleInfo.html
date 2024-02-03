@@ -17,10 +17,16 @@
                 // Handle the event with KeyboardEvent.key
                 handled = true;
                 console.log("key", event.key)
-            } else if (event.keyCode !== undefined) {
-                // Handle the event with KeyboardEvent.keyCode
-                handled = true;
-                console.log("keyCode", event.keyCode)
+
+                if (event.key == "1") {
+                    document.getElementById("form1").submit();
+                }
+                if (event.key == "2") {
+                    document.getElementById("form2").submit();
+                }
+                if (event.key == "3") {
+                    document.getElementById("form3").submit();
+                }
             }
 
             if (handled) {
