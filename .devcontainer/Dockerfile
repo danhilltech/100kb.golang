@@ -11,10 +11,9 @@ ARG USER_GID=$USER_UID
 
 ENV TORCH_HOME=/opt/libtorch
 ENV LIBTORCH=/opt/libtorch
-ENV LD_LIBRARY_PATH=${LIBTORCH}/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=${LIBTORCH}/lib:$LD_LIBRARY_PATH:/workspaces/100kb.golang/lib
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LIBTORCH_URL=https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.2%2Bcpu.zip
-# ENV LIBTORCH_URL=https://download.pytorch.org/libtorch/cpu/libtorch-macos-2.1.2.zip
 ENV GOROOT="/usr/local/go"
 ENV GOPATH="/go"
 ENV PATH="/home/vscode/.cargo/bin:/usr/local/go/bin:/go/bin:${PATH}"
@@ -32,27 +31,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
   chmod 0440 /etc/sudoers && \
   chmod g+w /etc/passwd 
 
-
-# RUN cd /tmp/ && \
-#     wget https://www.python.org/ftp/python/3.12.1/Python-3.12.1.tgz  && \
-#     tar -xzvf Python-3.12.1.tgz  && \
-#     cd Python-3.12.1/ && \
-#     ./configure --enable-optimizations && make -j `nproc` && make altinstall && \
-#     ln -s /usr/local/bin/python3.12 /usr/local/bin/python
-
-
 WORKDIR /opt
-
-# x86
-# RUN curl -fsSL --insecure -o libtorch.zip  $LIBTORCH_URL \
-#   && unzip -q libtorch.zip \
-#   && rm libtorch.zip
-
-# RUN git clone --recursive https://github.com/pytorch/pytorch -b v2.0.1 --depth 1
-# RUN cd /opt/pytorch && \
-#   pip3 install -r requirements.txt --break-system-packages
-# RUN cd /opt/pytorch && \
-#   python3 tools/build_libtorch.py
 
 COPY setup.sh /tmp/setup.sh
 RUN bash /tmp/setup.sh \
@@ -70,9 +49,8 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV TERM xterm
 # set the zsh theme
 ENV ZSH_THEME agnoster
+ENV RUSTBERT_CACHE /workspaces/100kb.golang/models
 
 # run the installation script  
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
 
-# RUN chsh -s $(which zsh)
-RUN cargo install --force cbindgen

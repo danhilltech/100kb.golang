@@ -111,7 +111,9 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 		}
 	}
 
-	if len(summaryTexts) > 0 {
+	if len(summaryTexts) > 0 &&
+		engine.sentenceEmbeddingModel != nil &&
+		engine.zeroShotModel != nil {
 		// AI
 		var startTime, diff int64
 		startTime = time.Now().UnixMilli()

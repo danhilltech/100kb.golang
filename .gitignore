@@ -30,4 +30,12 @@ log.txt
 output/*
 output/
 .cache/**/*.txt
+.cache/
 models/*
+*.tar.gz
+
+libsvm/
+*.csv
+*.txt
+*.model
+.DS_Store

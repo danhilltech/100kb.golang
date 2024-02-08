@@ -76,7 +76,7 @@ CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);
 `
 
 func InitDB(name string, mode string) (*Database, error) {
-	fmt.Printf("creating database\t")
+	fmt.Printf("creating database with mode %s\t", mode)
 	defer fmt.Printf("❄️\n")
 
 	sqliteDatabase, err := sql.Open("sqlite3", fmt.Sprintf("file:%s.db?mode=%s&_journal_mode=WAL&_sync=FULL", name, mode)) // Open the created SQLite File

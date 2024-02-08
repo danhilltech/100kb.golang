@@ -19,7 +19,14 @@ func (engine *Engine) articleIndex(article *Article) (*http.URLRequest, error) {
 	}
 	if resp != nil && resp.Response != nil {
 		defer resp.Response.Body.Close()
-		io.Copy(io.Discard, resp.Response.Body)
+
+		byts, err := io.ReadAll(resp.Response.Body)
+		if err != nil {
+			return nil, err
+		}
+		article.HTMLLength = int64(len(byts))
+
+		// io.Copy(io.Discard, resp.Response.Body)
 	}
 
 	return resp, nil

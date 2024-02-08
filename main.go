@@ -92,7 +92,7 @@ func main() {
 			os.Exit(1)
 		}()
 
-		articleEngine, err := article.NewEngine(db.DB, *cacheDir)
+		articleEngine, err := article.NewEngine(db.DB, *cacheDir, false)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -176,7 +176,7 @@ func main() {
 			os.Exit(1)
 		}()
 
-		articleEngine, err := article.NewEngine(db.DB, *cacheDir)
+		articleEngine, err := article.NewEngine(db.DB, *cacheDir, true)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

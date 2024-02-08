@@ -34,19 +34,22 @@ type Article struct {
 	Title                string
 	Description          string
 
-	Body              *serialize.Content
-	WordCount         int64
-	H1Count           int64
-	HNCount           int64
-	PCount            int64
-	BadCount          int64
-	FirstPersonRatio  float64
+	Body             *serialize.Content
+	WordCount        int64
+	H1Count          int64
+	HNCount          int64
+	PCount           int64
+	BadCount         int64
+	FirstPersonRatio float64
+
+	HTMLLength int64
+
 	SentenceEmbedding *serialize.Embeddings
 	ExtractedKeywords *serialize.Keywords
 	Classifications   *serialize.Keywords
 }
 
-func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
+func NewEngine(db *sql.DB, cachePath string, withModels bool) (*Engine, error) {
 	engine := Engine{}
 	var err error
 
@@ -60,19 +63,21 @@ func NewEngine(db *sql.DB, cachePath string) (*Engine, error) {
 		return nil, err
 	}
 
-	engine.sentenceEmbeddingModel, err = ai.NewSentenceEmbeddingModel()
-	if err != nil {
-		return nil, err
-	}
+	if withModels {
+		engine.sentenceEmbeddingModel, err = ai.NewSentenceEmbeddingModel()
+		if err != nil {
+			return nil, err
+		}
 
-	engine.keywordExtractionModel, err = ai.NewKeywordExtractionModel()
-	if err != nil {
-		return nil, err
-	}
+		engine.keywordExtractionModel, err = ai.NewKeywordExtractionModel()
+		if err != nil {
+			return nil, err
+		}
 
-	engine.zeroShotModel, err = ai.NewZeroShotModel()
-	if err != nil {
-		return nil, err
+		engine.zeroShotModel, err = ai.NewZeroShotModel()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	engine.parser, err = parsing.NewEngine()

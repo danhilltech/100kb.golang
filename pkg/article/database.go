@@ -325,3 +325,34 @@ func (engine *Engine) GetAllValid(txchan *sql.Tx) ([]*Article, error) {
 	}
 	return urls, nil
 }
+
+func (engine *Engine) FindByURL(txchan *sql.Tx, url string) (*Article, error) {
+	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE url = ? LIMIT 1", ARTICLE_SELECT), url)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+
+	var urls []*Article
+
+	for res.Next() {
+		article, err := articleRowScan(res)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, article)
+	}
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(urls) != 1 {
+		return nil, nil
+	}
+
+	return urls[0], nil
+}
