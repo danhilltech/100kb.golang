@@ -9,7 +9,7 @@ import (
 	"github.com/danhilltech/100kb.golang/pkg/article"
 )
 
-var trackFile = "scored.csv"
+var trackFile = "scoring/scored.csv"
 
 type ScoreRequest struct {
 	URL   string
