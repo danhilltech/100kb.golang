@@ -35,7 +35,4 @@ models/*
 *.tar.gz
 
 libsvm/
-*.csv
-*.txt
-*.model
 .DS_Store
