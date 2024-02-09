@@ -64,7 +64,7 @@ meta:
 
 .PHONY: output
 output:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models --mount type=bind,source=./output,target=/app/output -p 8080:8080 100kb.golang -mode=output > log.txt 2>&1
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models --mount type=bind,source=./output,target=/app/output --mount type=bind,source=./scoring,target=/app/scoring -p 8080:8080 100kb.golang -mode=output > log.txt 2>&1
 
 
 .PHONY: transfer
