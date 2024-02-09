@@ -38,7 +38,7 @@ func TestCachedRequestWithTxn(t *testing.T) {
 		t.FailNow()
 	}
 
-	scores := readCsvFile("/workspaces/100kb.golang/output/scored.csv")
+	scores := readCsvFile("/workspaces/100kb.golang/scored.csv")
 
 	txn, _ := sqliteDatabase.Begin()
 	defer txn.Rollback()

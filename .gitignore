@@ -39,3 +39,4 @@ libsvm/
 *.txt
 *.model
 .DS_Store
+!scored.csv
