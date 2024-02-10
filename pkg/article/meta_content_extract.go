@@ -10,6 +10,7 @@ import (
 
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"golang.org/x/net/html"
+	"golang.org/x/net/publicsuffix"
 )
 
 func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error {
@@ -62,6 +63,30 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 	article.BodyRaw = &serialize.Content{Content: body}
 	article.Title = title
 	article.Description = description
+
+	hasAbout, hasBlogRoll, hasWriting, err := engine.parser.IdentifyInternalPages(htmlDoc, article.Url)
+	if err != nil {
+		return err
+	}
+
+	article.PageAbout = hasAbout
+	article.PageBlogRoll = hasBlogRoll
+	article.PageWriting = hasWriting
+
+	tld, icann := publicsuffix.PublicSuffix(article.Domain)
+	if icann {
+		article.DomainTLD = tld
+	}
+
+	urlHumanName, urlNews, urlBlog, popularDomain, err := engine.parser.IdentifyURL(article.Url)
+	if err != nil {
+		return err
+	}
+
+	article.URLBlog = urlBlog
+	article.URLHumanName = urlHumanName
+	article.URLNews = urlNews
+	article.DomainIsPopular = popularDomain
 
 	return nil
 

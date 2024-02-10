@@ -24,14 +24,14 @@ type AdblockEngine struct {
 	mutex  sync.Mutex
 }
 
-//go:embed data/*.txt
+//go:embed data/adblock/*.txt
 var adbLists embed.FS
 
 func NewAdblockEngine() (*AdblockEngine, error) {
 
 	req := RuleGroups{}
 
-	files, err := adbLists.ReadDir("data")
+	files, err := adbLists.ReadDir("data/adblock")
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func NewAdblockEngine() (*AdblockEngine, error) {
 	var cnt int
 
 	for _, list := range files {
-		contents, err := adbLists.ReadFile(fmt.Sprintf("data/%s", list.Name()))
+		contents, err := adbLists.ReadFile(fmt.Sprintf("data/adblock/%s", list.Name()))
 		if err != nil {
 			return nil, err
 		}

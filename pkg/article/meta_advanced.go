@@ -9,7 +9,22 @@ import (
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
-var zeroShotLabels = []string{"technology", "life", "family", "science", "politics", "news"}
+var zeroShotLabels = []string{
+	"technology",
+	"life",
+	"family",
+	"science",
+	"politics",
+	"news",
+	"religion",
+	"god",
+	"programming",
+	"food",
+	"crypto",
+	"investing",
+	"management",
+	"nature",
+}
 
 func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 	// Check we have enough data
@@ -71,11 +86,11 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 	firstPersonCount += strings.Count(bodyConcat, " My ")
 	firstPersonCount += strings.Count(bodyConcat, " me ")
 	firstPersonCount += strings.Count(bodyConcat, " mine ")
-	firstPersonCount += strings.Count(bodyConcat, " we ")
-	firstPersonCount += strings.Count(bodyConcat, " We ")
-	firstPersonCount += strings.Count(bodyConcat, " us ")
-	firstPersonCount += strings.Count(bodyConcat, " our ")
-	firstPersonCount += strings.Count(bodyConcat, " Our ")
+	// firstPersonCount += strings.Count(bodyConcat, " we ")
+	// firstPersonCount += strings.Count(bodyConcat, " We ")
+	// firstPersonCount += strings.Count(bodyConcat, " us ")
+	// firstPersonCount += strings.Count(bodyConcat, " our ")
+	// firstPersonCount += strings.Count(bodyConcat, " Our ")
 
 	if article.WordCount > 0 && firstPersonCount > 0 {
 		article.FirstPersonRatio = float64(firstPersonCount) / float64(article.WordCount)

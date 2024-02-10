@@ -42,7 +42,23 @@ type Article struct {
 	BadCount         int64
 	FirstPersonRatio float64
 
+	// NEW
+	UCaseRatio float64
+
 	HTMLLength int64
+
+	PageAbout    bool
+	PageBlogRoll bool
+	PageWriting  bool
+
+	URLNews      bool
+	URLBlog      bool
+	URLHumanName bool
+
+	DomainIsPopular bool
+	DomainTLD       string
+
+	// END
 
 	SentenceEmbedding *serialize.Embeddings
 	ExtractedKeywords *serialize.Keywords
