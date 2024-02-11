@@ -17,6 +17,8 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 	// Check we have enough data
 	article.LastContentExtractAt = time.Now().Unix()
 
+	fmt.Printf("|%s|%s|", article.Url, article.Domain)
+
 	htmlStream, err := engine.http.Get(article.Url)
 	if err != nil {
 		return err
