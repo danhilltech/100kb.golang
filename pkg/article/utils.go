@@ -2,6 +2,7 @@ package article
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 func Chunk(slice []*Article, chunkSize int) [][]*Article {
@@ -26,7 +27,7 @@ func (engine *Engine) BuildArticleSingle(txn *sql.Tx, url string) (*Article, err
 
 	resp, err := engine.articleIndex(article)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not articleIndex: %w", err)
 	}
 
 	if resp.Response != nil {
@@ -36,12 +37,12 @@ func (engine *Engine) BuildArticleSingle(txn *sql.Tx, url string) (*Article, err
 
 	err = engine.articleExtractContent(txn, article)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not articleExtractContent: %w", err)
 	}
 
 	err = engine.articleMetaAdvanced(txn, article)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not articleMetaAdvanced: %w", err)
 	}
 
 	return article, nil
