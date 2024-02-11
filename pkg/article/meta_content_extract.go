@@ -21,7 +21,7 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 
 	htmlStream, err := engine.http.Get(article.Url)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get article %w", err)
 	}
 	defer htmlStream.Body.Close()
 
@@ -43,23 +43,23 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 	htmlDoc, err := html.Parse(r)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("could not parse %w", err)
 	}
 
 	_, _, badCount, err := engine.parser.IdentifyBadElements(htmlDoc, article.Url)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not identify bad element %w", err)
 	}
 	article.BadCount = int64(badCount)
 
 	err = engine.parser.IdentifyGoodElements(htmlDoc, article.Url)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not identify good elements %w", err)
 	}
 
 	body, title, description, err := engine.parser.HtmlToText(htmlDoc)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not extract text %w", err)
 	}
 
 	article.BodyRaw = &serialize.Content{Content: body}
@@ -68,7 +68,7 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 
 	hasAbout, hasBlogRoll, hasWriting, err := engine.parser.IdentifyInternalPages(htmlDoc, article.Url)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not identify interal pages %w", err)
 	}
 
 	article.PageAbout = hasAbout
@@ -82,7 +82,7 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 
 	urlHumanName, urlNews, urlBlog, popularDomain, err := engine.parser.IdentifyURL(article.Url)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not identify url %w", err)
 	}
 
 	article.URLBlog = urlBlog

@@ -64,7 +64,6 @@ func TestBuildSVM(t *testing.T) {
 		article, err := articleEngine.BuildArticleSingle(txn, url)
 		if err != nil {
 			fmt.Println(err.Error())
-			panic(err)
 			t.Error(err)
 			t.FailNow()
 		}
