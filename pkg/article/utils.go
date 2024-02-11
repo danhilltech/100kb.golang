@@ -3,6 +3,7 @@ package article
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 )
 
 func Chunk(slice []*Article, chunkSize int) [][]*Article {
@@ -22,8 +23,14 @@ func Chunk(slice []*Article, chunkSize int) [][]*Article {
 	return chunks
 }
 
-func (engine *Engine) BuildArticleSingle(txn *sql.Tx, url string) (*Article, error) {
-	article := &Article{Url: url}
+func (engine *Engine) BuildArticleSingle(txn *sql.Tx, urlRaw string) (*Article, error) {
+
+	urlP, err := url.Parse(urlRaw)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse url: %w", err)
+	}
+
+	article := &Article{Url: urlRaw, Domain: urlP.Hostname()}
 
 	resp, err := engine.articleIndex(article)
 	if err != nil {
