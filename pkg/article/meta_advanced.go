@@ -198,6 +198,8 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 		zeroshots := map[string][]float32{}
 
 		if len(zcs) > 0 {
+			article.Classifications = &serialize.Keywords{}
+
 			for _, es := range zcs {
 				for _, k := range es.Classifications {
 					if zeroshots[string(k.Label)] == nil {
@@ -207,6 +209,8 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 
 				}
 			}
+
+			article.Classifications.Keywords = []*serialize.Keyword{}
 
 			for k, ss := range zeroshots {
 

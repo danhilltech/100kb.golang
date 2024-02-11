@@ -50,7 +50,7 @@ dockerbuild:
 
 .PHONY: dockerbuild
 dockerterm:
-	docker run --gpus all --rm --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./,target=/app  -it --entrypoint zsh  100kb.golang
+	docker run --gpus all --rm --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./,target=/app --mount type=bind,source=./models,target=/app/models  -it --entrypoint zsh  100kb.golang
 
 .PHONY: index
 index:

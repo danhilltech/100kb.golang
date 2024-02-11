@@ -34,13 +34,13 @@ func TestBuildSVM(t *testing.T) {
 
 	fmt.Println("Starting engine")
 
-	articleEngine, err := article.NewEngine(sqliteDatabase, "/workspaces/100kb.golang/.cache", true)
+	articleEngine, err := article.NewEngine(sqliteDatabase, "/app/.cache", true)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
 
-	scores := readCsvFile("/workspaces/100kb.golang/scoring/scored.csv")
+	scores := readCsvFile("/app/scoring/scored.csv")
 
 	txn, _ := sqliteDatabase.Begin()
 	defer txn.Rollback()
