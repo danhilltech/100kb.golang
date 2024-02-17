@@ -64,7 +64,7 @@ index:
 
 .PHONY: meta
 meta:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models 100kb.golang -mode=meta -util=0.8 -http-chunk-size=500 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models 100kb.golang -mode=meta --cache-dir=/cache > log.txt 2>&1
 
 
 

@@ -23,9 +23,11 @@ func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
 		return err
 	}
 
-	fmt.Printf("Generating %d article metas\n", len(articles))
+	chunkSizeNew := float64(len(articles)) / float64(runtime.NumCPU()-2)
 
-	chunks := Chunk(articles, runtime.NumCPU()-2)
+	chunks := Chunk(articles, int(chunkSizeNew))
+
+	fmt.Printf("Generating %d article metas\n", len(articles))
 
 	var wg sync.WaitGroup
 
