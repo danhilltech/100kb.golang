@@ -127,7 +127,7 @@ func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []strin
 
 		uP, err := url.Parse(u)
 		if err != nil {
-			return nil, nil, err
+			continue
 		}
 		resolv := baseUrlP.ResolveReference(uP)
 		urlsClean = append(urlsClean, resolv.String())
