@@ -43,8 +43,6 @@ type Article struct {
 	FirstPersonRatio float64
 
 	// NEW
-	UCaseRatio float64
-
 	HTMLLength int64
 
 	PageAbout    bool

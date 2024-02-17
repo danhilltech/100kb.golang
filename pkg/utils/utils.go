@@ -86,3 +86,16 @@ func NullFloat64(s float64) sql.NullFloat64 {
 		Valid:   true,
 	}
 }
+
+func NullBool(s bool) sql.NullInt64 {
+	if s {
+		return sql.NullInt64{
+			Int64: 1,
+			Valid: true,
+		}
+	}
+	return sql.NullInt64{
+		Int64: 0,
+		Valid: true,
+	}
+}

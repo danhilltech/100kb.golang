@@ -69,11 +69,34 @@ CREATE TABLE IF NOT EXISTS articles (
 	firstPersonRatio REAL,
 	sentenceEmbedding BLOB,
 	extractedKeywords BLOB,
-	classifications BLOB
+	classifications BLOB,
+
+	htmlLength INTEGER,
+	pageAbout INTEGER,
+	pageBlogRoll INTEGER,
+	pageWriting INTEGER,
+	urlNews INTEGER,
+	urlBlog INTEGER,
+	urlHumanName INTEGER,
+	domainIsPopular INTEGER,
+	domainTLD TEXT
 );
 
 CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);
 `
+
+/*
+ALTER TABLE articles ADD COLUMN htmlLength INTEGER;
+ALTER TABLE articles ADD COLUMN pageAbout INTEGER;
+ALTER TABLE articles ADD COLUMN pageBlogRoll INTEGER;
+ALTER TABLE articles ADD COLUMN pageWriting INTEGER;
+ALTER TABLE articles ADD COLUMN urlNews INTEGER;
+ALTER TABLE articles ADD COLUMN urlBlog INTEGER;
+ALTER TABLE articles ADD COLUMN urlHumanName INTEGER;
+ALTER TABLE articles ADD COLUMN domainIsPopular INTEGER;
+ALTER TABLE articles ADD COLUMN domainTLD TEXT;
+
+*/
 
 func InitDB(name string, mode string) (*Database, error) {
 	fmt.Printf("creating database with mode %s\t", mode)

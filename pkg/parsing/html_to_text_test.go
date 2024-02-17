@@ -76,3 +76,50 @@ func TestBasic(t *testing.T) {
 
 	t.Log(out.String())
 }
+
+func TestLinks(t *testing.T) {
+
+	var pricingHtml string = `
+	<html>
+	<body>
+		<nav>
+			<a href="/about">About me</a>
+			<a href="https://danhill.is/blogroll">My blogroll</a>
+			<a href="https://google.com/writing">writing</a>
+			<a href="/writing">writing</a>
+		</nav>
+	</body>
+
+	</html>
+`
+
+	engine, err := NewEngine()
+	if err != nil {
+		t.Fatal(err)
+
+	}
+
+	doc, err := html.Parse(strings.NewReader(pricingHtml))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hasAbout, hasBlogRoll, hasWriting, err := engine.IdentifyInternalPages(doc, "https://danhill.is/testpage")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !hasAbout {
+		t.Error("No about")
+		t.Fail()
+	}
+	if !hasBlogRoll {
+		t.Error("No Blog roll")
+		t.Fail()
+	}
+	if !hasWriting {
+		t.Error("No writing")
+		t.Fail()
+	}
+
+}

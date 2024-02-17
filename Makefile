@@ -1,5 +1,6 @@
 RUST_SRC = $(shell find . -type f -name '*.rs' -not -path "./target/*" -o -name '*.proto' -not -path "./target/*")
 GO_PROTO_SRC = $(shell find ./lib -type f -name '*.proto' -not -path "./target/*")
+GO_SVM_SRC = $(shell find ./pkg/svm -type f -name '*.cpp')
 REV := $(shell git rev-parse HEAD)
 
 lib/libgobert.so: $(RUST_SRC)
@@ -28,8 +29,13 @@ pkg/serialize/article.pb.go: pkg/serialize/article.proto
 pkg/parsing/adblock.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/goadblock/src/adblock.proto
 
+pkg/svm/libsvm.so: $(GO_SVM_SRC)
+	g++ -Wall -Wconversion -O3 -fPIC -c ./pkg/svm/svm.cpp
+	g++ -shared -Wl,-soname,libsvm.so svm.o -o ./pkg/svm/libsvm.so
+	rm svm.o
+
 .PHONY: build
-build: lib/libgobert.so lib/libgoadblock.so lib/gobert-cbindgen.h pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go pkg/ai/zero_shot.pb.go
+build: lib/libgobert.so lib/libgoadblock.so lib/gobert-cbindgen.h pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go pkg/ai/zero_shot.pb.go pkg/svm/libsvm.so
 	go build -ldflags="-r $(ROOT_DIR)lib" -buildvcs=false
 
 .PHONY: clean

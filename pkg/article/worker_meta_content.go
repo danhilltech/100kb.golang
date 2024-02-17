@@ -2,6 +2,8 @@ package article
 
 import (
 	"fmt"
+	"runtime"
+	"sync"
 	"time"
 )
 
@@ -23,7 +25,24 @@ func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
 
 	fmt.Printf("Generating %d article metas\n", len(articles))
 
-	txn, err = engine.db.Begin()
+	chunks := Chunk(articles, runtime.NumCPU()-2)
+
+	var wg sync.WaitGroup
+
+	for i := 1; i <= len(chunks); i++ {
+		go func() {
+			defer wg.Done()
+			engine.runArticleMetaBatch(chunks[i], chunkSize)
+		}()
+	}
+
+	wg.Wait()
+	return nil
+
+}
+
+func (engine *Engine) runArticleMetaBatch(articles []*Article, chunkSize int) error {
+	txn, err := engine.db.Begin()
 	if err != nil {
 		return err
 	}

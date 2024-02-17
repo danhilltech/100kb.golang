@@ -41,8 +41,8 @@ func (engine *Engine) IdentifyInternalPages(z *html.Node, baseUrl string) (bool,
 					}
 					resolv := baseUrlP.ResolveReference(uP)
 
-					if resolv.Hostname() == baseUrlP.Hostname() {
-						text := strings.ToLower(a.Data)
+					if resolv.Hostname() == baseUrlP.Hostname() && a.FirstChild != nil {
+						text := strings.ToLower(a.FirstChild.Data)
 						if strings.Contains(text, "about") {
 							hasAbout = true
 						}

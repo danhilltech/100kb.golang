@@ -1,4 +1,4 @@
-package main
+package output
 
 import (
 	"database/sql"
@@ -14,14 +14,18 @@ import (
 	"text/template"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
+	"github.com/danhilltech/100kb.golang/pkg/svm"
 )
 
 type RenderEngine struct {
-	templates map[string]*template.Template
-	outputDir string
-	db        *sql.DB
+	templates     map[string]*template.Template
+	outputDir     string
+	db            *sql.DB
+	articleEngine *article.Engine
 
 	articles []*article.Article
+
+	svmModel *svm.Model
 }
 
 type PageData struct {
@@ -37,10 +41,7 @@ var tmplFS embed.FS
 //go:embed views/static/*
 var staticFS embed.FS
 
-func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB) (*RenderEngine, error) {
-	// funcMap := template.FuncMap{
-	// 	// "inc": inc,
-	// }
+func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB, articleEngine *article.Engine) (*RenderEngine, error) {
 
 	templates := make(map[string]*template.Template)
 
@@ -62,61 +63,12 @@ func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB) 
 		templates[tmpl.Name()] = pt
 	}
 	return &RenderEngine{
-		templates: templates,
-		articles:  articles,
-		outputDir: outputDir,
-		db:        db,
+		templates:     templates,
+		articles:      articles,
+		outputDir:     outputDir,
+		articleEngine: articleEngine,
+		db:            db,
 	}, nil
-}
-
-func CreateOutput(db *sql.DB, cacheDir string) error {
-
-	articleEngine, err := article.NewEngine(db, cacheDir, false)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer articleEngine.Close()
-
-	txn, err := db.Begin()
-	if err != nil {
-		return err
-	}
-	defer txn.Rollback()
-
-	articles, err := articleEngine.GetAllValid(txn)
-	if err != nil {
-		return err
-	}
-	err = txn.Commit()
-	if err != nil {
-		return err
-	}
-
-	engine, err := NewRenderEnding("output", articles, db)
-	if err != nil {
-		return err
-	}
-
-	err = engine.WriteCSV()
-	if err != nil {
-		return err
-	}
-
-	err = engine.ArticleLists()
-	if err != nil {
-		return err
-	}
-
-	err = engine.StaticFiles()
-	if err != nil {
-		return err
-	}
-
-	engine.runHttp()
-
-	return nil
-
 }
 
 func (engine *RenderEngine) WriteCSV() error {

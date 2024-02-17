@@ -16,7 +16,34 @@ func (engine *Engine) initDB(db *sql.DB) error {
 		return err
 	}
 
-	engine.dbUpdatePreparedArticle, err = db.Prepare("UPDATE articles SET lastFetchAt = ?, lastMetaAt = ?, bodyRaw = ?, title = ?, description = ?, body = ?, wordCount = ?, h1Count = ?, hnCount = ?, pCount = ?, firstPersonRatio = ?, sentenceEmbedding = ?, extractedKeywords = ?, lastContentExtractAt = ?, badCount = ?, classifications = ? WHERE url = ?;")
+	engine.dbUpdatePreparedArticle, err = db.Prepare(`
+	UPDATE articles SET 
+	lastFetchAt = ?, 
+	lastMetaAt = ?, 
+	bodyRaw = ?, 
+	title = ?, 
+	description = ?, 
+	body = ?, 
+	wordCount = ?, 
+	h1Count = ?, 
+	hnCount = ?, 
+	pCount = ?, 
+	firstPersonRatio = ?, 
+	sentenceEmbedding = ?, 
+	extractedKeywords = ?, 
+	lastContentExtractAt = ?, 
+	badCount = ?, 
+	classifications = ?,
+	htmlLength = ?,
+	pageAbout = ?,
+	pageBlogRoll = ?,
+	pageWriting = ?,
+	urlNews = ?,
+	urlBlog = ?,
+	urlHumanName = ?,
+	domainIsPopular = ?,
+	domainTLD = ? 
+	WHERE url = ?;`)
 	if err != nil {
 		return err
 	}
@@ -88,12 +115,49 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 		utils.NullInt64(article.LastContentExtractAt),
 		utils.NullInt64(article.BadCount),
 		utils.NullString(string(classifications)),
+		utils.NullInt64(article.HTMLLength),
+		utils.NullBool(article.PageAbout),
+		utils.NullBool(article.PageBlogRoll),
+		utils.NullBool(article.PageWriting),
+		utils.NullBool(article.URLNews),
+		utils.NullBool(article.URLBlog),
+		utils.NullBool(article.URLHumanName),
+		utils.NullBool(article.DomainIsPopular),
+		utils.NullString(article.DomainTLD),
 		article.Url,
 	)
 	return err
 }
 
-const ARTICLE_SELECT = `url, feedUrl, domain, publishedAt, lastFetchAt, lastMetaAt, title, description, bodyRaw, body, sentenceEmbedding, extractedKeywords, wordCount, h1Count, hnCount, pCount, firstPersonRatio, lastContentExtractAt, badCount, classifications`
+const ARTICLE_SELECT = `url, 
+feedUrl, 
+domain, 
+publishedAt, 
+lastFetchAt, 
+lastMetaAt, 
+title, 
+description, 
+bodyRaw, 
+body, 
+sentenceEmbedding, 
+extractedKeywords,
+wordCount, 
+h1Count, 
+hnCount, 
+pCount, 
+firstPersonRatio, 
+lastContentExtractAt, 
+badCount, 
+classifications, 
+htmlLength,
+pageAbout,
+pageBlogRoll,
+pageWriting,
+urlNews,
+urlBlog,
+urlHumanName,
+domainIsPopular,
+domainTLD`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
@@ -113,6 +177,9 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 
 	var wordCount, h1Count, hnCount, pCount, badCount sql.NullInt64
 	var firstPersonRatio sql.NullFloat64
+
+	var htmlLength, pageAbout, pageBlogRoll, pageWriting, urlNews, urlBlog, urlHumanName, domainIsPopular sql.NullInt64
+	var domainTLD sql.NullString
 
 	err := res.Scan(
 		&url,
@@ -135,6 +202,15 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&lastContentExtractAt,
 		&badCount,
 		&classificationsJSON,
+		&htmlLength,
+		&pageAbout,
+		&pageBlogRoll,
+		&pageWriting,
+		&urlNews,
+		&urlBlog,
+		&urlHumanName,
+		&domainIsPopular,
+		&domainTLD,
 	)
 	if err != nil {
 		return nil, err
@@ -201,6 +277,15 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		Domain:               domain,
 		BadCount:             badCount.Int64,
 		Classifications:      &classifications,
+		HTMLLength:           htmlLength.Int64,
+		PageAbout:            pageAbout.Int64 > 0,
+		PageBlogRoll:         pageBlogRoll.Int64 > 0,
+		PageWriting:          pageWriting.Int64 > 0,
+		URLNews:              urlNews.Int64 > 0,
+		URLBlog:              urlBlog.Int64 > 0,
+		URLHumanName:         urlHumanName.Int64 > 0,
+		DomainIsPopular:      domainIsPopular.Int64 > 0,
+		DomainTLD:            domainTLD.String,
 	}
 
 	return article, nil

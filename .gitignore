@@ -36,3 +36,5 @@ models/*
 
 libsvm/
 .DS_Store
+
+!pkg/output

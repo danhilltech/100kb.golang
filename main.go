@@ -19,6 +19,7 @@ import (
 	"github.com/danhilltech/100kb.golang/pkg/db"
 	"github.com/danhilltech/100kb.golang/pkg/feed"
 	"github.com/danhilltech/100kb.golang/pkg/hn"
+	"github.com/danhilltech/100kb.golang/pkg/output"
 )
 
 func main() {
@@ -65,56 +66,72 @@ func main() {
 
 	}
 
+	dbMode := "r"
+	articleLoadML := false
+
 	switch *mode {
 	case "index":
+		dbMode = "rwc"
+		articleLoadML = false
+	case "meta":
+		dbMode = "rw"
+		articleLoadML = true
+	case "output":
+		dbMode = "rw"
+		articleLoadML = false
+	default:
+		dbMode = "rw"
+		articleLoadML = false
+	}
 
-		db, err := db.InitDB("/dbs/output", "rwc")
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer db.StopDB()
+	db, err := db.InitDB("/dbs/output", dbMode)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer db.StopDB()
 
-		dbVer, err := db.Version()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		fmt.Printf("sqlite3 version: \t%s\n", dbVer)
+	dbVer, err := db.Version()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Printf("sqlite3 version: \t%s\n", dbVer)
 
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-c
-			fmt.Println("Interupt\t\t🔥🔥🔥")
-			db.StopDB()
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("Interupt\t\t🔥🔥🔥")
+		db.StopDB()
 
-			os.Exit(1)
-		}()
+		os.Exit(1)
+	}()
 
-		articleEngine, err := article.NewEngine(db.DB, *cacheDir, false)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer articleEngine.Close()
+	articleEngine, err := article.NewEngine(db.DB, *cacheDir, articleLoadML)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer articleEngine.Close()
 
-		hnEngine, err := hn.NewEngine(db.DB)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	hnEngine, err := hn.NewEngine(db.DB)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-		feedEngine, err := feed.NewEngine(db.DB, articleEngine, *cacheDir)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	feedEngine, err := feed.NewEngine(db.DB, articleEngine, *cacheDir)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-		fmt.Println("Engines loaded\t\t🚂🚂🚂")
+	fmt.Println("Engines loaded\t\t🚂🚂🚂")
 
-		// Now run tasks
-
+	// Now run tasks
+	switch *mode {
+	case "index":
 		// 1. Get latest hackernews content
 		err = hnEngine.RunRefresh(*httpChunkSize, *hnFetchSize, httpWorkers)
 		if err != nil {
@@ -143,50 +160,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		db.Tidy()
-
-		if *debug {
-			cancelDebugPrinter()
-			<-c
-		}
-
 	case "meta":
-
-		db, err := db.InitDB("/dbs/output", "rw")
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer db.StopDB()
-
-		dbVer, err := db.Version()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		fmt.Printf("sqlite3 version: \t%s\n", dbVer)
-
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-c
-			db.StopDB()
-			fmt.Println("Interupt\t\t🔥🔥🔥")
-
-			os.Exit(1)
-		}()
-
-		articleEngine, err := article.NewEngine(db.DB, *cacheDir, true)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer articleEngine.Close()
-
-		fmt.Println("Engines loaded\t\t🚂🚂🚂")
-
-		// Now run tasks
-
 		// 5. Generate metadata for articles
 		err = articleEngine.RunArticleMeta(*metaChunkSize, metaWorkers)
 		if err != nil {
@@ -201,49 +175,57 @@ func main() {
 			os.Exit(1)
 		}
 
-		db.Tidy()
-
-		if *debug {
-			cancelDebugPrinter()
-			<-c
-		}
-
 	case "output":
-		db, err := db.InitDB("/dbs/output", "rw")
+		txn, err := db.DB.Begin()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		defer db.StopDB()
+		defer txn.Rollback()
 
-		dbVer, err := db.Version()
+		articles, err := articleEngine.GetAllValid(txn)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Printf("sqlite3 version: \t%s\n", dbVer)
-
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-c
-			db.StopDB()
-			fmt.Println("Interupt\t\t🔥🔥🔥")
-
-			os.Exit(1)
-		}()
-
-		err = CreateOutput(db.DB, *cacheDir)
+		err = txn.Commit()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		if *debug {
-			cancelDebugPrinter()
-			<-c
+		engine, err := output.NewRenderEnding("output", articles, db.DB, articleEngine)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
 		}
 
+		err = engine.TrainSVM("scoring/scored.csv")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		err = engine.ArticleLists()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		err = engine.StaticFiles()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		engine.RunHttp()
+	}
+
+	db.Tidy()
+
+	if *debug {
+		cancelDebugPrinter()
+		<-c
 	}
 
 }

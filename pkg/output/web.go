@@ -1,4 +1,4 @@
-package main
+package output
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ type ScoreRequest struct {
 	Score int
 }
 
-func (engine *RenderEngine) runHttp() {
+func (engine *RenderEngine) RunHttp() {
 
 	fmt.Println("Starting output http server...")
 
