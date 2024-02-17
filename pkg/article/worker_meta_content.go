@@ -23,32 +23,28 @@ func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
 		return err
 	}
 
-	chunkSizeNew := float64(len(articles)) / float64(runtime.NumCPU()-2)
+	// chunkSizeNew := float64(len(articles)) / float64(runtime.NumCPU()-2)
 
-	chunks := Chunk(articles, int(chunkSizeNew))
+	// chunks := Chunk(articles, int(chunkSizeNew))
 
-	fmt.Printf("Generating %d article metas\n", len(articles))
+	// fmt.Printf("Generating %d article metas\n", len(articles))
 
-	var wg sync.WaitGroup
+	//
 
-	for _, chunk := range chunks {
-		wg.Add(1)
-		go func(chunk []*Article) {
-			defer wg.Done()
-			err := engine.runArticleMetaBatch(chunk, chunkSize)
-			if err != nil {
-				fmt.Println("runArticleMetaBatch error %w", err)
-			}
-		}(chunk)
-	}
+	// for _, chunk := range chunks {
+	// 	wg.Add(1)
+	// 	go func(chunk []*Article) {
+	// 		defer wg.Done()
+	// 		err := engine.runArticleMetaBatch(chunk, chunkSize)
+	// 		if err != nil {
+	// 			fmt.Println("runArticleMetaBatch error %w", err)
+	// 		}
+	// 	}(chunk)
+	// }
 
-	wg.Wait()
-	return nil
+	// wg.Wait()
 
-}
-
-func (engine *Engine) runArticleMetaBatch(articles []*Article, chunkSize int) error {
-	txn, err := engine.db.Begin()
+	txn, err = engine.db.Begin()
 	if err != nil {
 		return err
 	}
@@ -57,26 +53,41 @@ func (engine *Engine) runArticleMetaBatch(articles []*Article, chunkSize int) er
 	a := 0
 	t := time.Now().UnixMilli()
 
+	var wg sync.WaitGroup
+
+	atOnce := runtime.NumCPU() - 2
+
 	for _, article := range articles {
-		a++
-		err := engine.articleExtractContent(txn, article)
-		if err != nil {
-			fmt.Println(err)
+
+		wg.Add(1)
+
+		go func(article *Article) {
+			defer wg.Done()
+			a++
+			err := engine.articleExtractContent(txn, article)
+			if err != nil {
+				fmt.Println(err)
+				err = engine.Update(article, txn)
+				if err != nil {
+					fmt.Println(article.Url, err)
+				}
+
+				return
+			}
+
 			err = engine.Update(article, txn)
 			if err != nil {
 				fmt.Println(article.Url, err)
+				return
 			}
+		}(article)
 
-			continue
-		}
-
-		err = engine.Update(article, txn)
-		if err != nil {
-			fmt.Println(article.Url, err)
-			continue
+		if a > 0 && a%atOnce == 0 {
+			wg.Wait()
 		}
 
 		if a > 0 && a%chunkSize == 0 {
+			wg.Wait()
 			diff := time.Now().UnixMilli() - t
 			qps := (float64(chunkSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
@@ -97,6 +108,11 @@ func (engine *Engine) runArticleMetaBatch(articles []*Article, chunkSize int) er
 	if err != nil {
 		return err
 	}
+	return nil
+
+}
+
+func (engine *Engine) runArticleMetaBatch(articles []*Article, chunkSize int) error {
 
 	return nil
 }
