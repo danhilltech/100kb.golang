@@ -31,11 +31,11 @@ func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
 
 	var wg sync.WaitGroup
 
-	for i := 1; i <= len(chunks); i++ {
-		go func() {
+	for _, chunk := range chunks {
+		go func(chunk []*Article) {
 			defer wg.Done()
-			engine.runArticleMetaBatch(chunks[i], chunkSize)
-		}()
+			engine.runArticleMetaBatch(chunk, chunkSize)
+		}(chunk)
 	}
 
 	wg.Wait()
