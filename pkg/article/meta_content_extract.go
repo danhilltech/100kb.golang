@@ -36,6 +36,8 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 		return nil
 	}
 
+	article.HTMLLength = int64(len(fullBody))
+
 	r := bytes.NewReader(fullBody)
 
 	htmlDoc, err := html.Parse(r)
@@ -87,6 +89,8 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 	article.URLHumanName = urlHumanName
 	article.URLNews = urlNews
 	article.DomainIsPopular = popularDomain
+
+	article.Stage = STAGE_VALID_CONTENT
 
 	return nil
 

@@ -78,10 +78,7 @@ pub extern "C" fn filter(
     for url in request.urls.iter() {
         let request: Option<Request> = match Request::new(url, &request.base_url, "other") {
             Ok(r) => Some(r),
-            Err(_error) => {
-                println!("URL ERROR: {:?}", url);
-                None
-            }
+            Err(_error) => None,
         };
 
         if request.is_some() {

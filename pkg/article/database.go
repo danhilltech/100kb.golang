@@ -42,7 +42,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	urlBlog = ?,
 	urlHumanName = ?,
 	domainIsPopular = ?,
-	domainTLD = ? 
+	domainTLD = ?,
+	stage = ?
 	WHERE url = ?;`)
 	if err != nil {
 		return err
@@ -124,6 +125,7 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 		utils.NullBool(article.URLHumanName),
 		utils.NullBool(article.DomainIsPopular),
 		utils.NullString(article.DomainTLD),
+		utils.NullInt64(article.Stage),
 		article.Url,
 	)
 	return err
@@ -157,7 +159,8 @@ urlNews,
 urlBlog,
 urlHumanName,
 domainIsPopular,
-domainTLD`
+domainTLD,
+stage`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
@@ -180,6 +183,8 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 
 	var htmlLength, pageAbout, pageBlogRoll, pageWriting, urlNews, urlBlog, urlHumanName, domainIsPopular sql.NullInt64
 	var domainTLD sql.NullString
+
+	var stage sql.NullInt64
 
 	err := res.Scan(
 		&url,
@@ -211,6 +216,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&urlHumanName,
 		&domainIsPopular,
 		&domainTLD,
+		&stage,
 	)
 	if err != nil {
 		return nil, err
@@ -286,6 +292,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		URLHumanName:         urlHumanName.Int64 > 0,
 		DomainIsPopular:      domainIsPopular.Int64 > 0,
 		DomainTLD:            domainTLD.String,
+		Stage:                stage.Int64,
 	}
 
 	return article, nil
@@ -338,7 +345,7 @@ func (engine *Engine) getArticlesToContentExtract(txchan *sql.Tx) ([]*Article, e
 }
 
 func (engine *Engine) getArticlesToMetaDataAdvanved(txchan *sql.Tx) ([]*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastContentExtractAt > 0 AND lastMetaAt IS NULL;", ARTICLE_SELECT))
+	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastContentExtractAt > 0 AND lastMetaAt IS NULL AND stage >= 2;", ARTICLE_SELECT))
 	if err != nil {
 		return nil, err
 	}

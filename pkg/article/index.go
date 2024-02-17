@@ -29,6 +29,8 @@ func (engine *Engine) articleIndex(article *Article) (*http.URLRequest, error) {
 		// io.Copy(io.Discard, resp.Response.Body)
 	}
 
+	article.Stage = STAGE_INDEXED
+
 	return resp, nil
 
 }

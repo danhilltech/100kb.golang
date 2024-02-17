@@ -79,7 +79,9 @@ CREATE TABLE IF NOT EXISTS articles (
 	urlBlog INTEGER,
 	urlHumanName INTEGER,
 	domainIsPopular INTEGER,
-	domainTLD TEXT
+	domainTLD TEXT,
+
+	stage INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);
@@ -95,6 +97,7 @@ ALTER TABLE articles ADD COLUMN urlBlog INTEGER;
 ALTER TABLE articles ADD COLUMN urlHumanName INTEGER;
 ALTER TABLE articles ADD COLUMN domainIsPopular INTEGER;
 ALTER TABLE articles ADD COLUMN domainTLD TEXT;
+ALTER TABLE articles ADD COLUMN stage INTEGER;
 
 */
 

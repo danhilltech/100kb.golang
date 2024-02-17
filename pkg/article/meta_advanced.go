@@ -227,6 +227,8 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 
 	}
 
+	article.Stage = STAGE_COMPLETE
+
 	return nil
 
 }

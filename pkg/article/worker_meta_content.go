@@ -51,6 +51,7 @@ func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
 	defer txn.Rollback()
 
 	a := 0
+	lastA := 0
 	t := time.Now().UnixMilli()
 
 	var wg sync.WaitGroup
@@ -89,7 +90,8 @@ func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
 		if a > 0 && a%chunkSize == 0 {
 			wg.Wait()
 			diff := time.Now().UnixMilli() - t
-			qps := (float64(chunkSize) / float64(diff)) * 1000
+			qps := (float64(a-lastA) / float64(diff)) * 1000
+			lastA = a
 			t = time.Now().UnixMilli()
 			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
 			err = txn.Commit()

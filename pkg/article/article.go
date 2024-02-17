@@ -9,6 +9,10 @@ import (
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 )
 
+const STAGE_INDEXED = 1
+const STAGE_VALID_CONTENT = 2
+const STAGE_COMPLETE = 10
+
 type Engine struct {
 	dbInsertPreparedArticle *sql.Stmt
 	dbUpdatePreparedArticle *sql.Stmt
@@ -42,7 +46,6 @@ type Article struct {
 	BadCount         int64
 	FirstPersonRatio float64
 
-	// NEW
 	HTMLLength int64
 
 	PageAbout    bool
@@ -56,7 +59,7 @@ type Article struct {
 	DomainIsPopular bool
 	DomainTLD       string
 
-	// END
+	Stage int64
 
 	SentenceEmbedding *serialize.Embeddings
 	ExtractedKeywords *serialize.Keywords
