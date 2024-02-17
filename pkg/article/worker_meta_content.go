@@ -32,9 +32,13 @@ func (engine *Engine) RunArticleMeta(chunkSize int, workers int) error {
 	var wg sync.WaitGroup
 
 	for _, chunk := range chunks {
+		wg.Add(1)
 		go func(chunk []*Article) {
 			defer wg.Done()
-			engine.runArticleMetaBatch(chunk, chunkSize)
+			err := engine.runArticleMetaBatch(chunk, chunkSize)
+			if err != nil {
+				fmt.Println("runArticleMetaBatch error %w", err)
+			}
 		}(chunk)
 	}
 
