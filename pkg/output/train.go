@@ -23,7 +23,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 	// 80/20 split
 	mid := int(float64(len(scored)) * 0.8)
 	training := scored[:mid]
-	test := scored[mid:]
+	// test := scored[mid:]
 
 	txn, err := engine.db.Begin()
 	if err != nil {
