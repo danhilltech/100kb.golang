@@ -198,7 +198,7 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 		}
 		diff = time.Now().UnixMilli() - startTime
 		if diff > 500 {
-			fmt.Printf("SLOW zero shot %d %s\n", diff, article.Url)
+			fmt.Printf("SLOW zero shot %d %s\n%+v\n", diff, article.Url, summaryTexts)
 		}
 
 		zeroshots := map[string][]float32{}

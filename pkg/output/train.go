@@ -3,6 +3,7 @@ package output
 import (
 	"encoding/csv"
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 
@@ -12,10 +13,17 @@ import (
 func (engine *RenderEngine) TrainSVM(filePath string) error {
 	// Open the scoring file
 
-	training, err := readCsvFile(filePath)
+	scored, err := readCsvFile(filePath)
 	if err != nil {
 		return err
 	}
+
+	rand.Shuffle(len(scored), func(i, j int) { scored[i], scored[j] = scored[j], scored[i] })
+
+	// 80/20 split
+	mid := int(float64(len(scored)) * 0.8)
+	training := scored[:mid]
+	test := scored[mid:]
 
 	txn, err := engine.db.Begin()
 	if err != nil {
