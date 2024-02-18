@@ -119,10 +119,16 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 	article.PCount = pCount
 
 	var summaryTexts []string
+	hasFirstPara := false
 	for _, c := range uniqueContent {
 		if c.Type == "h1" || c.Type == "h2" || c.Type == "h3" {
 			summaryTexts = append(summaryTexts, c.Text)
-
+		}
+		if c.Type == "p" && !hasFirstPara {
+			summaryTexts = append(summaryTexts, c.Text)
+		}
+		if len(summaryTexts) >= 5 {
+			break
 		}
 	}
 
