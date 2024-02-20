@@ -62,6 +62,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		setValue(&obs, "fpr", float32(article.FirstPersonRatio), mins, maxs)
 
 		obsArr[i] = &obs
+		fmt.Printf("%+v\n", obs.Features)
 
 	}
 
@@ -70,7 +71,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		for name, n := range obs.Features {
 			obs.Features[name] = (1 - -1)*(n-mins[name])/maxs[name] - mins[name] + -1
 		}
-		fmt.Printf("%+v", obs.Features)
+		fmt.Printf("%+v\n", obs.Features)
 	}
 
 	engine.svmModel, err = svm.Train(obsArr)
