@@ -48,12 +48,18 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 			return err
 		}
 
-		obs := svm.Observation{Ref: url, Value: float32(score)}
+		scoreClean := -1
+		if score >= 4 {
+			scoreClean = 1
+		}
+
+		obs := svm.Observation{Ref: url, Value: float32(scoreClean)}
 
 		obs.Features = make(map[string]float32)
 
 		setValue(&obs, "bad_count", float32(article.BadCount), mins, maxs)
 		setValue(&obs, "p_count", float32(article.BadCount), mins, maxs)
+		setValue(&obs, "fpr", float32(article.FirstPersonRatio), mins, maxs)
 
 		obsArr[i] = &obs
 
@@ -64,9 +70,8 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		for name, n := range obs.Features {
 			obs.Features[name] = (1 - -1)*(n-mins[name])/maxs[name] - mins[name] + -1
 		}
+		fmt.Printf("%+v", obs.Features)
 	}
-
-	fmt.Println(obsArr)
 
 	engine.svmModel, err = svm.Train(obsArr)
 	if err != nil {
