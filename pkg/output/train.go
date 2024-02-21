@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"slices"
 	"strconv"
 
 	"github.com/danhilltech/100kb.golang/pkg/svm"
@@ -33,8 +34,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 	obsArr := make([]*svm.Observation, len(training))
 
-	mins := make(map[string]float32)
-	maxs := make(map[string]float32)
+	featureVals := make(map[string][]float32, 3)
 
 	for i, train := range training {
 		url := train[0]
@@ -57,9 +57,9 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 		obs.Features = make(map[string]float32)
 
-		setValue(&obs, "bad_count", float32(article.BadCount), mins, maxs)
-		setValue(&obs, "p_count", float32(article.BadCount), mins, maxs)
-		setValue(&obs, "fpr", float32(article.FirstPersonRatio), mins, maxs)
+		setValue(&obs, "bad_count", float32(article.BadCount), featureVals)
+		setValue(&obs, "p_count", float32(article.BadCount), featureVals)
+		setValue(&obs, "fpr", float32(article.FirstPersonRatio), featureVals)
 
 		obsArr[i] = &obs
 		fmt.Printf("%+v\n", obs.Features)
@@ -69,7 +69,10 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 	// Normalize the features
 	for _, obs := range obsArr {
 		for name, n := range obs.Features {
-			obs.Features[name] = (1 - -1)*(n-mins[name])/maxs[name] - mins[name] + -1
+			min := slices.Min(featureVals[name])
+			max := slices.Max(featureVals[name])
+
+			obs.Features[name] = (1 - -1)*(n-min)/max - min + -1
 		}
 		fmt.Printf("%+v\n", obs.Features)
 	}
@@ -83,14 +86,9 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 }
 
-func setValue(obs *svm.Observation, name string, value float32, mins, maxs map[string]float32) {
+func setValue(obs *svm.Observation, name string, value float32, featureVals map[string][]float32) {
 	obs.Features[name] = value
-	if obs.Features[name] < mins[name] {
-		mins[name] = obs.Features[name]
-	}
-	if obs.Features[name] > maxs[name] {
-		maxs[name] = obs.Features[name]
-	}
+	featureVals[name] = append(featureVals[name], value)
 }
 
 func readCsvFile(filePath string) ([][]string, error) {
