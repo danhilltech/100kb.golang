@@ -3,6 +3,7 @@ package output
 import (
 	"encoding/csv"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"slices"
@@ -57,8 +58,8 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 		obs.Features = make(map[string]float32)
 
-		setValue(&obs, "bad_count", float32(article.BadCount), featureVals)
-		setValue(&obs, "p_count", float32(article.BadCount), featureVals)
+		setValue(&obs, "bad_count", float32(math.Log(float64(article.BadCount)+1.0)), featureVals)
+		setValue(&obs, "p_count", float32(math.Log(float64(article.PCount)+1.0)), featureVals)
 		setValue(&obs, "fpr", float32(article.FirstPersonRatio), featureVals)
 
 		obsArr[i] = &obs
