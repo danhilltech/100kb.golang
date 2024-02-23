@@ -61,7 +61,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		setValue(&obs, "bad_ratio", float32(article.BadCount)/float32(article.WordCount), featureVals)
 
 		setValue(&obs, "fpr", float32(article.FirstPersonRatio), featureVals)
-
+		setValueBool(&obs, "domain_popular", article.DomainIsPopular, featureVals)
 		obsArr[i] = &obs
 
 	}
@@ -74,6 +74,8 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 			obs.Features[name] = (2 * ((n - min) / max)) - min - 1
 		}
+
+		fmt.Printf("%+v\n", obs.Features)
 	}
 
 	mid := int(float64(len(obsArr)) * 0.8)
@@ -108,6 +110,20 @@ func setValue(obs *svm.Observation, name string, value float32, featureVals map[
 	}
 	if math.IsNaN(float64(value)) {
 		v = 0
+	}
+
+	obs.Features[name] = v
+	featureVals[name] = append(featureVals[name], v)
+}
+
+func setValueBool(obs *svm.Observation, name string, value bool, featureVals map[string][]float32) {
+
+	v := float32(0)
+
+	if value {
+		v = 1
+	} else {
+		v = -1
 	}
 
 	obs.Features[name] = v
