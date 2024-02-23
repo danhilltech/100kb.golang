@@ -78,7 +78,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 			max := slices.Max(featureVals[name])
 
 			// obs.Features[name] = (2 * ((n - min) / max)) - min - 1
-			obs.Features[name] = ((n - min) / (max - -min) * (2)) + min
+			obs.Features[name] = ((n - min) / (max - min) * (2)) + min
 			// n = 1
 			// min = -1
 			// max = 1
