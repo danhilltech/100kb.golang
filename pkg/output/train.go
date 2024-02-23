@@ -58,12 +58,16 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		// setValue(&obs, "bad_count", float32(math.Log(float64(article.BadCount)+1.0)), featureVals)
 		// setValue(&obs, "p_count", float32(math.Log(float64(article.PCount)+1.0)), featureVals)
 
+		setValue(&obs, "bad_count", float32(math.Log(float64(article.BadCount)+1.0)), featureVals)
+		setValue(&obs, "word_count", float32(article.WordCount), featureVals)
 		setValue(&obs, "bad_ratio", float32(math.Log(float64(article.BadCount)+1.0))/float32(article.WordCount), featureVals)
 
 		setValue(&obs, "fpr", float32(article.FirstPersonRatio), featureVals)
 		setValueBool(&obs, "domain_popular", article.DomainIsPopular, featureVals)
 		setValueBool(&obs, "page_about", article.PageAbout, featureVals)
 		obsArr[i] = &obs
+
+		fmt.Printf("%+v\n", obs.Features)
 
 	}
 
