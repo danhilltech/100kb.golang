@@ -58,10 +58,11 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		// setValue(&obs, "bad_count", float32(math.Log(float64(article.BadCount)+1.0)), featureVals)
 		// setValue(&obs, "p_count", float32(math.Log(float64(article.PCount)+1.0)), featureVals)
 
-		setValue(&obs, "bad_ratio", float32(article.BadCount)/float32(article.WordCount), featureVals)
+		setValue(&obs, "bad_ratio", float32(math.Log(float64(article.BadCount)+1.0))/float32(article.WordCount), featureVals)
 
 		setValue(&obs, "fpr", float32(article.FirstPersonRatio), featureVals)
 		setValueBool(&obs, "domain_popular", article.DomainIsPopular, featureVals)
+		setValueBool(&obs, "page_about", article.PageAbout, featureVals)
 		obsArr[i] = &obs
 
 	}
@@ -89,11 +90,11 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 	correct := 0
 	for _, t := range test {
-		outVal, outProbs := engine.svmModel.Predict(t, true)
+		outVal, _ := engine.svmModel.Predict(t, false)
 		if outVal == float64(t.Value) {
 			correct++
 		}
-		fmt.Printf("test:\twanted %0.2f\tgot %0.2f\tprops: %0.4f\t\t%s\n", t.Value, outVal, outProbs, t.Ref)
+		fmt.Printf("test:\twanted %0.2f\tgot %0.2f\t\t%s\n", t.Value, outVal, t.Ref)
 	}
 	fmt.Printf("ACCURACY: %0.2f%%\n", (float64(correct) / float64(len(test)) * 100))
 
@@ -125,9 +126,7 @@ func setValueBool(obs *svm.Observation, name string, value bool, featureVals map
 	} else {
 		v = -1
 	}
-
-	obs.Features[name] = v
-	featureVals[name] = append(featureVals[name], v)
+	setValue(obs, name, v, featureVals)
 }
 
 func readCsvFile(filePath string) ([][]string, error) {
