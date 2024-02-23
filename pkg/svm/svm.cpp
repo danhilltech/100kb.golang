@@ -59,7 +59,7 @@ static void print_string_stdout(const char *s)
     fflush(stdout);
 }
 static void (*svm_print_string)(const char *) = &print_string_stdout;
-#if 1
+#if 0
 static void info(const char *fmt, ...)
 {
     char buf[BUFSIZ];
@@ -2781,7 +2781,7 @@ double svm_predict_probability(
         {
             prob_estimates[0] = pairwise_prob[0][1];
             prob_estimates[1] = pairwise_prob[1][0];
-                }
+        }
         else
             multiclass_probability(nr_class, pairwise_prob, prob_estimates);
 

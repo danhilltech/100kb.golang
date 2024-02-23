@@ -23,9 +23,6 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 	rand.Shuffle(len(scored), func(i, j int) { scored[i], scored[j] = scored[j], scored[i] })
 
 	// 80/20 split
-	mid := int(float64(len(scored)) * 0.8)
-	training := scored[:mid]
-	// test := scored[mid:]
 
 	txn, err := engine.db.Begin()
 	if err != nil {
@@ -33,11 +30,11 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 	}
 	defer txn.Rollback()
 
-	obsArr := make([]*svm.Observation, len(training))
+	obsArr := make([]*svm.Observation, len(scored))
 
 	featureVals := make(map[string][]float32, 3)
 
-	for i, train := range training {
+	for i, train := range scored {
 		url := train[0]
 		score, err := strconv.ParseInt(train[1], 10, 64)
 		if err != nil {
@@ -80,9 +77,18 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		fmt.Printf("%+v\n", obs.Features)
 	}
 
-	engine.svmModel, err = svm.Train(obsArr)
+	mid := int(float64(len(obsArr)) * 0.8)
+	training := obsArr[:mid]
+	test := obsArr[mid:]
+
+	engine.svmModel, err = svm.Train(training)
 	if err != nil {
 		return err
+	}
+
+	for _, t := range test {
+		outVal, outProbs := engine.svmModel.Predict(t, true)
+		fmt.Print("test:\twanted %0.2f\tgot %0.2f\tprops: %0.4f\t\t%s", t.Value, outVal, outProbs, t.Ref)
 	}
 
 	return nil
