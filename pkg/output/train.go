@@ -88,7 +88,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 	for _, t := range test {
 		outVal, outProbs := engine.svmModel.Predict(t, true)
-		fmt.Print("test:\twanted %0.2f\tgot %0.2f\tprops: %0.4f\t\t%s", t.Value, outVal, outProbs, t.Ref)
+		fmt.Printf("test:\twanted %0.2f\tgot %0.2f\tprops: %0.4f\t\t%s\n", t.Value, outVal, outProbs, t.Ref)
 	}
 
 	return nil
