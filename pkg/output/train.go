@@ -101,11 +101,11 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 	correct := 0
 	for _, t := range test {
-		outVal, _ := engine.svmModel.Predict(t, false)
+		outVal, probs := engine.svmModel.Predict(t, true)
 		if outVal == float64(t.Value) {
 			correct++
 		}
-		fmt.Printf("test:\twanted %0.2f\tgot %0.2f\t\t%s\n", t.Value, outVal, t.Ref)
+		fmt.Printf("test:\twanted %0.2f\tgot %0.2f\t%+v\t%s\n", t.Value, outVal, probs, t.Ref)
 	}
 	fmt.Printf("ACCURACY: %0.2f%%\n", (float64(correct) / float64(len(test)) * 100))
 
