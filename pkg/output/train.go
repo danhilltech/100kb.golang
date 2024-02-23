@@ -82,10 +82,15 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		return err
 	}
 
+	correct := 0
 	for _, t := range test {
 		outVal, outProbs := engine.svmModel.Predict(t, true)
+		if outVal == float64(t.Value) {
+			correct++
+		}
 		fmt.Printf("test:\twanted %0.2f\tgot %0.2f\tprops: %0.4f\t\t%s\n", t.Value, outVal, outProbs, t.Ref)
 	}
+	fmt.Printf("ACCURACY: %0.2f%%\n", (float64(correct) / float64(len(test)) * 100))
 
 	return nil
 
