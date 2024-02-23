@@ -3,6 +3,7 @@ package output
 import (
 	"encoding/csv"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"slices"
@@ -56,6 +57,9 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 		// setValue(&obs, "bad_count", float32(math.Log(float64(article.BadCount)+1.0)), featureVals)
 		// setValue(&obs, "p_count", float32(math.Log(float64(article.PCount)+1.0)), featureVals)
+
+		setValue(&obs, "bad_ratio", float32(article.BadCount)/float32(article.WordCount), featureVals)
+
 		setValue(&obs, "fpr", float32(article.FirstPersonRatio), featureVals)
 
 		obsArr[i] = &obs
@@ -96,8 +100,18 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 }
 
 func setValue(obs *svm.Observation, name string, value float32, featureVals map[string][]float32) {
-	obs.Features[name] = value
-	featureVals[name] = append(featureVals[name], value)
+
+	v := value
+
+	if math.IsInf(float64(value), 0) {
+		v = 0
+	}
+	if math.IsNaN(float64(value)) {
+		v = 0
+	}
+
+	obs.Features[name] = v
+	featureVals[name] = append(featureVals[name], v)
 }
 
 func readCsvFile(filePath string) ([][]string, error) {
