@@ -77,13 +77,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 			min := slices.Min(featureVals[name])
 			max := slices.Max(featureVals[name])
 
-			// obs.Features[name] = (2 * ((n - min) / max)) - min - 1
 			obs.Features[name] = ((n - min) / (max - min) * (2)) + min
-			// n = 1
-			// min = -1
-			// max = 1
-
-			// (n - min) / (max - -min) * (2) + min
 
 		}
 
@@ -100,14 +94,32 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 	}
 
 	correct := 0
+	correctRight := 0 // we got it right in the positive
+	missedRight := 0  // should have been right and we said wrong
+
+	totalPositive := 0
 	for _, t := range test {
 		outVal, probs := engine.svmModel.Predict(t, true)
 		if outVal == float64(t.Value) {
 			correct++
 		}
+		if outVal == float64(t.Value) && t.Value == 1 {
+			correctRight++
+		}
+
+		if t.Value == 1 && outVal == -1 {
+			missedRight++
+		}
+
+		if t.Value == 1 {
+			totalPositive++
+		}
+
 		fmt.Printf("test:\twanted %0.2f\tgot %0.2f\t%+v\t%s\n", t.Value, outVal, probs, t.Ref)
 	}
 	fmt.Printf("ACCURACY: %0.2f%%\n", (float64(correct) / float64(len(test)) * 100))
+	fmt.Printf("CORRECT ACCURACY: %0.2f%%\n", (float64(correctRight) / float64(totalPositive) * 100))
+	fmt.Printf("MISSED ACCURACY: %0.2f%%\n", (float64(missedRight) / float64(totalPositive) * 100))
 
 	return nil
 
