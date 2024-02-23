@@ -59,7 +59,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		// setValue(&obs, "p_count", float32(math.Log(float64(article.PCount)+1.0)), featureVals)
 
 		setValue(&obs, "bad_count", float32(math.Log(float64(article.BadCount)+1.0)), featureVals)
-		setValue(&obs, "word_count", float32(article.WordCount), featureVals)
+		setValue(&obs, "word_count", float32(math.Log(float64(article.WordCount)+1.0)), featureVals)
 		setValue(&obs, "bad_ratio", float32(math.Log(float64(article.BadCount)+1.0))/float32(article.WordCount), featureVals)
 
 		setValue(&obs, "fpr", float32(article.FirstPersonRatio), featureVals)
@@ -67,7 +67,7 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		setValueBool(&obs, "page_about", article.PageAbout, featureVals)
 		obsArr[i] = &obs
 
-		fmt.Printf("%+v\n", obs.Features)
+		fmt.Printf("%+v\t%s\n", obs.Features, obs.Ref)
 
 	}
 
@@ -77,7 +77,14 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 			min := slices.Min(featureVals[name])
 			max := slices.Max(featureVals[name])
 
-			obs.Features[name] = (2 * ((n - min) / max)) - min - 1
+			// obs.Features[name] = (2 * ((n - min) / max)) - min - 1
+			obs.Features[name] = ((n - min) / (max - -min) * (2)) + min
+			// n = 1
+			// min = -1
+			// max = 1
+
+			// (n - min) / (max - -min) * (2) + min
+
 		}
 
 		fmt.Printf("%+v\n", obs.Features)
