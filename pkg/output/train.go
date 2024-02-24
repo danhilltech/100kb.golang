@@ -62,9 +62,20 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		setValue(&obs, "word_count", float32(math.Log(float64(article.WordCount)+1.0)), featureVals)
 		setValue(&obs, "bad_ratio", float32(math.Log(float64(article.BadCount)+1.0))/float32(article.WordCount), featureVals)
 
+		setValue(&obs, "h_count", float32(article.HNCount), featureVals)
+		setValue(&obs, "h1_count", float32(article.H1Count), featureVals)
+		setValue(&obs, "hp_ratio", float32(article.HNCount)/float32(article.PCount), featureVals)
+
 		setValue(&obs, "fpr", float32(article.FirstPersonRatio), featureVals)
 		setValueBool(&obs, "domain_popular", article.DomainIsPopular, featureVals)
 		setValueBool(&obs, "page_about", article.PageAbout, featureVals)
+		setValueBool(&obs, "url_blog", article.URLBlog, featureVals)
+		setValueBool(&obs, "url_humanname", article.URLHumanName, featureVals)
+		setValueBool(&obs, "url_news", article.URLNews, featureVals)
+		setValueBool(&obs, "page_blogroll", article.PageBlogRoll, featureVals)
+		setValueBool(&obs, "page_writing", article.PageWriting, featureVals)
+		setValueBool(&obs, "d_com", article.DomainTLD == "com", featureVals)
+		setValueBool(&obs, "d_co.uk", article.DomainTLD == "co.uk", featureVals)
 		obsArr[i] = &obs
 
 		fmt.Printf("%+v\t%s\n", obs.Features, obs.Ref)
