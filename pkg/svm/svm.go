@@ -5,6 +5,7 @@ package svm
 // #include <stdlib.h>
 import "C"
 import (
+	"fmt"
 	"unsafe"
 )
 
@@ -154,9 +155,11 @@ func (model *Model) Predict(obs *Observation, predictProbability bool) (float64,
 		defer C.free(unsafe.Pointer(probEstimates))
 		predictLabel := C.svm_predict_probability(model.model, xSpace, probEstimates)
 
-		probEstimatesGo := (*[1 << 30]float64)(unsafe.Pointer(probEstimates))[:model.modelNClasses:model.modelNClasses]
+		// probEstimatesGo := (*[1 << 30]float64)(unsafe.Pointer(probEstimates))[:model.modelNClasses:model.modelNClasses]
+		probEstimatesGo := unsafe.Slice(probEstimates, 2)
+		fmt.Println(probEstimatesGo)
 
-		return float64(predictLabel), probEstimatesGo
+		return float64(predictLabel), nil
 	} else {
 		predictLabel := C.svm_predict(model.model, xSpace)
 
