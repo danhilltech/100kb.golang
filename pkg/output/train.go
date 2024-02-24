@@ -174,9 +174,9 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 		instances.Set(newSpecs[0], i, base.PackFloatToBytes(article.FirstPersonRatio))
 		instances.Set(newSpecs[1], i, base.PackFloatToBytes(float64(article.BadCount)/float64(article.HTMLLength)))
 		if scoreClean == 1 {
-			base.SetClass(instances, i, "good")
+			instances.Set(newSpecs[2], i, newSpecs[2].GetAttribute().GetSysValFromString("good"))
 		} else {
-			base.SetClass(instances, i, "bad")
+			instances.Set(newSpecs[2], i, newSpecs[2].GetAttribute().GetSysValFromString("bad"))
 		}
 	}
 
