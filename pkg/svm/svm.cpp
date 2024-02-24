@@ -2757,6 +2757,9 @@ double svm_predict(const svm_model *model, const svm_node *x)
 double svm_predict_probability(
     const svm_model *model, const svm_node *x, double *prob_estimates)
 {
+
+    info("svm_predict_probability %d\n", model->param.svm_type);
+
     if ((model->param.svm_type == C_SVC || model->param.svm_type == NU_SVC) &&
         model->probA != NULL && model->probB != NULL)
     {
@@ -2764,6 +2767,8 @@ double svm_predict_probability(
         int nr_class = model->nr_class;
         double *dec_values = Malloc(double, nr_class *(nr_class - 1) / 2);
         svm_predict_values(model, x, dec_values);
+
+        info("nr_class %d\n", nr_class);
 
         double min_prob = 1e-7;
         double **pairwise_prob = Malloc(double *, nr_class);
