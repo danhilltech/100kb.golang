@@ -2758,7 +2758,7 @@ double svm_predict_probability(
     const svm_model *model, const svm_node *x, double *prob_estimates)
 {
 
-    info("svm_predict_probability\n");
+    // info("svm_predict_probability\n");
 
     if ((model->param.svm_type == C_SVC || model->param.svm_type == NU_SVC) &&
         model->probA != NULL && model->probB != NULL)
@@ -2768,7 +2768,7 @@ double svm_predict_probability(
         double *dec_values = Malloc(double, nr_class *(nr_class - 1) / 2);
         svm_predict_values(model, x, dec_values);
 
-        info("nr_class %d\n", nr_class);
+        // info("nr_class %d\n", nr_class);
 
         double min_prob = 1e-7;
         double **pairwise_prob = Malloc(double *, nr_class);
@@ -2786,7 +2786,7 @@ double svm_predict_probability(
         {
             prob_estimates[0] = pairwise_prob[0][1];
             prob_estimates[1] = pairwise_prob[1][0];
-            info("prob: %f %f\n", prob_estimates[0], prob_estimates[1]);
+            // info("prob: %f %f\n", prob_estimates[0], prob_estimates[1]);
         }
         else
             multiclass_probability(nr_class, pairwise_prob, prob_estimates);
