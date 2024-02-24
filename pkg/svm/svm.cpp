@@ -2758,7 +2758,7 @@ double svm_predict_probability(
     const svm_model *model, const svm_node *x, double *prob_estimates)
 {
 
-    info("svm_predict_probability %d\n", model->param.svm_type);
+    info("svm_predict_probability %d\n");
 
     if ((model->param.svm_type == C_SVC || model->param.svm_type == NU_SVC) &&
         model->probA != NULL && model->probB != NULL)
@@ -2786,6 +2786,7 @@ double svm_predict_probability(
         {
             prob_estimates[0] = pairwise_prob[0][1];
             prob_estimates[1] = pairwise_prob[1][0];
+            info("prob: %f %f", prob_estimates[0], prob_estimates[1]);
         }
         else
             multiclass_probability(nr_class, pairwise_prob, prob_estimates);
