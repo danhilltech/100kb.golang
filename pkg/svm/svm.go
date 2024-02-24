@@ -87,7 +87,7 @@ func Train(obs []*Observation) (*Model, error) {
 
 	params := C.struct_svm_parameter{}
 
-	params.svm_type = C_SVC
+	params.svm_type = ONE_CLASS
 	params.gamma = C.double(1.0 / float32(features))
 	params.degree = 3
 	params.nu = 0.5
