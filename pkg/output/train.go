@@ -10,6 +10,10 @@ import (
 	"strconv"
 
 	"github.com/danhilltech/100kb.golang/pkg/svm"
+
+	"github.com/sjwhitworth/golearn/base"
+	"github.com/sjwhitworth/golearn/evaluation"
+	"github.com/sjwhitworth/golearn/knn"
 )
 
 func (engine *RenderEngine) TrainSVM(filePath string) error {
@@ -131,6 +135,74 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 	fmt.Printf("ACCURACY: %0.2f%%\n", (float64(correct) / float64(len(test)) * 100))
 	fmt.Printf("CORRECT ACCURACY: %0.2f%%\n", (float64(correctRight) / float64(totalPositive) * 100))
 	fmt.Printf("MISSED ACCURACY: %0.2f%%\n", (float64(missedRight) / float64(totalPositive) * 100))
+
+	////////
+
+	attrs := make([]base.Attribute, 3)
+
+	attrs[0] = base.NewFloatAttribute("fpr")
+	attrs[1] = base.NewFloatAttribute("bad_ratio")
+	attrs[2] = base.NewCategoricalAttribute()
+
+	instances := base.NewDenseInstances()
+
+	// Add the attributes
+	newSpecs := make([]base.AttributeSpec, len(attrs))
+	for i, a := range attrs {
+		newSpecs[i] = instances.AddAttribute(a)
+	}
+
+	instances.Extend(len(scored))
+
+	for i, train := range scored {
+		url := train[0]
+		score, err := strconv.ParseInt(train[1], 10, 64)
+		if err != nil {
+			return err
+		}
+
+		article, err := engine.articleEngine.FindByURL(txn, url)
+		if err != nil {
+			return err
+		}
+
+		scoreClean := -1
+		if score >= 4 {
+			scoreClean = 1
+		}
+
+		instances.Set(newSpecs[0], i, base.PackFloatToBytes(article.FirstPersonRatio))
+		instances.Set(newSpecs[1], i, base.PackFloatToBytes(float64(article.BadCount)/float64(article.HTMLLength)))
+		if scoreClean == 1 {
+			base.SetClass(instances, i, "good")
+		} else {
+			base.SetClass(instances, i, "bad")
+		}
+	}
+
+	cls := knn.NewKnnClassifier("euclidean", "linear", 2)
+
+	// Create a 60-40 training-test split
+	trainData, testData := base.InstancesTrainTestSplit(instances, 0.75)
+
+	err = cls.Fit(trainData)
+	if err != nil {
+		return err
+	}
+
+	//Calculates the Euclidean distance and returns the most popular label
+	predictions, err := cls.Predict(testData)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(predictions)
+
+	// Prints precision/recall metrics
+	confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
+	if err != nil {
+		panic(fmt.Sprintf("Unable to get confusion matrix: %s", err.Error()))
+	}
+	fmt.Println(evaluation.GetSummary(confusionMat))
 
 	return nil
 
