@@ -140,9 +140,9 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 
 	attrs := make([]base.Attribute, 3)
 
-	attrs[0] = base.NewFloatAttribute("fpr")
-	attrs[1] = base.NewFloatAttribute("bad_ratio")
-	attrs[2] = base.NewCategoricalAttribute()
+	attrs[0] = base.NewCategoricalAttribute()
+	attrs[1] = base.NewFloatAttribute("fpr")
+	attrs[2] = base.NewFloatAttribute("bad_ratio")
 
 	instances := base.NewDenseInstances()
 
@@ -171,14 +171,18 @@ func (engine *RenderEngine) TrainSVM(filePath string) error {
 			scoreClean = 1
 		}
 
-		instances.Set(newSpecs[0], i, base.PackFloatToBytes(article.FirstPersonRatio))
-		instances.Set(newSpecs[1], i, base.PackFloatToBytes(float64(article.BadCount)/float64(article.HTMLLength)))
 		if scoreClean == 1 {
-			instances.Set(newSpecs[2], i, newSpecs[2].GetAttribute().GetSysValFromString("good"))
+			instances.Set(newSpecs[0], i, newSpecs[0].GetAttribute().GetSysValFromString("good"))
 		} else {
-			instances.Set(newSpecs[2], i, newSpecs[2].GetAttribute().GetSysValFromString("bad"))
+			instances.Set(newSpecs[0], i, newSpecs[0].GetAttribute().GetSysValFromString("bad"))
 		}
+
+		instances.Set(newSpecs[1], i, base.PackFloatToBytes(article.FirstPersonRatio))
+		instances.Set(newSpecs[2], i, base.PackFloatToBytes(float64(article.BadCount)/float64(article.HTMLLength)))
+
 	}
+
+	instances.AddClassAttribute(attrs[0])
 
 	cls := knn.NewKnnClassifier("euclidean", "linear", 2)
 
