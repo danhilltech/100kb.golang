@@ -16,10 +16,12 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
+	"github.com/danhilltech/100kb.golang/pkg/crawler"
 	"github.com/danhilltech/100kb.golang/pkg/db"
-	"github.com/danhilltech/100kb.golang/pkg/feed"
-	"github.com/danhilltech/100kb.golang/pkg/hn"
+	"github.com/danhilltech/100kb.golang/pkg/domain"
 	"github.com/danhilltech/100kb.golang/pkg/output"
+	"github.com/danhilltech/100kb.golang/pkg/train"
+	"github.com/smira/go-statsd"
 )
 
 func main() {
@@ -55,6 +57,8 @@ func main() {
 
 	debugPrinterCtx, cancelDebugPrinter := context.WithCancel(context.Background())
 
+	statsdClient := statsd.NewClient("192.168.1.3:8125", statsd.MetricPrefix("100bk."))
+
 	if *debug {
 		// go tool pprof -top http://localhost:6060/debug/pprof/heap
 		fmt.Println("Starting debug pprof...")
@@ -79,6 +83,14 @@ func main() {
 	case "output":
 		dbMode = "rw"
 		articleLoadML = false
+	case "train":
+
+		err := train.TrainSVM(*cacheDir)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		return
 	default:
 		dbMode = "rw"
 		articleLoadML = false
@@ -108,20 +120,20 @@ func main() {
 		os.Exit(1)
 	}()
 
-	articleEngine, err := article.NewEngine(db.DB, *cacheDir, articleLoadML)
+	articleEngine, err := article.NewEngine(db.DB, statsdClient, *cacheDir, articleLoadML)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	defer articleEngine.Close()
 
-	hnEngine, err := hn.NewEngine(db.DB)
+	crawlEngine, err := crawler.NewEngine(db.DB)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	feedEngine, err := feed.NewEngine(db.DB, articleEngine, *cacheDir)
+	feedEngine, err := domain.NewEngine(db.DB, articleEngine, statsdClient, *cacheDir)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -133,7 +145,7 @@ func main() {
 	switch *mode {
 	case "index":
 		// 1. Get latest hackernews content
-		err = hnEngine.RunRefresh(*httpChunkSize, *hnFetchSize, httpWorkers)
+		err = crawlEngine.RunHNRefresh(*httpChunkSize, *hnFetchSize, httpWorkers)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -160,20 +172,24 @@ func main() {
 			os.Exit(1)
 		}
 
+		db.Tidy()
+
 	case "meta":
 		// 5. Generate metadata for articles
-		err = articleEngine.RunArticleMeta(*metaChunkSize, metaWorkers)
+		err = articleEngine.RunArticleMeta(*metaChunkSize)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
 		// 6. Second pass metas
-		err = articleEngine.RunArticleMetaPassII(*metaChunkSize, metaWorkers)
+		err = articleEngine.RunArticleMetaPassII(*metaChunkSize)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		db.Tidy()
 
 	case "output":
 		txn, err := db.DB.Begin()
@@ -183,7 +199,7 @@ func main() {
 		}
 		defer txn.Rollback()
 
-		articles, err := articleEngine.GetAllValid(txn)
+		articles, err := articleEngine.GetAllValid()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -195,12 +211,6 @@ func main() {
 		}
 
 		engine, err := output.NewRenderEnding("output", articles, db.DB, articleEngine)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		err = engine.TrainSVM("scoring/scored.csv")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -219,9 +229,8 @@ func main() {
 		}
 
 		engine.RunHttp()
-	}
 
-	db.Tidy()
+	}
 
 	if *debug {
 		cancelDebugPrinter()

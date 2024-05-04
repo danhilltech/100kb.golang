@@ -35,14 +35,6 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	badCount = ?, 
 	classifications = ?,
 	htmlLength = ?,
-	pageAbout = ?,
-	pageBlogRoll = ?,
-	pageWriting = ?,
-	urlNews = ?,
-	urlBlog = ?,
-	urlHumanName = ?,
-	domainIsPopular = ?,
-	domainTLD = ?,
 	stage = ?
 	WHERE url = ?;`)
 	if err != nil {
@@ -53,12 +45,15 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	return nil
 }
 
-func (engine *Engine) Insert(article *Article, feedUrl string, domain string, txchan *sql.Tx) error {
-	_, err := txchan.Stmt(engine.dbInsertPreparedArticle).Exec(article.Url, feedUrl, domain, article.PublishedAt)
-	return err
+func (engine *Engine) Insert(article *Article, feedUrl string, domain string) error {
+	_, err := engine.dbInsertPreparedArticle.Exec(article.Url, feedUrl, domain, article.PublishedAt)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	return nil
 }
 
-func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
+func (engine *Engine) Update(article *Article) error {
 	var articleBodyRaw []byte
 	var articleBody []byte
 	var extractedKeywords []byte
@@ -99,7 +94,7 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 		}
 	}
 
-	_, err = txchan.Stmt(engine.dbUpdatePreparedArticle).Exec(
+	_, err = engine.dbUpdatePreparedArticle.Exec(
 		utils.NullInt64(article.LastFetchAt),
 		utils.NullInt64(article.LastMetaAt),
 		utils.NullString(string(articleBodyRaw)),
@@ -117,14 +112,6 @@ func (engine *Engine) Update(article *Article, txchan *sql.Tx) error {
 		utils.NullInt64(article.BadCount),
 		utils.NullString(string(classifications)),
 		utils.NullInt64(article.HTMLLength),
-		utils.NullBool(article.PageAbout),
-		utils.NullBool(article.PageBlogRoll),
-		utils.NullBool(article.PageWriting),
-		utils.NullBool(article.URLNews),
-		utils.NullBool(article.URLBlog),
-		utils.NullBool(article.URLHumanName),
-		utils.NullBool(article.DomainIsPopular),
-		utils.NullString(article.DomainTLD),
 		utils.NullInt64(article.Stage),
 		article.Url,
 	)
@@ -152,14 +139,6 @@ lastContentExtractAt,
 badCount, 
 classifications, 
 htmlLength,
-pageAbout,
-pageBlogRoll,
-pageWriting,
-urlNews,
-urlBlog,
-urlHumanName,
-domainIsPopular,
-domainTLD,
 stage`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
@@ -181,8 +160,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var wordCount, h1Count, hnCount, pCount, badCount sql.NullInt64
 	var firstPersonRatio sql.NullFloat64
 
-	var htmlLength, pageAbout, pageBlogRoll, pageWriting, urlNews, urlBlog, urlHumanName, domainIsPopular sql.NullInt64
-	var domainTLD sql.NullString
+	var htmlLength sql.NullInt64
 
 	var stage sql.NullInt64
 
@@ -208,14 +186,6 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&badCount,
 		&classificationsJSON,
 		&htmlLength,
-		&pageAbout,
-		&pageBlogRoll,
-		&pageWriting,
-		&urlNews,
-		&urlBlog,
-		&urlHumanName,
-		&domainIsPopular,
-		&domainTLD,
 		&stage,
 	)
 	if err != nil {
@@ -284,24 +254,17 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		BadCount:             badCount.Int64,
 		Classifications:      &classifications,
 		HTMLLength:           htmlLength.Int64,
-		PageAbout:            pageAbout.Int64 > 0,
-		PageBlogRoll:         pageBlogRoll.Int64 > 0,
-		PageWriting:          pageWriting.Int64 > 0,
-		URLNews:              urlNews.Int64 > 0,
-		URLBlog:              urlBlog.Int64 > 0,
-		URLHumanName:         urlHumanName.Int64 > 0,
-		DomainIsPopular:      domainIsPopular.Int64 > 0,
-		DomainTLD:            domainTLD.String,
-		Stage:                stage.Int64,
+
+		Stage: stage.Int64,
 	}
 
 	return article, nil
 }
 
-func (engine *Engine) getArticlesToIndex(txchan *sql.Tx) ([]*Article, error) {
+func (engine *Engine) getArticlesToIndex() ([]*Article, error) {
 	fmt.Printf("Getting articles to index...\t")
 	defer fmt.Printf("✨\n")
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt IS NULL;", ARTICLE_SELECT))
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt IS NULL;", ARTICLE_SELECT))
 	if err != nil {
 		return nil, err
 	}
@@ -322,8 +285,8 @@ func (engine *Engine) getArticlesToIndex(txchan *sql.Tx) ([]*Article, error) {
 	return urls, nil
 }
 
-func (engine *Engine) getArticlesToContentExtract(txchan *sql.Tx) ([]*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt > 0 AND lastContentExtractAt IS NULL;", ARTICLE_SELECT))
+func (engine *Engine) getArticlesToContentExtract() ([]*Article, error) {
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE stage=%d AND lastContentExtractAt IS NULL;", ARTICLE_SELECT, STAGE_INDEXED))
 	if err != nil {
 		return nil, err
 	}
@@ -344,8 +307,8 @@ func (engine *Engine) getArticlesToContentExtract(txchan *sql.Tx) ([]*Article, e
 	return urls, nil
 }
 
-func (engine *Engine) getArticlesToMetaDataAdvanved(txchan *sql.Tx) ([]*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastContentExtractAt > 0 AND lastMetaAt IS NULL AND stage >= 2;", ARTICLE_SELECT))
+func (engine *Engine) getArticlesToMetaDataAdvanved() ([]*Article, error) {
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastContentExtractAt > 0 AND lastMetaAt IS NULL AND stage = %d;", ARTICLE_SELECT, STAGE_VALID_CONTENT))
 	if err != nil {
 		return nil, err
 	}
@@ -366,34 +329,8 @@ func (engine *Engine) getArticlesToMetaDataAdvanved(txchan *sql.Tx) ([]*Article,
 	return urls, nil
 }
 
-func (engine *Engine) getArticlesByFeed(txchan *sql.Tx, feed string, excludeUrl string) ([]*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE feedUrl = ? AND bodyRaw IS NOT NULL AND url != ?", ARTICLE_SELECT), feed, excludeUrl)
-
-	if err != nil {
-		return nil, err
-	}
-	defer res.Close()
-	if err := res.Err(); err != nil {
-		return nil, err
-	}
-
-	var urls []*Article
-
-	for res.Next() {
-		article, err := articleRowScan(res)
-		if err != nil {
-			return nil, err
-		}
-		urls = append(urls, article)
-	}
-	if err := res.Err(); err != nil {
-		return nil, err
-	}
-	return urls, nil
-}
-
-func (engine *Engine) GetAllValid(txchan *sql.Tx) ([]*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastMetaAt IS NOT NULL AND wordCount > 10", ARTICLE_SELECT))
+func (engine *Engine) getArticlesByFeed(feed string, excludeUrl string) ([]*Article, error) {
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE feedUrl = ? AND bodyRaw IS NOT NULL AND url != ?", ARTICLE_SELECT), feed, excludeUrl)
 
 	if err != nil {
 		return nil, err
@@ -418,8 +355,34 @@ func (engine *Engine) GetAllValid(txchan *sql.Tx) ([]*Article, error) {
 	return urls, nil
 }
 
-func (engine *Engine) FindByURL(txchan *sql.Tx, url string) (*Article, error) {
-	res, err := txchan.Query(fmt.Sprintf("SELECT %s FROM articles WHERE url = ? LIMIT 1", ARTICLE_SELECT), url)
+func (engine *Engine) GetAllValid() ([]*Article, error) {
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastMetaAt IS NOT NULL AND wordCount > 10", ARTICLE_SELECT))
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+
+	var urls []*Article
+
+	for res.Next() {
+		article, err := articleRowScan(res)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, article)
+	}
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+	return urls, nil
+}
+
+func (engine *Engine) FindByURL(url string) (*Article, error) {
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE url = ? LIMIT 1", ARTICLE_SELECT), url)
 
 	if err != nil {
 		return nil, err
@@ -447,4 +410,30 @@ func (engine *Engine) FindByURL(txchan *sql.Tx, url string) (*Article, error) {
 	}
 
 	return urls[0], nil
+}
+
+func (engine *Engine) FindByFeedURL(feed string) ([]*Article, error) {
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE feedUrl = ? AND bodyRaw IS NOT NULL", ARTICLE_SELECT), feed)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+
+	var urls []*Article
+
+	for res.Next() {
+		article, err := articleRowScan(res)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, article)
+	}
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+	return urls, nil
 }

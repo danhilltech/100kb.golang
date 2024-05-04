@@ -19,9 +19,9 @@ var (
 )
 
 const DB_INIT_SCRIPT = `
-CREATE TABLE IF NOT EXISTS hacker_news (
-	id INTEGER PRIMARY KEY,
-    url TEXT,
+CREATE TABLE IF NOT EXISTS to_crawl (
+	url TEXT PRIMARY KEY,
+	hn_id INTEGER,
 	domain TEXT,
     author TEXT,
 	type TEXT,
@@ -30,13 +30,14 @@ CREATE TABLE IF NOT EXISTS hacker_news (
 	score INTEGER
 );
 
-CREATE INDEX IF NOT EXISTS hacker_news_url ON hacker_news(url);
+CREATE INDEX IF NOT EXISTS to_crawl_hn_id ON to_crawl(hn_id);
+CREATE INDEX IF NOT EXISTS to_crawl_domain ON to_crawl(domain);
 
 CREATE TABLE IF NOT EXISTS url_requests (
 	url TEXT PRIMARY KEY,
 	domain TEXT NOT NULL,
 	lastAttemptAt INTEGER,
-	status TEXT,
+	status INTEGER,
 	contentType TEXT
 );
 
@@ -45,9 +46,22 @@ CREATE TABLE IF NOT EXISTS domains (
 	feedUrl TEXT,
 	lastFetchAt INTEGER,
 	feedTitle TEXT,
-	language TEXT
+	language TEXT,
 
+	latestPostAt INTEGER,
+	domainIsPopular INTEGER,
+	domainTLD TEXT,
+	pageAbout INTEGER,
+	pageBlogRoll INTEGER,
+	pageWriting INTEGER,
+	pageNow INTEGER,
+	urlNews INTEGER,
+	urlBlog INTEGER,
+	urlHumanName INTEGER	
 );
+
+CREATE INDEX IF NOT EXISTS domains_feedUrl ON domains(feedUrl);
+CREATE INDEX IF NOT EXISTS domains_lastFetchAt ON domains(lastFetchAt);
 
 CREATE TABLE IF NOT EXISTS articles (
 	url TEXT PRIMARY KEY,
@@ -70,21 +84,12 @@ CREATE TABLE IF NOT EXISTS articles (
 	sentenceEmbedding BLOB,
 	extractedKeywords BLOB,
 	classifications BLOB,
-
 	htmlLength INTEGER,
-	pageAbout INTEGER,
-	pageBlogRoll INTEGER,
-	pageWriting INTEGER,
-	urlNews INTEGER,
-	urlBlog INTEGER,
-	urlHumanName INTEGER,
-	domainIsPopular INTEGER,
-	domainTLD TEXT,
-
 	stage INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS articles_feedUrl ON articles(feedUrl);
+
 `
 
 /*

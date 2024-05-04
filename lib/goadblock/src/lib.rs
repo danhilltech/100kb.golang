@@ -5,7 +5,6 @@ use adblock::{
 };
 use prost::Message;
 use std::collections::HashSet;
-use std::io::Cursor;
 use std::ptr;
 
 pub mod goadblock {
@@ -23,9 +22,9 @@ pub extern "C" fn new_adblock(
     req_size: *mut libc::size_t,
 ) -> *mut AdblockEngine {
     let bytes_raw = unsafe { std::slice::from_raw_parts(req, *req_size) };
-    let bytes: Vec<u8> = Vec::from(bytes_raw);
+    // let bytes: Vec<u8> = Vec::from(bytes_raw);
 
-    let request = goadblock::RuleGroups::decode(&mut Cursor::new(bytes)).unwrap();
+    let request = goadblock::RuleGroups::decode(bytes_raw).unwrap();
 
     let debug_info = false;
     let mut filter_set = FilterSet::new(debug_info);
@@ -63,9 +62,8 @@ pub extern "C" fn filter(
     };
 
     let bytes_raw = unsafe { std::slice::from_raw_parts(req, *req_size) };
-    let bytes: Vec<u8> = Vec::from(bytes_raw);
 
-    let request = goadblock::FilterRequest::decode(&mut Cursor::new(bytes)).unwrap();
+    let request = goadblock::FilterRequest::decode(bytes_raw).unwrap();
 
     let matches = engine.engine.hidden_class_id_selectors(
         &request.classes,

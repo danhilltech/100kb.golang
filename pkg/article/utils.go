@@ -1,7 +1,6 @@
 package article
 
 import (
-	"database/sql"
 	"fmt"
 	"net/url"
 )
@@ -23,7 +22,7 @@ func Chunk(slice []*Article, chunkSize int) [][]*Article {
 	return chunks
 }
 
-func (engine *Engine) BuildArticleSingle(txn *sql.Tx, urlRaw string) (*Article, error) {
+func (engine *Engine) BuildArticleSingle(urlRaw string) (*Article, error) {
 
 	urlP, err := url.Parse(urlRaw)
 	if err != nil {
@@ -32,22 +31,17 @@ func (engine *Engine) BuildArticleSingle(txn *sql.Tx, urlRaw string) (*Article, 
 
 	article := &Article{Url: urlRaw, Domain: urlP.Hostname()}
 
-	resp, err := engine.articleIndex(article)
+	err = engine.articleIndex(article)
 	if err != nil {
 		return nil, fmt.Errorf("could not articleIndex: %w", err)
 	}
 
-	if resp.Response != nil {
-
-		defer resp.Response.Body.Close()
-	}
-
-	err = engine.articleExtractContent(txn, article)
+	err = engine.articleExtractContent(article)
 	if err != nil {
 		return nil, fmt.Errorf("could not articleExtractContent: %w", err)
 	}
 
-	err = engine.articleMetaAdvanced(txn, article)
+	err = engine.articleMetaAdvanced(article)
 	if err != nil {
 		return nil, fmt.Errorf("could not articleMetaAdvanced: %w", err)
 	}

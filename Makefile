@@ -1,22 +1,38 @@
-RUST_SRC = $(shell find . -type f -name '*.rs' -not -path "./target/*" -o -name '*.proto' -not -path "./target/*")
+RUST_SRC = $(shell find ./lib -type f -name '*.rs' -not -path "./target/*" -o -name '*.proto' -not -path "./target/*")
 GO_PROTO_SRC = $(shell find ./lib -type f -name '*.proto' -not -path "./target/*")
 GO_SVM_SRC = $(shell find ./pkg/svm -type f -name '*.cpp')
 REV := $(shell git rev-parse HEAD)
+CUDA = $(LIBTORCH)
+
+GO_BUILD_TAGS :=
+
+ifdef CUDA
+GO_BUILD_TAGS += cuda
+endif
+
+.PHONY: debug
+debug:
+	@echo "🍔🍔🍔🍔🍔"
+	@echo "CUDA: ${CUDA}"
+	@echo
+	@echo
 
 lib/libgobert.so: $(RUST_SRC)
-	rm target/release/libgobert.so || true
-	cargo build --release
-	mkdir -p lib
+	@echo "👉 Building libgobert"
+	@rm -f target/release/libgobert.so || true
+	cargo build --release --package gobert
+	@mkdir -p lib
 	@cp target/release/libgobert.so lib/libgobert.so
 
 lib/libgoadblock.so: $(RUST_SRC)
-	rm target/release/libgoadblock.so || true
-	cargo build --release
-	mkdir -p lib
+ifdef CUDA
+	@echo "👉 Building libgoadblock"
+	@rm -f target/release/libgoadblock.so || true
+	cargo build --release --package goadblock
+	@mkdir -p lib
 	@cp target/release/libgoadblock.so lib/libgoadblock.so
+endif
 
-# lib/gobert-cbindgen.h: $(RUST_SRC)
-# 	@cd lib/gobert && cbindgen . --lang c -o ../gobert-cbindgen.h
 
 pkg/ai/keywords.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/gobert/src/keywords.proto
@@ -30,21 +46,31 @@ pkg/parsing/adblock.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/goadblock/src/adblock.proto
 
 pkg/svm/libsvm.so: $(GO_SVM_SRC)
+	@echo "👉 Building libsvm.so"
 	g++ -Wall -Wconversion -O3 -fPIC -c ./pkg/svm/svm.cpp
 	g++ -shared -Wl,-soname,libsvm.so svm.o -o ./pkg/svm/libsvm.so
-	rm svm.o
+	@rm svm.o
 
 .PHONY: build
-build: lib/libgobert.so lib/libgoadblock.so lib/gobert-cbindgen.h pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go pkg/ai/zero_shot.pb.go pkg/svm/libsvm.so
-	go build -ldflags="-r $(ROOT_DIR)lib" -buildvcs=false
+build: lib/libgobert.so lib/libgoadblock.so pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go pkg/ai/zero_shot.pb.go pkg/svm/libsvm.so
+	@echo "👉 Building go binary"
+	go build -ldflags="-r $(ROOT_DIR)lib" -tags '$(GO_BUILD_TAGS)'
+
+.PHONY: release
+release: clean debug build
 
 .PHONY: clean
-clean:	
+clean:
+	@echo "🧹 Cleaning"
 	@go clean
 	@rm -f 100kb.golang
-	@rm -rf target/*
-	@rm -rf .cache/*
+	@rm -rf target
+	@rm -rf .cache
 	@rm -rf dbs/output*
+	@rm -rf lib/*.so
+	@rm -rf pkg/svm/libsvm.so
+	@mkdir .cache
+	@mkdir target
 
 .PHONY: godefs
 godefs:

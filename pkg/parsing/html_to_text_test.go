@@ -104,7 +104,7 @@ func TestLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	hasAbout, hasBlogRoll, hasWriting, err := engine.IdentifyInternalPages(doc, "https://danhill.is/testpage")
+	hasAbout, hasBlogRoll, hasWriting, err := engine.identifyInternalPages(doc, "https://danhill.is/testpage")
 	if err != nil {
 		t.Fatal(err)
 	}

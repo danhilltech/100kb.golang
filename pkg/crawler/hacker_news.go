@@ -1,4 +1,4 @@
-package hn
+package crawler
 
 import (
 	"database/sql"
@@ -12,14 +12,15 @@ type Engine struct {
 	client *http.Client
 	db     *sql.DB
 
-	dbInsertPreparedHN *sql.Stmt
+	dbInsertPreparedToCrawl *sql.Stmt
 }
 
 type HNItemType string
 
-type HNItem struct {
-	ID     int
-	URL    string
+type ToCrawl struct {
+	URL string
+
+	HNID   int
 	Domain string
 	By     string
 	Type   HNItemType

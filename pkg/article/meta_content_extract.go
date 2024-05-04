@@ -1,19 +1,15 @@
 package article
 
 import (
-	"bytes"
-	"database/sql"
 	"fmt"
-	"io"
 	"time"
-	"unicode/utf8"
 
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
+	"github.com/pemistahl/lingua-go"
 	"golang.org/x/net/html"
-	"golang.org/x/net/publicsuffix"
 )
 
-func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error {
+func (engine *Engine) articleExtractContent(article *Article) error {
 	// Check we have enough data
 	article.LastContentExtractAt = time.Now().Unix()
 
@@ -23,24 +19,7 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 	}
 	defer htmlStream.Body.Close()
 
-	fullBody, err := io.ReadAll(htmlStream.Body)
-	if err != nil {
-		return err
-	}
-	if len(fullBody) > 500000 { // Don't bother parsing anything over 500kb uncompressed
-		fmt.Printf("Skipping %s as body too large at %d bytes\n", article.Url, len(fullBody))
-		return nil
-	}
-	if !utf8.Valid(fullBody) {
-		fmt.Printf("Skipping %s as body not valid utf8\n", article.Url)
-		return nil
-	}
-
-	article.HTMLLength = int64(len(fullBody))
-
-	r := bytes.NewReader(fullBody)
-
-	htmlDoc, err := html.Parse(r)
+	htmlDoc, err := html.Parse(htmlStream.Body)
 
 	if err != nil {
 		return fmt.Errorf("could not parse %w", err)
@@ -62,33 +41,34 @@ func (engine *Engine) articleExtractContent(tx *sql.Tx, article *Article) error 
 		return fmt.Errorf("could not extract text %w", err)
 	}
 
+	if len(body) == 0 {
+		article.Stage = STAGE_FAILED
+		return fmt.Errorf("no body found %s", article.Url)
+	}
+
+	var considerText string
+
+	for _, b := range body {
+		considerText = fmt.Sprintf("%s %s", considerText, b.Text)
+	}
+
+	if len(considerText) < 200 {
+		article.Stage = STAGE_FAILED
+		return fmt.Errorf("short text: %s %s", body[0].Text, article.Url)
+
+	}
+
+	// Check its in English
+	res, exists := engine.langId.DetectLanguageOf(considerText)
+
+	if !exists || res != lingua.English {
+		article.Stage = STAGE_FAILED
+		return fmt.Errorf("not in english %s", article.Url)
+	}
+
 	article.BodyRaw = &serialize.Content{Content: body}
 	article.Title = title
 	article.Description = description
-
-	hasAbout, hasBlogRoll, hasWriting, err := engine.parser.IdentifyInternalPages(htmlDoc, article.Url)
-	if err != nil {
-		return fmt.Errorf("could not identify interal pages %w", err)
-	}
-
-	article.PageAbout = hasAbout
-	article.PageBlogRoll = hasBlogRoll
-	article.PageWriting = hasWriting
-
-	tld, icann := publicsuffix.PublicSuffix(article.Domain)
-	if icann {
-		article.DomainTLD = tld
-	}
-
-	urlHumanName, urlNews, urlBlog, popularDomain, err := engine.parser.IdentifyURL(article.Url)
-	if err != nil {
-		return fmt.Errorf("could not identify url %w", err)
-	}
-
-	article.URLBlog = urlBlog
-	article.URLHumanName = urlHumanName
-	article.URLNews = urlNews
-	article.DomainIsPopular = popularDomain
 
 	article.Stage = STAGE_VALID_CONTENT
 

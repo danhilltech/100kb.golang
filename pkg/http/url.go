@@ -3,6 +3,7 @@ package http
 import (
 	"database/sql"
 	"net/http"
+	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/utils"
 )
@@ -11,36 +12,48 @@ type URLRequest struct {
 	Url           string
 	Domain        string
 	LastAttemptAt int64
-	Status        string
+	Status        int64
 	ContentType   string
 
 	Response *http.Response
 }
 
-func getURLRequestFromDB(newUrl string, txn *sql.Tx) (*URLRequest, error) {
+var mu sync.Mutex
+
+func getURLRequestFromDB(newUrl string, db *sql.DB) (*URLRequest, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	var url string
 	var domain string
 	var lastAttemptAt sql.NullInt64
-	var status sql.NullString
+	var status sql.NullInt64
 	var contentType sql.NullString
 
-	err := txn.QueryRow("SELECT url, domain, lastAttemptAt, status, contentType FROM url_requests WHERE url = ?", newUrl).Scan(&url, &domain, &lastAttemptAt, &status, &contentType)
+	err := db.QueryRow("SELECT url, domain, lastAttemptAt, status, contentType FROM url_requests WHERE url = ?", newUrl).Scan(&url, &domain, &lastAttemptAt, &status, &contentType)
 
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return nil, err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	return &URLRequest{
 		Url:           url,
 		Domain:        domain,
 		LastAttemptAt: lastAttemptAt.Int64,
-		Status:        status.String,
-		ContentType:   status.String,
+		Status:        status.Int64,
+		ContentType:   contentType.String,
 	}, nil
 
 }
 
-func (urlRequest *URLRequest) Save(txn *sql.Tx) error {
+func (urlRequest *URLRequest) Save(txn *sql.DB) error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	_, err := txn.Exec(`INSERT INTO 
 	url_requests(url, domain, lastAttemptAt, status, contentType) 
 	VALUES(?, ?, ?, ?, ?) 
@@ -48,7 +61,7 @@ func (urlRequest *URLRequest) Save(txn *sql.Tx) error {
 		urlRequest.Url,
 		urlRequest.Domain,
 		utils.NullInt64(urlRequest.LastAttemptAt),
-		utils.NullString(urlRequest.Status),
+		utils.NullInt64(urlRequest.Status),
 		utils.NullString(urlRequest.ContentType))
 
 	return err

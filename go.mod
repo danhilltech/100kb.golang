@@ -25,13 +25,17 @@ require (
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/guptarohit/asciigraph v0.5.1 // indirect
+	github.com/jmhodges/gocld3 v0.0.0-20211031064447-cc40e88f7505 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/mmcdole/goxpp v1.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
+	github.com/pemistahl/lingua-go v1.4.0 // indirect
 	github.com/rocketlaunchr/dataframe-go v0.0.0-20201007021539-67b046771f0b // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/smira/go-statsd v1.3.3 // indirect
 	github.com/viterin/partial v1.1.0 // indirect
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/sync v0.1.0 // indirect

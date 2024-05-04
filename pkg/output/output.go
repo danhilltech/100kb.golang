@@ -209,7 +209,7 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 	err = engine.templates["articleList.html"].Execute(f, pageData)
 	if err != nil {
 		// return err
-		fmt.Println("DAN", err)
+		fmt.Println(err)
 	}
 
 	return nil

@@ -1,10 +1,12 @@
-package feed
+package domain
 
 import (
 	"database/sql"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
+	"github.com/danhilltech/100kb.golang/pkg/parsing"
+	"github.com/smira/go-statsd"
 )
 
 type Engine struct {
@@ -13,6 +15,7 @@ type Engine struct {
 	db                   *sql.DB
 	articleEngine        *article.Engine
 	httpCrawl            *retryhttp.Client
+	parser               *parsing.Engine
 }
 
 type Domain struct {
@@ -22,10 +25,22 @@ type Domain struct {
 	FeedTitle   string
 	Language    string
 
-	Articles []article.Article
+	PageAbout    bool
+	PageBlogRoll bool
+	PageWriting  bool
+	PageNow      bool
+
+	URLNews      bool
+	URLBlog      bool
+	URLHumanName bool
+
+	DomainIsPopular bool
+	DomainTLD       string
+
+	Articles []*article.Article
 }
 
-func NewEngine(db *sql.DB, articleEngine *article.Engine, cacheDir string) (*Engine, error) {
+func NewEngine(db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cacheDir string) (*Engine, error) {
 	engine := Engine{articleEngine: articleEngine}
 
 	err := engine.initDB(db)
@@ -38,7 +53,12 @@ func NewEngine(db *sql.DB, articleEngine *article.Engine, cacheDir string) (*Eng
 
 	// engine.http = hnClient
 
-	engine.httpCrawl, err = retryhttp.NewClient(cacheDir)
+	engine.httpCrawl, err = retryhttp.NewClient(cacheDir, db, sd)
+	if err != nil {
+		return nil, err
+	}
+
+	engine.parser, err = parsing.NewEngine()
 	if err != nil {
 		return nil, err
 	}

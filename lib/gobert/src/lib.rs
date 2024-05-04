@@ -6,7 +6,6 @@ use rust_bert::pipelines::sentence_embeddings::{
     SentenceEmbeddingsBuilder, SentenceEmbeddingsConfig, SentenceEmbeddingsModelType,
 };
 use rust_bert::pipelines::zero_shot_classification::ZeroShotClassificationModel;
-use std::io::Cursor;
 use std::ptr;
 use tch::Cuda;
 
@@ -66,9 +65,8 @@ pub extern "C" fn sentence_embedding(
         &mut *ptr
     };
     let bytes_raw = unsafe { std::slice::from_raw_parts(req, *req_size) };
-    let bytes: Vec<u8> = Vec::from(bytes_raw);
 
-    let sentences = ai::SentenceEmbeddingRequest::decode(&mut Cursor::new(bytes)).unwrap();
+    let sentences = ai::SentenceEmbeddingRequest::decode(bytes_raw).unwrap();
 
     let embd_groups: Option<Vec<Vec<f32>>> = match model.model.encode(&sentences.texts) {
         Ok(r) => Some(r),
@@ -158,9 +156,8 @@ pub extern "C" fn keyword_extraction(
     };
 
     let bytes_raw = unsafe { std::slice::from_raw_parts(req, *req_size) };
-    let bytes: Vec<u8> = Vec::from(bytes_raw);
 
-    let sentences = ai::KeywordRequest::decode(&mut Cursor::new(bytes)).unwrap();
+    let sentences = ai::KeywordRequest::decode(bytes_raw).unwrap();
 
     println!("{:?}", sentences);
 
@@ -244,9 +241,8 @@ pub extern "C" fn zero_shot(
     };
 
     let bytes_raw = unsafe { std::slice::from_raw_parts(req, *req_size) };
-    let bytes: Vec<u8> = Vec::from(bytes_raw);
 
-    let request = ai::ZeroShotRequest::decode(&mut Cursor::new(bytes)).unwrap();
+    let request = ai::ZeroShotRequest::decode(bytes_raw).unwrap();
 
     let mut request_texts: Vec<&str> = vec![];
     let mut request_labels: Vec<&str> = vec![];

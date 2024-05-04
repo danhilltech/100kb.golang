@@ -16,7 +16,7 @@ var namesList string
 //go:embed data/popular-domains.txt
 var popularDomainsList string
 
-func (engine *Engine) IdentifyInternalPages(z *html.Node, baseUrl string) (bool, bool, bool, error) {
+func (engine *Engine) identifyInternalPages(z *html.Node, baseUrl string) (bool, bool, bool, error) {
 
 	var hasAbout, hasBlogRoll, hasWriting bool
 

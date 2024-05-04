@@ -1,4 +1,4 @@
-package hn
+package crawler
 
 import (
 	"html"

@@ -4,26 +4,11 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
-
-	"github.com/danhilltech/100kb.golang/pkg/http"
 )
 
-type ArticleWithHttp struct {
-	Article  *Article
-	Response *http.URLRequest
-}
-
 func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
-	txn, err := engine.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer txn.Rollback()
-	articles, err := engine.getArticlesToIndex(txn)
-	if err != nil {
-		return err
-	}
-	err = txn.Commit()
+
+	articles, err := engine.getArticlesToIndex()
 	if err != nil {
 		return err
 	}
@@ -33,7 +18,7 @@ func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
 	fmt.Printf("Crawling %d new articles\n", len(articles))
 
 	jobs := make(chan *Article, len(articles))
-	results := make(chan *ArticleWithHttp, len(articles))
+	results := make(chan *Article, len(articles))
 
 	for w := 1; w <= workers; w++ {
 		go engine.articleIndexWorker(jobs, results)
@@ -44,26 +29,14 @@ func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
 	}
 	close(jobs)
 
-	txn, err = engine.db.Begin()
-	if err != nil {
-		return err
-	}
-
 	t := time.Now().UnixMilli()
 	for a := 0; a < len(articles); a++ {
-		articleWithHttp := <-results
-
-		if articleWithHttp.Response != nil {
-			err = articleWithHttp.Response.Save(txn)
-			if err != nil {
-				return err
-			}
-		}
+		article := <-results
 
 		// save it
-		err = engine.Update(articleWithHttp.Article, txn)
+		err = engine.Update(article)
 		if err != nil {
-			fmt.Println(articleWithHttp.Article.Url, err)
+			fmt.Println(article.Url, err)
 			continue
 		}
 
@@ -72,32 +45,20 @@ func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
 			qps := (float64(chunkSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
 			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
-			err = txn.Commit()
-			if err != nil {
-				return err
-			}
-			txn, err = engine.db.Begin()
-			if err != nil {
-				return err
-			}
-		}
-	}
 
-	err = txn.Commit()
-	if err != nil {
-		return err
+		}
 	}
 	fmt.Printf("\tdone %d\n", len(articles))
 
 	return nil
 }
 
-func (engine *Engine) articleIndexWorker(jobs <-chan *Article, results chan<- *ArticleWithHttp) {
+func (engine *Engine) articleIndexWorker(jobs <-chan *Article, results chan<- *Article) {
 	for id := range jobs {
-		res, err := engine.articleIndex(id)
+		err := engine.articleIndex(id)
 		if err != nil {
 			fmt.Println(err)
 		}
-		results <- &ArticleWithHttp{Article: id, Response: res}
+		results <- id
 	}
 }

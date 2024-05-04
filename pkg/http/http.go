@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"database/sql"
 	"io"
 	"net"
 	"net/http"
@@ -13,57 +14,113 @@ import (
 	"time"
 
 	"github.com/peterbourgon/diskv/v3"
+	statsd "github.com/smira/go-statsd"
 )
 
 const RetryCount = 2
 
 type Client struct {
 	httpClient *http.Client
+	db         *sql.DB
+	sd         *statsd.Client
 }
 
 type retryableTransport struct {
 	transport http.RoundTripper
 	limiter   *Limiter
 	cache     *diskv.Diskv
+	db        *sql.DB
+	sd        *statsd.Client
 }
 
 func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// Do we have a context?
 
+	req.Header.Set("User-Agent", "curl/8.4.0")
+	// req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15")
+	req.Header.Set("Accepts", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	req.Header.Set("DNT", "1")
+
+	t.sd.Incr("http.roundtrip.start", 1)
+
 	var err error
 
-	// Check our cache
+	// Check for existing
+	existing, err := getURLRequestFromDB(req.URL.String(), t.db)
+	if err != nil {
+		return nil, err
+	}
+
+	var urlRequest *URLRequest
+
+	if existing != nil {
+		urlRequest = existing
+	} else {
+		urlRequest = &URLRequest{
+			Url:           req.URL.String(),
+			LastAttemptAt: time.Now().Unix(),
+		}
+	}
+
+	checkDisk := true
+
+	if urlRequest.LastAttemptAt < (time.Now().Unix() - 60*60*24*5) {
+		checkDisk = false
+	}
+	if urlRequest.Status == 403 {
+		checkDisk = false
+	}
+
 	k, err := getHTMLKey(req)
 	if err != nil {
 		return nil, err
 	}
-	diskStream, _ := t.cache.ReadStream(k, false)
-	if err != nil {
-		return nil, err
-	}
-	if diskStream != nil {
-		defer diskStream.Close()
-		data, err := io.ReadAll(diskStream)
 
-		if err != nil {
-			return nil, err
+	if checkDisk {
+		t.sd.Incr("http.roundtrip.checkingDisk", 1)
+		// Check our cache
+
+		diskStream, _ := t.cache.ReadStream(k, false)
+
+		if diskStream != nil {
+			t.sd.Incr("http.roundtrip.diskCacheHit", 1)
+			defer diskStream.Close()
+			data, err := io.ReadAll(diskStream)
+
+			if err != nil {
+				return nil, err
+			}
+			buf := bytes.NewBuffer(data)
+			bufReader := bufio.NewReader(buf)
+
+			// todo check how old the response is based on the code
+
+			return http.ReadResponse(bufReader, req)
 		}
-		buf := bytes.NewBuffer(data)
-		bufReader := bufio.NewReader(buf)
-		return http.ReadResponse(bufReader, req)
 	}
+	t.sd.Incr("http.roundtrip.diskCacheMiss", 1)
 
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancelFunc()
+	urlRequest.LastAttemptAt = time.Now().Unix()
+	urlRequest.Save(t.db)
 
-	t.limiter.Wait(ctx)
+	// ctx, cancelFunc := context.WithTimeout(context.Background(), 6*time.Second)
+	// defer cancelFunc()
 
-	t.limiter.WaitHost(ctx, req.Host)
+	// t.limiter.Wait(ctx)
+
+	// t.limiter.WaitHost(ctx, req.Host)
 
 	// Send the request
 	resp, err := t.transport.RoundTrip(req)
 	if err != nil {
+		if resp != nil {
+			urlRequest.Status = int64(resp.StatusCode)
+			urlRequest.ContentType = resp.Header.Get("Content-Type")
+			urlRequest.LastAttemptAt = time.Now().Unix()
+			urlRequest.Save(t.db)
+		}
 		return resp, err
 	}
 
@@ -72,6 +129,11 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	if err != nil {
 		return nil, err
 	}
+
+	urlRequest.Status = int64(resp.StatusCode)
+	urlRequest.ContentType = resp.Header.Get("Content-Type")
+	urlRequest.LastAttemptAt = time.Now().Unix()
+	urlRequest.Save(t.db)
 
 	err = t.cache.Write(k, buf)
 	if err != nil {
@@ -86,21 +148,21 @@ func dialTimeout(network, addr string) (net.Conn, error) {
 	return net.DialTimeout(network, addr, 1500*time.Millisecond)
 }
 
-func NewClient(cacheDir string) (*Client, error) {
+func NewClient(cacheDir string, db *sql.DB, sd *statsd.Client) (*Client, error) {
 
-	limiter, err := NewRateLimiter(100, 2, 30_000)
+	limiter, err := NewRateLimiter(50, 2, 50_000)
 	if err != nil {
 		return nil, err
 	}
 
 	dialer := &net.Dialer{
 		Resolver: &net.Resolver{
-			PreferGo: true,
+			PreferGo: false,
 			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 				d := net.Dialer{
 					Timeout: time.Duration(1500) * time.Millisecond,
 				}
-				return d.DialContext(ctx, "udp", "1.1.1.1:53")
+				return d.DialContext(ctx, "tcp", "1.1.1.1:53")
 			},
 		},
 	}
@@ -128,6 +190,8 @@ func NewClient(cacheDir string) (*Client, error) {
 		},
 		limiter: limiter,
 		cache:   cache,
+		db:      db,
+		sd:      sd,
 	}
 
 	httpC := http.Client{
@@ -137,6 +201,8 @@ func NewClient(cacheDir string) (*Client, error) {
 
 	client := Client{
 		httpClient: &httpC,
+		db:         db,
+		sd:         sd,
 	}
 
 	return &client, nil
@@ -153,37 +219,66 @@ func (c *Client) GetWithSafety(u string) (*URLRequest, error) {
 	urlRequest.Url = req.URL.String()
 	urlRequest.Domain = req.URL.Hostname()
 	urlRequest.LastAttemptAt = time.Now().Unix()
-	urlRequest.Status = "9xx" // Unknown
+	urlRequest.Status = 900 // Unknown
+
+	err = urlRequest.Save(c.db)
+	if err != nil {
+		return nil, err
+	}
 
 	// Check it's a valid domain
 	for _, bad := range BANNED_URLS {
 		if req.URL.Hostname() == bad {
-			urlRequest.Status = "8xx" // Unknown
+			urlRequest.Status = 800 // Unknown
+			err = urlRequest.Save(c.db)
+			if err != nil {
+				return nil, err
+			}
 			return urlRequest, nil
 		}
 	}
 
 	if strings.HasSuffix(urlRequest.Url, ".mp4") {
-		urlRequest.Status = "8xx" // Bad
+		urlRequest.Status = 801 // Bad
+		err = urlRequest.Save(c.db)
+		if err != nil {
+			return nil, err
+		}
 		return urlRequest, nil
 	}
 	if strings.HasSuffix(urlRequest.Url, ".mp3") {
-		urlRequest.Status = "8xx" // Bad
+		urlRequest.Status = 801 // Bad
+		err = urlRequest.Save(c.db)
+		if err != nil {
+			return nil, err
+		}
 		return urlRequest, nil
 	}
 	if strings.HasSuffix(urlRequest.Url, ".pdf") {
-		urlRequest.Status = "8xx" // Bad
+		urlRequest.Status = 801 // Bad
+		err = urlRequest.Save(c.db)
+		if err != nil {
+			return nil, err
+		}
 		return urlRequest, nil
 	}
 	if !strings.HasPrefix(urlRequest.Url, "http") {
-		urlRequest.Status = "8xx" // Bad
+		urlRequest.Status = 801 // Bad
+		err = urlRequest.Save(c.db)
+		if err != nil {
+			return nil, err
+		}
 		return urlRequest, nil
 	}
 
 	// Now do a head request to check type
 
 	if !c.headCheck(urlRequest.Url, 0) {
-		urlRequest.Status = "8xx" // Bad
+		urlRequest.Status = 802 // Bad
+		err = urlRequest.Save(c.db)
+		if err != nil {
+			return nil, err
+		}
 		return urlRequest, nil
 	}
 
@@ -194,17 +289,16 @@ func (c *Client) GetWithSafety(u string) (*URLRequest, error) {
 
 	urlRequest.Response = resp
 
-	if resp.StatusCode < 400 {
-		urlRequest.Status = "200"
-	} else if resp.StatusCode < 500 {
-		urlRequest.Status = "4xx"
-	} else if resp.StatusCode < 600 {
-		urlRequest.Status = "5xx"
-	}
+	urlRequest.Status = int64(resp.StatusCode)
 
 	contentType := resp.Header.Get("Content-Type")
 
 	urlRequest.ContentType = contentType
+
+	err = urlRequest.Save(c.db)
+	if err != nil {
+		return nil, err
+	}
 
 	return urlRequest, nil
 
@@ -230,7 +324,18 @@ func (c *Client) headCheck(u string, n int) bool {
 		return c.headCheck(loc, n+1)
 	}
 
-	if !strings.Contains(head.Header.Get("Content-Type"), "text/html") && !strings.Contains(head.Header.Get("Content-Type"), "application/rss") {
+	isGoodContentType := false
+
+	goodTypes := []string{"text/html", "application/rss+xml", "application/atom+xml", "text/xml", "application/xml", "application/rss"}
+
+	for _, typ := range goodTypes {
+		if strings.Contains(head.Header.Get("Content-Type"), typ) {
+			isGoodContentType = true
+
+		}
+	}
+
+	if !isGoodContentType {
 		return false
 	}
 
@@ -241,10 +346,11 @@ func (c *Client) headCheck(u string, n int) bool {
 		if err != nil {
 			return false
 		}
-		if sizeInt > 100000 { // 100 kb
+		if sizeInt > 200000 { // 100 kb
 			return false
 		}
 	}
+
 	return true
 }
 

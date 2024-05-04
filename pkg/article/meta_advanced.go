@@ -1,8 +1,8 @@
 package article
 
 import (
-	"database/sql"
 	"fmt"
+	"hash/fnv"
 	"strings"
 	"time"
 
@@ -26,22 +26,33 @@ var zeroShotLabels = []string{
 	"nature",
 }
 
-func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
+func (engine *Engine) articleMetaAdvanced(article *Article) error {
+
+	var t1, t2 int64
+
+	t1 = time.Now().UnixMilli()
+
 	// Check we have enough data
 	article.LastMetaAt = time.Now().Unix()
 
-	feedArticles, err := engine.getArticlesByFeed(tx, article.FeedUrl, article.Url)
+	feedArticles, err := engine.getArticlesByFeed(article.FeedUrl, article.Url)
 	if err != nil {
 		return err
 	}
 
-	var currentCanon []string
+	currentCanon := make(map[uint64]bool)
 
 	for _, feed := range feedArticles {
 		for _, para := range feed.BodyRaw.Content {
-			currentCanon = append(currentCanon, strings.ToLower(para.Text))
+			keyHash := fnv.New64()
+			keyHash.Write([]byte(strings.ToLower(para.Text)))
+			currentCanon[keyHash.Sum64()] = true
 		}
 	}
+
+	t2 = time.Now().UnixMilli() - t1
+	engine.sd.Timing("articleMetaAdvanced.currentCanon", t2)
+	t1 = time.Now().UnixMilli()
 
 	// unique the content
 
@@ -49,12 +60,12 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 
 	for _, line := range article.BodyRaw.Content {
 		if len(line.Text) > 0 {
-			found := false
-			for _, currLine := range currentCanon {
-				if strings.ToLower(line.Text) == currLine {
-					found = true
-				}
-			}
+
+			keyHash := fnv.New64()
+			keyHash.Write([]byte(strings.ToLower(line.Text)))
+
+			found := currentCanon[keyHash.Sum64()]
+
 			if !found {
 				uniqueContent = append(uniqueContent, line)
 			}
@@ -62,6 +73,10 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 	}
 
 	article.Body = &serialize.Content{Content: uniqueContent}
+
+	t2 = time.Now().UnixMilli() - t1
+	engine.sd.Timing("articleMetaAdvanced.uniqueContent", t2)
+	t1 = time.Now().UnixMilli()
 
 	if len(article.Body.Content) == 0 {
 		return nil
@@ -132,9 +147,13 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 		}
 	}
 
+	t2 = time.Now().UnixMilli() - t1
+	engine.sd.Timing("articleMetaAdvanced.htmlTags", t2)
+
 	if len(summaryTexts) > 0 &&
 		engine.sentenceEmbeddingModel != nil &&
 		engine.zeroShotModel != nil {
+		t1 = time.Now().UnixMilli()
 		// AI
 		var startTime, diff int64
 		startTime = time.Now().UnixMilli()
@@ -231,6 +250,8 @@ func (engine *Engine) articleMetaAdvanced(tx *sql.Tx, article *Article) error {
 
 		}
 
+		t2 = time.Now().UnixMilli() - t1
+		engine.sd.Timing("articleMetaAdvanced.ai", t2)
 	}
 
 	article.Stage = STAGE_COMPLETE

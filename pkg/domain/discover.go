@@ -1,4 +1,4 @@
-package feed
+package domain
 
 import (
 	"fmt"
@@ -8,27 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/danhilltech/100kb.golang/pkg/http"
 	"golang.org/x/net/html"
 )
 
-type DiscoverWithHTTP struct {
-	Feed     string
-	Response *http.URLRequest
-}
-
 func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
-	txn, err := engine.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer txn.Rollback()
 
-	urls, err := engine.getURLsToCrawl(txn)
-	if err != nil {
-		return err
-	}
-	err = txn.Commit()
+	urls, err := engine.getURLsToCrawl()
 	if err != nil {
 		return err
 	}
@@ -38,13 +23,7 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 	fmt.Printf("Checking %d urls for feeds \n", len(urls))
 
 	jobs := make(chan string, len(urls))
-	results := make(chan *DiscoverWithHTTP, len(urls))
-
-	txn, err = engine.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer txn.Rollback()
+	results := make(chan string, len(urls))
 
 	for w := 1; w <= workers; w++ {
 		go engine.crawlURLForFeedWorker(jobs, results)
@@ -57,20 +36,13 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 
 	t := time.Now().UnixMilli()
 	for a := 1; a <= len(urls); a++ {
-		i := <-results
+		feed := <-results
 
-		if i.Response != nil {
-			err = i.Response.Save(txn)
-			if err != nil {
-				return err
-			}
-		}
-
-		if i.Feed != "" {
-			u, err := url.Parse(i.Feed)
+		if feed != "" {
+			u, err := url.Parse(feed)
 
 			if err == nil {
-				err = engine.Insert(u.Hostname(), i.Feed, txn)
+				err = engine.Insert(u.Hostname(), feed)
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -82,65 +54,46 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 			qps := (float64(chunkSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
 			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(urls), qps)
-			err = txn.Commit()
-			if err != nil {
-				return err
-			}
-			txn, err = engine.db.Begin()
-			if err != nil {
-				return err
-			}
+
 		}
 
 	}
 	fmt.Printf("\tdone %d\n", len(urls))
 
-	err = txn.Commit()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (engine *Engine) crawlURLForFeedWorker(jobs <-chan string, results chan<- *DiscoverWithHTTP) {
+func (engine *Engine) crawlURLForFeedWorker(jobs <-chan string, results chan<- string) {
 	for id := range jobs {
-		feed, ht, err := engine.extractFeed(id)
+		feed, err := engine.extractFeed(id)
 		if err != nil {
-			fmt.Println(id, err)
+			fmt.Println(err)
 		}
-		results <- &DiscoverWithHTTP{Feed: feed, Response: ht}
+		results <- feed
+
 	}
 }
 
 // Crawls
-func (engine *Engine) extractFeed(candidate string) (string, *http.URLRequest, error) {
+func (engine *Engine) extractFeed(candidate string) (string, error) {
 	// First check the URL isn't banned
-
-	urlRequest := &http.URLRequest{
-		Url:           candidate,
-		Status:        "8xx",
-		LastAttemptAt: time.Now().Unix(),
-	}
 
 	parsedUrl, err := url.Parse(candidate)
 	if err != nil {
-		return "", urlRequest, err
+		return "", err
 	}
 
-	urlRequest.Domain = parsedUrl.Hostname()
-
 	if parsedUrl == nil || parsedUrl.Hostname() == "" {
-		return "", urlRequest, nil
+		return "", nil
 	}
 
 	// crawl it
 	res, err := engine.httpCrawl.GetWithSafety(candidate)
 	if err != nil {
-		return "", urlRequest, err
+		return "", err
 	}
 	if res == nil || res.Response == nil {
-		return "", urlRequest, err
+		return "", err
 	}
 	defer res.Response.Body.Close()
 
@@ -148,14 +101,14 @@ func (engine *Engine) extractFeed(candidate string) (string, *http.URLRequest, e
 
 	// Check for malformed
 	if strings.HasPrefix(feed, "//") {
-		return "", res, nil
+		return "", nil
 	}
 
 	if feed != "" {
 		feedUrl, err := url.Parse(feed)
 
 		if err != nil {
-			return "", res, err
+			return "", err
 		}
 		cleanFeed := parsedUrl.ResolveReference(feedUrl)
 
@@ -163,11 +116,15 @@ func (engine *Engine) extractFeed(candidate string) (string, *http.URLRequest, e
 
 		h1, err := engine.httpCrawl.Head(v1)
 		if err != nil {
-			return "", res, err
+			return "", err
 		}
 
-		if h1.StatusCode < 400 && (strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") || strings.Contains(h1.Header.Get("Content-Type"), "application/atom+xml")) {
-			return v1, res, nil
+		if h1.StatusCode < 400 &&
+			(strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") ||
+				strings.Contains(h1.Header.Get("Content-Type"), "application/atom+xml") ||
+				strings.Contains(h1.Header.Get("Content-Type"), "text/xml") ||
+				strings.Contains(h1.Header.Get("Content-Type"), "application/xml")) {
+			return v1, nil
 		}
 
 		possibles := []string{"/feed", "/rss", "/rss.xml", "/blog/feed", "/blog/rss", "/blog/rss.xml"}
@@ -180,16 +137,20 @@ func (engine *Engine) extractFeed(candidate string) (string, *http.URLRequest, e
 			v := clean.String()
 			h, err := engine.httpCrawl.Head(v)
 			if err != nil {
-				return "", res, err
+				return "", err
 			}
-			if h.StatusCode < 400 && (strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") || strings.Contains(h1.Header.Get("Content-Type"), "application/atom+xml")) {
-				return v, res, nil
+			if h.StatusCode < 400 &&
+				(strings.Contains(h.Header.Get("Content-Type"), "application/rss+xml") ||
+					strings.Contains(h.Header.Get("Content-Type"), "application/atom+xml") ||
+					strings.Contains(h.Header.Get("Content-Type"), "text/xml") ||
+					strings.Contains(h.Header.Get("Content-Type"), "application/xml")) {
+				return v1, nil
 			}
 		}
 
 	}
 
-	return "", res, nil
+	return "", nil
 }
 
 func extractFeedURL(resp io.Reader) string {

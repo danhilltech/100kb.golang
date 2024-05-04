@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 libc = "0.2.152"
 rust-bert = { git = "https://github.com/guillaume-be/rust-bert.git", rev ="c3a3f39" }
 tch = "0.14.0"
-prost = "0.12"
+prost = "0.12.3"
 
 [build-dependencies]
 prost-build = { version = "0.12.3" }

@@ -1,4 +1,4 @@
-package hn
+package crawler
 
 import (
 	"encoding/json"
@@ -41,8 +41,8 @@ func (engine *Engine) getMaxId() (int, error) {
 	return max, nil
 }
 
-func (engine *Engine) getItem(id int) (*HNItem, error) {
-	tmpItem := &HNItem{ID: id}
+func (engine *Engine) getHNItem(id int) (*ToCrawl, error) {
+	tmpItem := &ToCrawl{HNID: id}
 
 	resp, err := engine.client.Get(fmt.Sprintf("%s/item/%d.json", HN_BASE, id))
 
@@ -59,7 +59,7 @@ func (engine *Engine) getItem(id int) (*HNItem, error) {
 		return tmpItem, err
 	}
 
-	var item HNItem
+	var item ToCrawl
 
 	err = json.Unmarshal(body, &item)
 	if err != nil {
@@ -89,9 +89,9 @@ func (engine *Engine) getItem(id int) (*HNItem, error) {
 	return &item, nil
 }
 
-func (engine *Engine) getItemWorker(jobs <-chan int, results chan<- *HNItem) {
+func (engine *Engine) getHNWorker(jobs <-chan int, results chan<- *ToCrawl) {
 	for id := range jobs {
-		item, err := engine.getItem(id)
+		item, err := engine.getHNItem(id)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -100,7 +100,7 @@ func (engine *Engine) getItemWorker(jobs <-chan int, results chan<- *HNItem) {
 }
 
 // Gets the latest content from Hacker news
-func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) error {
+func (engine *Engine) RunHNRefresh(chunkSize int, totalFetch int, workers int) error {
 
 	max, err := engine.getMaxId()
 	if err != nil {
@@ -111,17 +111,7 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 
 	var ids []int
 
-	txn, err := engine.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer txn.Rollback()
-
-	existingIds, err := engine.getExistingIDs(txn)
-	if err != nil {
-		return err
-	}
-	err = txn.Commit()
+	existingIds, err := engine.getExistingIDs()
 	if err != nil {
 		return err
 	}
@@ -145,10 +135,10 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 	fmt.Printf("Getting %d HN items\n", len(ids))
 
 	jobs := make(chan int, len(ids))
-	results := make(chan *HNItem, len(ids))
+	results := make(chan *ToCrawl, len(ids))
 
 	for w := 1; w <= workers; w++ {
-		go engine.getItemWorker(jobs, results)
+		go engine.getHNWorker(jobs, results)
 	}
 
 	for j := 1; j <= len(ids); j++ {
@@ -156,18 +146,12 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 	}
 	close(jobs)
 
-	insertTxn, err := engine.db.Begin()
-	defer insertTxn.Rollback()
-	if err != nil {
-		return err
-	}
-
 	t := time.Now().UnixMilli()
 
 	for a := 1; a <= len(ids); a++ {
 		item := <-results
 
-		err = engine.save(item, insertTxn)
+		err = engine.InsertToCrawl(item)
 		if err != nil {
 			return err
 		}
@@ -177,23 +161,11 @@ func (engine *Engine) RunRefresh(chunkSize int, totalFetch int, workers int) err
 			qps := (float64(chunkSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
 			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(ids), qps)
-			err = insertTxn.Commit()
-			if err != nil {
-				return err
-			}
-			insertTxn, err = engine.db.Begin()
-			if err != nil {
-				return err
-			}
+
 		}
 
 	}
 	fmt.Printf("\tdone %d\n", len(ids))
-
-	err = insertTxn.Commit()
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
