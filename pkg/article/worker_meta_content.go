@@ -32,7 +32,7 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 
 			err := engine.articleExtractContent(article)
 			if err != nil {
-				fmt.Println(article.Url, err)
+				// fmt.Println(article.Url, err)
 				err = engine.Update(article)
 				if err != nil {
 					fmt.Println(article.Url, err)

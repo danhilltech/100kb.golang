@@ -13,13 +13,12 @@ docker run \
 */
 
 import (
-	"bufio"
 	"bytes"
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"log"
 	"net/url"
-	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -30,8 +29,9 @@ import (
 	"github.com/smira/go-statsd"
 
 	"github.com/sjwhitworth/golearn/base"
+	"github.com/sjwhitworth/golearn/ensemble"
 	"github.com/sjwhitworth/golearn/evaluation"
-	"github.com/sjwhitworth/golearn/knn"
+	"github.com/sjwhitworth/golearn/filters"
 )
 
 var Reset = "\033[0m"
@@ -44,11 +44,8 @@ var Cyan = "\033[36m"
 var Gray = "\033[37m"
 var White = "\033[97m"
 
-//go:embed scoring/bad.txt
-var badList string
-
-//go:embed scoring/good.txt
-var goodList string
+//go:embed scoring/candidates.txt
+var candidateList string
 
 type Entry struct {
 	url    string
@@ -58,10 +55,7 @@ type Entry struct {
 
 func TrainSVM(cacheDir string) error {
 
-	good := strings.Split(goodList, "\n")
-	// good := []string{"https://blog.hiattzhao.com"}
-	bad := strings.Split(badList, "\n")
-	// bad := []string{}
+	candidates := strings.Split(candidateList, "\n")
 
 	entries := []Entry{}
 
@@ -100,7 +94,7 @@ func TrainSVM(cacheDir string) error {
 		return err
 	}
 
-	for _, g := range good {
+	for _, g := range candidates {
 		u, err := url.Parse(g)
 		if err != nil {
 			return err
@@ -113,21 +107,7 @@ func TrainSVM(cacheDir string) error {
 
 			return err
 		}
-		entries = append(entries, Entry{url: g, score: 1, domain: u.Hostname()})
-	}
-	for _, b := range bad {
-		u, err := url.Parse(b)
-		if err != nil {
-			return err
-		}
-		err = crawlEngine.InsertToCrawl(&crawler.ToCrawl{
-			URL:    b,
-			Domain: u.Hostname(),
-		})
-		if err != nil {
-			return err
-		}
-		entries = append(entries, Entry{url: b, score: 0, domain: u.Hostname()})
+		entries = append(entries, Entry{url: g, score: 0, domain: u.Hostname()})
 	}
 
 	httpChunkSize := 100
@@ -178,9 +158,8 @@ func TrainSVM(cacheDir string) error {
 		}
 		d.Articles = append(d.Articles, articles...)
 
-		if len(d.Articles) >= 3 {
-			d.Tabulate(w)
-		}
+		d.Tabulate(w)
+
 	}
 	w.Flush()
 	fmt.Println(buf.String())
@@ -211,7 +190,7 @@ func TrainSVM(cacheDir string) error {
 
 	var goodEntries []Entry
 
-	scanner := bufio.NewScanner(os.Stdin)
+	// label the data
 
 	for _, train := range entries {
 
@@ -232,7 +211,17 @@ func TrainSVM(cacheDir string) error {
 			continue
 		}
 
-		// fmt.Print("\033[H\033[2J")
+		labels := readJSON("labels.json")
+
+		if labels[train.domain] > 0 {
+			train.score = labels[train.domain]
+
+			goodEntries = append(goodEntries, train)
+
+		}
+		continue
+
+		fmt.Print("\033[H\033[2J")
 		fmt.Print(Green)
 		fmt.Println("################################################")
 		fmt.Print(Gray)
@@ -255,22 +244,38 @@ func TrainSVM(cacheDir string) error {
 		}
 
 		fmt.Print(Yellow)
-		fmt.Println("Good? y/n")
-		scanner.Scan()
+		fmt.Println("Good=2 Bad=1")
+
+		var score int64
+		_, err := fmt.Scan(&score)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		fmt.Print(Reset)
 
-		// for _, a := range domain.Articles {
-		// 	fmt.Printf("%s\n", a.Url)
-		// 	for _, b := range a.Body.Content {
-		// 		fmt.Printf("%s\n", b.Text)
-		// 	}
-		// 	fmt.Printf("##########\n\n")
-		// }
+		switch score {
+		case 1:
+			fmt.Println("Score BAD")
+			train.score = 1
+		case 2:
+			fmt.Println("Score GOOD")
+			train.score = 2
+		}
+		labels[train.domain] = train.score
 
-		goodEntries = append(goodEntries, train)
+		writeJSON("labels.json", labels)
+
 	}
 
 	instances.Extend(len(goodEntries))
+
+	// 1 title begins with a number
+	// 2 number of paragraphs with more than 40 words
+	// 3 average sentence length
+	// 4 number of code tags
+	// 5 bad keyword density ("how to", "github")
+	// 6 identify self help
 
 	for i, train := range goodEntries {
 
@@ -282,9 +287,10 @@ func TrainSVM(cacheDir string) error {
 			}
 		}
 
-		if train.score == 1 {
+		if train.score == 2 {
 			instances.Set(newSpecs[0], i, newSpecs[0].GetAttribute().GetSysValFromString("good"))
-		} else {
+		}
+		if train.score == 1 {
 			instances.Set(newSpecs[0], i, newSpecs[0].GetAttribute().GetSysValFromString("bad"))
 		}
 
@@ -334,20 +340,22 @@ func TrainSVM(cacheDir string) error {
 	instances.AddClassAttribute(attrs[0])
 
 	fmt.Println("Running Chi Merge...")
-	// filt := filters.NewChiMergeFilter(instances, 0.90)
-	// for _, a := range base.NonClassFloatAttributes(instances) {
-	// 	filt.AddAttribute(a)
-	// }
+	filt := filters.NewChiMergeFilter(instances, 0.90)
+	for _, a := range base.NonClassFloatAttributes(instances) {
+		filt.AddAttribute(a)
+	}
 	fmt.Println("Training chi merge...")
-	// filt.Train()
+	filt.Train()
 	fmt.Println("Filtering with chi merge...")
-	// instf := base.NewLazilyFilteredInstances(instances, filt)
+	instf := base.NewLazilyFilteredInstances(instances, filt)
 
-	trainData, testData := base.InstancesTrainTestSplit(instances, 0.5)
+	trainData, testData := base.InstancesTrainTestSplit(instf, 0.7)
+
+	fmt.Println(trainData)
 
 	fmt.Println("Building model...")
-	cls := knn.NewKnnClassifier("euclidean", "linear", 2)
-	// cls := ensemble.NewRandomForest(70, 5)
+	// cls := knn.NewKnnClassifier("euclidean", "linear", 2)
+	cls := ensemble.NewRandomForest(70, 5)
 
 	// Create a 60-40 training-test split
 

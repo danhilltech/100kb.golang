@@ -52,7 +52,7 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 		considerText = fmt.Sprintf("%s %s", considerText, b.Text)
 	}
 
-	if len(considerText) < 200 {
+	if len(considerText) < 5*100 { // 100 words roughly
 		article.Stage = STAGE_FAILED
 		return fmt.Errorf("short text: %s %s", body[0].Text, article.Url)
 
