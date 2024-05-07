@@ -29,9 +29,8 @@ import (
 	"github.com/smira/go-statsd"
 
 	"github.com/sjwhitworth/golearn/base"
-	"github.com/sjwhitworth/golearn/ensemble"
 	"github.com/sjwhitworth/golearn/evaluation"
-	"github.com/sjwhitworth/golearn/filters"
+	"github.com/sjwhitworth/golearn/knn"
 )
 
 var Reset = "\033[0m"
@@ -56,6 +55,7 @@ type Entry struct {
 func TrainSVM(cacheDir string) error {
 
 	candidates := strings.Split(candidateList, "\n")
+	// candidates := []string{"https://herbertlui.net/"}
 
 	entries := []Entry{}
 
@@ -158,7 +158,9 @@ func TrainSVM(cacheDir string) error {
 		}
 		d.Articles = append(d.Articles, articles...)
 
-		d.Tabulate(w)
+		if len(d.GetLatestArticlesToScore()) >= 3 {
+			d.Tabulate(w)
+		}
 
 	}
 	w.Flush()
@@ -166,7 +168,7 @@ func TrainSVM(cacheDir string) error {
 
 	// Training
 
-	attrs := make([]base.Attribute, 10)
+	attrs := make([]base.Attribute, 16)
 
 	attrs[0] = base.NewCategoricalAttribute()
 	attrs[1] = base.NewCategoricalAttribute()
@@ -179,6 +181,13 @@ func TrainSVM(cacheDir string) error {
 	attrs[8] = base.NewCategoricalAttribute()
 
 	attrs[9] = base.NewFloatAttribute("fpr")
+	attrs[10] = base.NewFloatAttribute("wordCount")
+
+	attrs[11] = base.NewFloatAttribute("wordsPerByte")
+	attrs[12] = base.NewFloatAttribute("goodCount")
+	attrs[13] = base.NewFloatAttribute("badCount")
+	attrs[14] = base.NewFloatAttribute("wordsPerP")
+	attrs[15] = base.NewFloatAttribute("goodPcnt")
 
 	instances := base.NewDenseInstances()
 
@@ -207,7 +216,7 @@ func TrainSVM(cacheDir string) error {
 			continue
 		}
 
-		if len(domain.Articles) < 3 {
+		if len(domain.GetLatestArticlesToScore()) < 3 {
 			continue
 		}
 
@@ -217,31 +226,34 @@ func TrainSVM(cacheDir string) error {
 			train.score = labels[train.domain]
 
 			goodEntries = append(goodEntries, train)
+			continue
 
 		}
-		continue
+		// continue
 
-		fmt.Print("\033[H\033[2J")
-		fmt.Print(Green)
-		fmt.Println("################################################")
-		fmt.Print(Gray)
-		for _, b := range domain.Articles[0].Body.Content {
-			fmt.Printf("%s\n\n", b.Text)
-		}
+		fmt.Println(domain.Articles[0].Url)
 
-		fmt.Print(Green)
-		fmt.Println("-----")
-		fmt.Print(Gray)
-		for _, b := range domain.Articles[1].Body.Content {
-			fmt.Printf("%s\n\n", b.Text)
-		}
+		// fmt.Print("\033[H\033[2J")
+		// fmt.Print(Green)
+		// fmt.Println("################################################")
+		// fmt.Print(Gray)
+		// for _, b := range domain.Articles[0].Body.Content {
+		// 	fmt.Printf("%s\n\n", b.Text)
+		// }
 
-		fmt.Print(Green)
-		fmt.Println("-----")
-		fmt.Print(Gray)
-		for _, b := range domain.Articles[2].Body.Content {
-			fmt.Printf("%s\n\n", b.Text)
-		}
+		// fmt.Print(Green)
+		// fmt.Println("-----")
+		// fmt.Print(Gray)
+		// for _, b := range domain.Articles[1].Body.Content {
+		// 	fmt.Printf("%s\n\n", b.Text)
+		// }
+
+		// fmt.Print(Green)
+		// fmt.Println("-----")
+		// fmt.Print(Gray)
+		// for _, b := range domain.Articles[2].Body.Content {
+		// 	fmt.Printf("%s\n\n", b.Text)
+		// }
 
 		fmt.Print(Yellow)
 		fmt.Println("Good=2 Bad=1")
@@ -276,6 +288,9 @@ func TrainSVM(cacheDir string) error {
 	// 4 number of code tags
 	// 5 bad keyword density ("how to", "github")
 	// 6 identify self help
+	// 7 youtube/podcasts
+	// https://webring.xxiivv.com/#vitbaisa
+	// https://frankmeeuwsen.com/blogroll/
 
 	for i, train := range goodEntries {
 
@@ -331,7 +346,14 @@ func TrainSVM(cacheDir string) error {
 		}
 		instances.Set(newSpecs[8], i, newSpecs[8].GetAttribute().GetSysValFromString(domain.DomainTLD))
 
-		instances.Set(newSpecs[9], i, base.PackFloatToBytes(domain.GetFPR()))
+		instances.Set(newSpecs[9], i, base.PackFloatToBytes(domain.GetFPR()*1000))
+		instances.Set(newSpecs[10], i, base.PackFloatToBytes(float64(domain.GetWordCount())))
+		instances.Set(newSpecs[11], i, base.PackFloatToBytes(domain.GetWordsPerByte()*1000))
+
+		instances.Set(newSpecs[12], i, base.PackFloatToBytes(float64(domain.GetGoodTagCount())))
+		instances.Set(newSpecs[13], i, base.PackFloatToBytes(float64(domain.GetBadTagCount())))
+		instances.Set(newSpecs[14], i, base.PackFloatToBytes(float64(domain.GetWordsPerParagraph())))
+		instances.Set(newSpecs[15], i, base.PackFloatToBytes(float64(domain.GetGoodBadTagRatio())))
 		// instances.Set(newSpecs[2], i, base.PackFloatToBytes(float64(article.BadCount)/float64(article.HTMLLength)))
 		// instances.Set(newSpecs[3], i, base.PackFloatToBytes(float64(article.WordCount)))
 
@@ -339,23 +361,23 @@ func TrainSVM(cacheDir string) error {
 
 	instances.AddClassAttribute(attrs[0])
 
-	fmt.Println("Running Chi Merge...")
-	filt := filters.NewChiMergeFilter(instances, 0.90)
-	for _, a := range base.NonClassFloatAttributes(instances) {
-		filt.AddAttribute(a)
-	}
-	fmt.Println("Training chi merge...")
-	filt.Train()
-	fmt.Println("Filtering with chi merge...")
-	instf := base.NewLazilyFilteredInstances(instances, filt)
+	// fmt.Println("Running Chi Merge...")
+	// filt := filters.NewChiMergeFilter(instances, 0.90)
+	// for _, a := range base.NonClassFloatAttributes(instances) {
+	// 	filt.AddAttribute(a)
+	// }
+	// fmt.Println("Training chi merge...")
+	// filt.Train()
+	// fmt.Println("Filtering with chi merge...")
+	// instf := base.NewLazilyFilteredInstances(instances, filt)
 
-	trainData, testData := base.InstancesTrainTestSplit(instf, 0.7)
+	trainData, testData := base.InstancesTrainTestSplit(instances, 0.7)
 
 	fmt.Println(trainData)
 
 	fmt.Println("Building model...")
-	// cls := knn.NewKnnClassifier("euclidean", "linear", 2)
-	cls := ensemble.NewRandomForest(70, 5)
+	cls := knn.NewKnnClassifier("euclidean", "linear", 2)
+	// cls := ensemble.NewRandomForest(70, 5)
 
 	// Create a 60-40 training-test split
 
