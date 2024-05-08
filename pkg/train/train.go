@@ -166,37 +166,6 @@ func TrainSVM(cacheDir string) error {
 	w.Flush()
 	fmt.Println(buf.String())
 
-	// Training
-
-	attrs := make([]base.Attribute, 16)
-
-	attrs[0] = base.NewCategoricalAttribute()
-	attrs[1] = base.NewCategoricalAttribute()
-	attrs[2] = base.NewCategoricalAttribute()
-	attrs[3] = base.NewCategoricalAttribute()
-	attrs[4] = base.NewCategoricalAttribute()
-	attrs[5] = base.NewCategoricalAttribute()
-	attrs[6] = base.NewCategoricalAttribute()
-	attrs[7] = base.NewCategoricalAttribute()
-	attrs[8] = base.NewCategoricalAttribute()
-
-	attrs[9] = base.NewFloatAttribute("fpr")
-	attrs[10] = base.NewFloatAttribute("wordCount")
-
-	attrs[11] = base.NewFloatAttribute("wordsPerByte")
-	attrs[12] = base.NewFloatAttribute("goodCount")
-	attrs[13] = base.NewFloatAttribute("badCount")
-	attrs[14] = base.NewFloatAttribute("wordsPerP")
-	attrs[15] = base.NewFloatAttribute("goodPcnt")
-
-	instances := base.NewDenseInstances()
-
-	// Add the attributes
-	newSpecs := make([]base.AttributeSpec, len(attrs))
-	for i, a := range attrs {
-		newSpecs[i] = instances.AddAttribute(a)
-	}
-
 	var goodEntries []Entry
 
 	// label the data
@@ -226,10 +195,10 @@ func TrainSVM(cacheDir string) error {
 			train.score = labels[train.domain]
 
 			goodEntries = append(goodEntries, train)
-			continue
+			// continue
 
 		}
-		// continue
+		continue
 
 		fmt.Println(domain.Articles[0].Url)
 
@@ -280,6 +249,52 @@ func TrainSVM(cacheDir string) error {
 
 	}
 
+	// Training
+
+	attrCount := 6
+
+	attrs := make([]base.Attribute, attrCount)
+
+	n := 0
+	attrs[n] = base.NewCategoricalAttribute()
+	n++
+
+	// attrs[n] = base.NewFloatAttribute("urlHumanName")
+	// n++
+	// attrs[n] = base.NewFloatAttribute("urlNews")
+	// n++
+	// attrs[n] = base.NewFloatAttribute("urlBlog")
+	// n++
+	// attrs[n] = base.NewFloatAttribute("pageAbout")
+	// n++
+	// attrs[n] = base.NewFloatAttribute("pageBlogRoll")
+	// n++
+	// attrs[n] = base.NewFloatAttribute("pageNow")
+	// n++
+	// attrs[n] = base.NewFloatAttribute("pageWriting")
+	// n++
+	attrs[n] = base.NewFloatAttribute("fpr")
+	n++
+	attrs[n] = base.NewFloatAttribute("wordCount")
+	n++
+	attrs[n] = base.NewFloatAttribute("wordsPerByte")
+	n++
+	// attrs[n] = base.NewFloatAttribute("goodCount")
+	// n++
+	// attrs[n] = base.NewFloatAttribute("badCount")
+	// n++
+	attrs[n] = base.NewFloatAttribute("wordsPerP")
+	n++
+	attrs[n] = base.NewFloatAttribute("goodPcnt")
+
+	instances := base.NewDenseInstances()
+
+	// Add the attributes
+	newSpecs := make([]base.AttributeSpec, len(attrs))
+	for i, a := range attrs {
+		newSpecs[i] = instances.AddAttribute(a)
+	}
+
 	instances.Extend(len(goodEntries))
 
 	// 1 title begins with a number
@@ -291,6 +306,7 @@ func TrainSVM(cacheDir string) error {
 	// 7 youtube/podcasts
 	// https://webring.xxiivv.com/#vitbaisa
 	// https://frankmeeuwsen.com/blogroll/
+	// title uniqueness/levenstien
 
 	for i, train := range goodEntries {
 
@@ -302,61 +318,116 @@ func TrainSVM(cacheDir string) error {
 			}
 		}
 
+		n = 0
+
 		if train.score == 2 {
-			instances.Set(newSpecs[0], i, newSpecs[0].GetAttribute().GetSysValFromString("good"))
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("good"))
 		}
 		if train.score == 1 {
-			instances.Set(newSpecs[0], i, newSpecs[0].GetAttribute().GetSysValFromString("bad"))
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("bad"))
 		}
+		n++
 
-		if domain.URLHumanName {
-			instances.Set(newSpecs[1], i, newSpecs[1].GetAttribute().GetSysValFromString("True"))
-		} else {
-			instances.Set(newSpecs[1], i, newSpecs[1].GetAttribute().GetSysValFromString("False"))
-		}
-		if domain.URLNews {
-			instances.Set(newSpecs[2], i, newSpecs[2].GetAttribute().GetSysValFromString("True"))
-		} else {
-			instances.Set(newSpecs[2], i, newSpecs[2].GetAttribute().GetSysValFromString("False"))
-		}
-		if domain.URLBlog {
-			instances.Set(newSpecs[3], i, newSpecs[3].GetAttribute().GetSysValFromString("True"))
-		} else {
-			instances.Set(newSpecs[3], i, newSpecs[3].GetAttribute().GetSysValFromString("False"))
-		}
-		if domain.PageAbout {
-			instances.Set(newSpecs[4], i, newSpecs[4].GetAttribute().GetSysValFromString("True"))
-		} else {
-			instances.Set(newSpecs[4], i, newSpecs[4].GetAttribute().GetSysValFromString("False"))
-		}
-		if domain.PageBlogRoll {
-			instances.Set(newSpecs[5], i, newSpecs[5].GetAttribute().GetSysValFromString("True"))
-		} else {
-			instances.Set(newSpecs[5], i, newSpecs[5].GetAttribute().GetSysValFromString("False"))
-		}
-		if domain.PageNow {
-			instances.Set(newSpecs[6], i, newSpecs[6].GetAttribute().GetSysValFromString("True"))
-		} else {
-			instances.Set(newSpecs[6], i, newSpecs[6].GetAttribute().GetSysValFromString("False"))
-		}
-		if domain.PageWriting {
-			instances.Set(newSpecs[7], i, newSpecs[7].GetAttribute().GetSysValFromString("True"))
-		} else {
-			instances.Set(newSpecs[7], i, newSpecs[7].GetAttribute().GetSysValFromString("False"))
-		}
-		instances.Set(newSpecs[8], i, newSpecs[8].GetAttribute().GetSysValFromString(domain.DomainTLD))
+		// if domain.URLHumanName {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
+		// } else {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
+		// }
+		// n++
 
-		instances.Set(newSpecs[9], i, base.PackFloatToBytes(domain.GetFPR()*1000))
-		instances.Set(newSpecs[10], i, base.PackFloatToBytes(float64(domain.GetWordCount())))
-		instances.Set(newSpecs[11], i, base.PackFloatToBytes(domain.GetWordsPerByte()*1000))
+		// if domain.URLNews {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
+		// } else {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
+		// }
+		// n++
 
-		instances.Set(newSpecs[12], i, base.PackFloatToBytes(float64(domain.GetGoodTagCount())))
-		instances.Set(newSpecs[13], i, base.PackFloatToBytes(float64(domain.GetBadTagCount())))
-		instances.Set(newSpecs[14], i, base.PackFloatToBytes(float64(domain.GetWordsPerParagraph())))
-		instances.Set(newSpecs[15], i, base.PackFloatToBytes(float64(domain.GetGoodBadTagRatio())))
-		// instances.Set(newSpecs[2], i, base.PackFloatToBytes(float64(article.BadCount)/float64(article.HTMLLength)))
-		// instances.Set(newSpecs[3], i, base.PackFloatToBytes(float64(article.WordCount)))
+		// if domain.URLBlog {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
+		// } else {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
+		// }
+		// n++
 
+		// if domain.PageAbout {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
+		// } else {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
+		// }
+		// n++
+
+		// if domain.PageBlogRoll {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
+		// } else {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
+		// }
+		// n++
+
+		// if domain.PageNow {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
+		// } else {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
+		// }
+		// n++
+
+		// if domain.PageWriting {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
+		// } else {
+		// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
+		// }
+		// n++
+
+		instances.Set(newSpecs[n], i, base.PackFloatToBytes(domain.GetFPR()))
+		n++
+		instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetWordCount())))
+		n++
+		instances.Set(newSpecs[n], i, base.PackFloatToBytes(domain.GetWordsPerByte()))
+		n++
+
+		// instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetGoodTagCount())))
+		// n++
+		// instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetBadTagCount())))
+		// n++
+		instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetWordsPerParagraph())))
+		n++
+		instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetGoodBadTagRatio())))
+
+	}
+
+	maxFloats := make([]float64, attrCount)
+	minFloats := make([]float64, attrCount)
+	for i := 1; i < attrCount; i++ {
+		for row := 0; row < len(goodEntries); row++ {
+			byteVal := instances.Get(newSpecs[i], row)
+
+			fltVal := base.UnpackBytesToFloat(byteVal)
+
+			if fltVal > maxFloats[i] {
+				maxFloats[i] = fltVal
+			}
+			if fltVal < minFloats[i] {
+				minFloats[i] = fltVal
+			}
+
+		}
+	}
+
+	fmt.Println(maxFloats)
+	fmt.Println(minFloats)
+
+	for i := 1; i < attrCount; i++ {
+		for row := 0; row < len(goodEntries); row++ {
+			byteVal := instances.Get(newSpecs[i], row)
+
+			fltVal := base.UnpackBytesToFloat(byteVal)
+
+			rng := maxFloats[i] - minFloats[i]
+
+			nrmVal := ((fltVal - minFloats[i]) / rng) * 100
+
+			instances.Set(newSpecs[i], row, base.PackFloatToBytes(nrmVal))
+
+		}
 	}
 
 	instances.AddClassAttribute(attrs[0])
@@ -376,7 +447,8 @@ func TrainSVM(cacheDir string) error {
 	fmt.Println(trainData)
 
 	fmt.Println("Building model...")
-	cls := knn.NewKnnClassifier("euclidean", "linear", 2)
+	cls := knn.NewKnnClassifier("euclidean", "linear", 3)
+
 	// cls := ensemble.NewRandomForest(70, 5)
 
 	// Create a 60-40 training-test split
