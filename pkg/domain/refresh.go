@@ -123,6 +123,11 @@ func (engine *Engine) feedRefresh(feed *Domain) error {
 		feed.PageWriting = true
 	}
 
+	headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/now", fullDomain))
+	if err == nil && headResp.StatusCode < 400 {
+		feed.PageNow = true
+	}
+
 	tld, _ := publicsuffix.PublicSuffix(fullDomain)
 	if tld != "" {
 		feed.DomainTLD = tld

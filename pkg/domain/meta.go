@@ -19,7 +19,7 @@ func (d *Domain) GetLatestArticlesToScore() []*article.Article {
 	})
 
 	for _, a := range d.Articles {
-		if a.PublishedAt > (time.Now().Unix()-60*60*24*365) && len(goodArticles) <= 5 {
+		if a.PublishedAt > (time.Now().Unix()-60*60*24*365) && len(goodArticles) <= 10 {
 			goodArticles = append(goodArticles, a)
 		}
 	}

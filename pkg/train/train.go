@@ -29,6 +29,7 @@ import (
 	"github.com/smira/go-statsd"
 
 	"github.com/sjwhitworth/golearn/base"
+	"github.com/sjwhitworth/golearn/ensemble"
 	"github.com/sjwhitworth/golearn/evaluation"
 	"github.com/sjwhitworth/golearn/knn"
 )
@@ -195,7 +196,7 @@ func TrainSVM(cacheDir string) error {
 			train.score = labels[train.domain]
 
 			goodEntries = append(goodEntries, train)
-			// continue
+			continue
 
 		}
 		continue
@@ -203,7 +204,7 @@ func TrainSVM(cacheDir string) error {
 		fmt.Println(domain.Articles[0].Url)
 
 		// fmt.Print("\033[H\033[2J")
-		// fmt.Print(Green)
+		// fmt.Print(Green)2
 		// fmt.Println("################################################")
 		// fmt.Print(Gray)
 		// for _, b := range domain.Articles[0].Body.Content {
@@ -249,6 +250,250 @@ func TrainSVM(cacheDir string) error {
 
 	}
 
+	err = trainKNN(goodEntries, allDomains)
+	if err != nil {
+		return err
+	}
+
+	err = trainRF(goodEntries, allDomains)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
+	// Training
+
+	attrCount := 12
+
+	attrs := make([]base.Attribute, attrCount)
+
+	n := 0
+	attrs[n] = base.NewCategoricalAttribute()
+	n++
+
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("fpr")
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("wordCount")
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("wordsPerByte")
+	n++
+
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("wordsPerP")
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("goodPcnt")
+
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("urlHuman")
+
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("urlNews")
+
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("pageNow")
+
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("pageAbout")
+
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("pageBlogRoll")
+
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("pageWriting")
+
+	instances := base.NewDenseInstances()
+
+	// Add the attributes
+	newSpecs := make([]base.AttributeSpec, len(attrs))
+	for i, a := range attrs {
+		newSpecs[i] = instances.AddAttribute(a)
+	}
+
+	instances.Extend(len(goodEntries))
+
+	// 1 title begins with a number
+	// 2 number of paragraphs with more than 40 words
+	// 3 average sentence length
+	// 4 number of code tags
+	// 5 bad keyword density ("how to", "github")
+	// 6 identify self help
+	// 7 youtube/podcasts
+	// https://webring.xxiivv.com/#vitbaisa
+	// https://frankmeeuwsen.com/blogroll/
+	// title uniqueness/levenstien
+
+	for i, train := range goodEntries {
+
+		var domain *domain.Domain
+
+		for _, d := range allDomains {
+			if train.domain == d.Domain {
+				domain = d
+			}
+		}
+
+		n = 0
+
+		if train.score == 2 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("good"))
+		}
+		if train.score == 1 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("bad"))
+		}
+		n++
+
+		if domain.GetFPR() > 0.08 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("5"))
+		} else if domain.GetFPR() > 0.04 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("4"))
+		} else if domain.GetFPR() > 0.02 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("3"))
+
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.GetWordCount() > 1200 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("2"))
+		} else if domain.GetWordCount() > 300 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.GetWordsPerByte() > 0.05 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("2"))
+		} else if domain.GetWordsPerByte() > 0.01 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.GetWordsPerParagraph() > 200 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("2"))
+		} else if domain.GetWordsPerParagraph() > 40 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.GetGoodBadTagRatio() > 0.95 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else if domain.GetGoodBadTagRatio() > 0.8 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.URLHumanName {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.URLNews {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.PageNow {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.PageAbout {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.PageBlogRoll {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.PageWriting {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+
+	}
+
+	instances.AddClassAttribute(attrs[0])
+
+	// fmt.Println("Running Chi Merge...")
+	// filt := filters.NewChiMergeFilter(instances, 0.99)
+	// for _, a := range base.NonClassFloatAttributes(instances) {
+	// 	filt.AddAttribute(a)
+	// }
+	// fmt.Println("Training chi merge...")
+	// filt.Train()
+	// fmt.Println("Filtering with chi merge...")
+	// instf := base.NewLazilyFilteredInstances(instances, filt)
+
+	trainData, testData := base.InstancesTrainTestSplit(instances, 0.6)
+
+	fmt.Println(trainData)
+
+	fmt.Println("Building model...")
+
+	cls := ensemble.NewRandomForest(80, 4)
+
+	// Create a 60-40 training-test split
+
+	err := cls.Fit(trainData)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Predicting...")
+	//Calculates the Euclidean distance and returns the most popular label
+	predictions, err := cls.Predict(testData)
+	if err != nil {
+		panic(err)
+	}
+
+	// var predictions base.FixedDataGrid
+
+	// Prints precision/recall metrics
+	confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
+	if err != nil {
+		panic(fmt.Sprintf("Unable to get confusion matrix: %s", err.Error()))
+	}
+	fmt.Println(evaluation.GetSummary(confusionMat))
+
+	return nil
+}
+
+func trainKNN(goodEntries []Entry, allDomains []*domain.Domain) error {
 	// Training
 
 	attrCount := 6
@@ -412,11 +657,8 @@ func TrainSVM(cacheDir string) error {
 		}
 	}
 
-	fmt.Println(maxFloats)
-	fmt.Println(minFloats)
-
-	for i := 1; i < attrCount; i++ {
-		for row := 0; row < len(goodEntries); row++ {
+	for row := 0; row < len(goodEntries); row++ {
+		for i := 1; i < attrCount; i++ {
 			byteVal := instances.Get(newSpecs[i], row)
 
 			fltVal := base.UnpackBytesToFloat(byteVal)
@@ -428,12 +670,13 @@ func TrainSVM(cacheDir string) error {
 			instances.Set(newSpecs[i], row, base.PackFloatToBytes(nrmVal))
 
 		}
+
 	}
 
 	instances.AddClassAttribute(attrs[0])
 
 	// fmt.Println("Running Chi Merge...")
-	// filt := filters.NewChiMergeFilter(instances, 0.90)
+	// filt := filters.NewChiMergeFilter(instances, 0.99)
 	// for _, a := range base.NonClassFloatAttributes(instances) {
 	// 	filt.AddAttribute(a)
 	// }
@@ -442,18 +685,19 @@ func TrainSVM(cacheDir string) error {
 	// fmt.Println("Filtering with chi merge...")
 	// instf := base.NewLazilyFilteredInstances(instances, filt)
 
-	trainData, testData := base.InstancesTrainTestSplit(instances, 0.7)
+	trainData, testData := base.InstancesTrainTestSplit(instances, 0.75)
 
 	fmt.Println(trainData)
 
 	fmt.Println("Building model...")
-	cls := knn.NewKnnClassifier("euclidean", "linear", 3)
+	cls := knn.NewKnnClassifier("cosine", "linear", 3)
+	// cls := trees.NewID3DecisionTree(0.6)
 
-	// cls := ensemble.NewRandomForest(70, 5)
+	// cls := ensemble.NewRandomForest(40, 3)
 
 	// Create a 60-40 training-test split
 
-	err = cls.Fit(trainData)
+	err := cls.Fit(trainData)
 	if err != nil {
 		return err
 	}
@@ -465,6 +709,8 @@ func TrainSVM(cacheDir string) error {
 		panic(err)
 	}
 
+	// var predictions base.FixedDataGrid
+
 	// Prints precision/recall metrics
 	confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
 	if err != nil {
@@ -473,5 +719,4 @@ func TrainSVM(cacheDir string) error {
 	fmt.Println(evaluation.GetSummary(confusionMat))
 
 	return nil
-
 }
