@@ -1,7 +1,7 @@
 package parsing
 
 // Everything inside these is gobbeld up into a string
-var textTags = []string{"p", "h1", "h2", "h3", "li", "blockquote"}
+var textTags = []string{"p", "h1", "h2", "h3", "li", "blockquote", "code"}
 
 var badAreas = []string{"nav", "footer", "iframe", "code", "pre"}
 

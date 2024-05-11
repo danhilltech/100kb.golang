@@ -12,10 +12,6 @@ func (article *Article) GetTitle() string {
 	return article.Title
 }
 
-func (article *Article) GetFPR() string {
-	return fmt.Sprintf("%0.4f", article.FirstPersonRatio)
-}
-
 func (article *Article) GetScore() string {
 	return fmt.Sprintf("%0.4f", article.Score())
 }

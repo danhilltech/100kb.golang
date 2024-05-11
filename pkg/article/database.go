@@ -24,11 +24,6 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	title = ?, 
 	description = ?, 
 	body = ?, 
-	wordCount = ?, 
-	h1Count = ?, 
-	hnCount = ?, 
-	pCount = ?, 
-	firstPersonRatio = ?, 
 	sentenceEmbedding = ?, 
 	extractedKeywords = ?, 
 	lastContentExtractAt = ?, 
@@ -101,11 +96,6 @@ func (engine *Engine) Update(article *Article) error {
 		utils.NullString(article.Title),
 		utils.NullString(article.Description),
 		utils.NullString(string(articleBody)),
-		utils.NullInt64(article.WordCount),
-		utils.NullInt64(article.H1Count),
-		utils.NullInt64(article.HNCount),
-		utils.NullInt64(article.PCount),
-		utils.NullFloat64(article.FirstPersonRatio),
 		utils.NullString(string(sentenceEmbedding)),
 		utils.NullString(string(extractedKeywords)),
 		utils.NullInt64(article.LastContentExtractAt),
@@ -130,11 +120,6 @@ bodyRaw,
 body, 
 sentenceEmbedding, 
 extractedKeywords,
-wordCount, 
-h1Count, 
-hnCount, 
-pCount, 
-firstPersonRatio, 
 lastContentExtractAt, 
 badCount, 
 classifications, 
@@ -157,8 +142,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var extractedKeywordsJSON []byte
 	var classificationsJSON []byte
 
-	var wordCount, h1Count, hnCount, pCount, badCount sql.NullInt64
-	var firstPersonRatio sql.NullFloat64
+	var badCount sql.NullInt64
 
 	var htmlLength sql.NullInt64
 
@@ -177,11 +161,6 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&bodyJSON,
 		&sentenceEmbeddingJSON,
 		&extractedKeywordsJSON,
-		&wordCount,
-		&h1Count,
-		&hnCount,
-		&pCount,
-		&firstPersonRatio,
 		&lastContentExtractAt,
 		&badCount,
 		&classificationsJSON,
@@ -245,11 +224,6 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		Body:                 &body,
 		SentenceEmbedding:    &sentenceEmbeding,
 		ExtractedKeywords:    &extractedKeywords,
-		WordCount:            wordCount.Int64,
-		H1Count:              h1Count.Int64,
-		HNCount:              hnCount.Int64,
-		PCount:               pCount.Int64,
-		FirstPersonRatio:     firstPersonRatio.Float64,
 		Domain:               domain,
 		BadCount:             badCount.Int64,
 		Classifications:      &classifications,

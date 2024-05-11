@@ -43,13 +43,8 @@ type Article struct {
 	Title                string
 	Description          string
 
-	Body             *serialize.Content
-	WordCount        int64
-	H1Count          int64
-	HNCount          int64
-	PCount           int64
-	BadCount         int64
-	FirstPersonRatio float64
+	Body     *serialize.Content
+	BadCount int64
 
 	HTMLLength int64
 

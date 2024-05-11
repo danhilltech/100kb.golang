@@ -82,57 +82,6 @@ func (engine *Engine) articleMetaAdvanced(article *Article) error {
 		return nil
 	}
 
-	bodyBuilder := strings.Builder{}
-
-	for _, para := range uniqueContent {
-		bodyBuilder.WriteString(para.Text)
-		bodyBuilder.WriteRune('\n')
-	}
-
-	bodyConcat := bodyBuilder.String()
-
-	// Word count
-	article.WordCount = int64(len(strings.Split(bodyConcat, " ")))
-
-	firstPersonCount := 0
-
-	firstPersonCount += strings.Count(bodyConcat, "I ")
-	firstPersonCount += strings.Count(bodyConcat, " my ")
-	firstPersonCount += strings.Count(bodyConcat, " My ")
-	firstPersonCount += strings.Count(bodyConcat, " me ")
-	firstPersonCount += strings.Count(bodyConcat, " mine ")
-	// firstPersonCount += strings.Count(bodyConcat, " we ")
-	// firstPersonCount += strings.Count(bodyConcat, " We ")
-	// firstPersonCount += strings.Count(bodyConcat, " us ")
-	// firstPersonCount += strings.Count(bodyConcat, " our ")
-	// firstPersonCount += strings.Count(bodyConcat, " Our ")
-
-	if article.WordCount > 0 && firstPersonCount > 0 {
-		article.FirstPersonRatio = float64(firstPersonCount) / float64(article.WordCount)
-	} else {
-		article.FirstPersonRatio = 0
-	}
-
-	var h1Count, hnCount, pCount int64
-
-	for _, sec := range uniqueContent {
-		switch sec.Type {
-		case "h1":
-			h1Count++
-			continue
-		case "h2", "h3":
-			hnCount++
-			continue
-		case "p", "li":
-			pCount++
-			continue
-		}
-	}
-
-	article.H1Count = h1Count
-	article.HNCount = hnCount
-	article.PCount = pCount
-
 	var summaryTexts []string
 	hasFirstPara := false
 	for _, c := range uniqueContent {

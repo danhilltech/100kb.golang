@@ -264,7 +264,6 @@ adnetworkperformance.com
 onedio.com
 thepiratebay.org
 skype.com
-github.io
 allegro.pl
 google.dz
 google.com.vn
@@ -1180,7 +1179,6 @@ bp.blogspot.com
 sogou.com
 blogspot.co.id
 onlinesbi.com
-github.io
 babytree.com
 google.be
 adexchangeprediction.com

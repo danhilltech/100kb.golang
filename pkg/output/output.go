@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"text/template"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
@@ -87,12 +86,6 @@ func (engine *RenderEngine) WriteCSV() error {
 		"domain",
 		"feedUrl",
 		"title",
-		"wordCount",
-		"pCount",
-		"h1Count",
-		"hnCount",
-		"badCount",
-		"fpr",
 	}
 	data = append(data, row)
 
@@ -102,12 +95,6 @@ func (engine *RenderEngine) WriteCSV() error {
 			a.Domain,
 			a.FeedUrl,
 			a.Title,
-			strconv.Itoa(int(a.WordCount)),
-			strconv.Itoa(int(a.PCount)),
-			strconv.Itoa(int(a.H1Count)),
-			strconv.Itoa(int(a.HNCount)),
-			strconv.Itoa(int(a.BadCount)),
-			strconv.FormatFloat(a.FirstPersonRatio, 'f', 4, 64),
 		}
 		data = append(data, row)
 	}

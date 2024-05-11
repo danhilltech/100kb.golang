@@ -1,6 +1,7 @@
 package parsing
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 
@@ -255,7 +256,7 @@ func walkHtmlNodes(n *html.Node, b *SimpleNode, depth int, title *string, descri
 
 		if decendentFromText && len(n.Data) > 0 {
 			data := []byte(n.Data)
-			clean := replaceMultipleWhitespace(data)
+			clean := bytes.TrimSpace(replaceMultipleWhitespace(data))
 			newNode := SimpleNode{
 				Text: string(clean),
 				Type: "text",
