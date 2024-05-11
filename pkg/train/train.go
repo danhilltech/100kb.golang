@@ -103,6 +103,7 @@ func TrainSVM(cacheDir string) error {
 		err = crawlEngine.InsertToCrawl(&crawler.ToCrawl{
 			URL:    g,
 			Domain: u.Hostname(),
+			Score:  10,
 		})
 		if err != nil {
 
@@ -267,7 +268,7 @@ func TrainSVM(cacheDir string) error {
 func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
 	// Training
 
-	attrCount := 12
+	attrCount := 14
 
 	attrs := make([]base.Attribute, attrCount)
 
@@ -277,16 +278,19 @@ func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
 
 	attrs[n] = base.NewCategoricalAttribute()
 	attrs[n].SetName("fpr")
+
 	n++
 	attrs[n] = base.NewCategoricalAttribute()
 	attrs[n].SetName("wordCount")
+
 	n++
 	attrs[n] = base.NewCategoricalAttribute()
 	attrs[n].SetName("wordsPerByte")
-	n++
 
+	n++
 	attrs[n] = base.NewCategoricalAttribute()
 	attrs[n].SetName("wordsPerP")
+
 	n++
 	attrs[n] = base.NewCategoricalAttribute()
 	attrs[n].SetName("goodPcnt")
@@ -314,6 +318,14 @@ func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
 	n++
 	attrs[n] = base.NewCategoricalAttribute()
 	attrs[n].SetName("pageWriting")
+
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("goodTagsPerByte")
+
+	n++
+	attrs[n] = base.NewCategoricalAttribute()
+	attrs[n].SetName("articlesPerMonth")
 
 	instances := base.NewDenseInstances()
 
@@ -363,7 +375,6 @@ func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
 			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("4"))
 		} else if domain.GetFPR() > 0.02 {
 			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("3"))
-
 		} else {
 			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
 		}
@@ -445,6 +456,24 @@ func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
 		} else {
 			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
 		}
+		n++
+
+		if domain.GetGoodTagsPerByte() > 0.002 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("2"))
+		} else if domain.GetGoodTagsPerByte() > 0.001 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
+		n++
+
+		if domain.GetLatestArticlesPerMonth() > 10 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("2"))
+		} else if domain.GetLatestArticlesPerMonth() > 2 {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("1"))
+		} else {
+			instances.Set(newSpecs[n], i, newSpecs[n].GetAttribute().GetSysValFromString("0"))
+		}
 
 	}
 
@@ -466,7 +495,7 @@ func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
 
 	fmt.Println("Building model...")
 
-	cls := ensemble.NewRandomForest(80, 4)
+	cls := ensemble.NewRandomForest(80, 5)
 
 	// Create a 60-40 training-test split
 
@@ -497,7 +526,7 @@ func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
 func trainKNN(goodEntries []Entry, allDomains []*domain.Domain) error {
 	// Training
 
-	attrCount := 6
+	attrCount := 8
 
 	attrs := make([]base.Attribute, attrCount)
 
@@ -532,6 +561,10 @@ func trainKNN(goodEntries []Entry, allDomains []*domain.Domain) error {
 	attrs[n] = base.NewFloatAttribute("wordsPerP")
 	n++
 	attrs[n] = base.NewFloatAttribute("goodPcnt")
+	n++
+	attrs[n] = base.NewFloatAttribute("goodTagsPerByte")
+	n++
+	attrs[n] = base.NewFloatAttribute("articlesPerMonth")
 
 	instances := base.NewDenseInstances()
 
@@ -637,6 +670,10 @@ func trainKNN(goodEntries []Entry, allDomains []*domain.Domain) error {
 		instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetWordsPerParagraph())))
 		n++
 		instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetGoodBadTagRatio())))
+		n++
+		instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetGoodTagsPerByte())))
+		n++
+		instances.Set(newSpecs[n], i, base.PackFloatToBytes(float64(domain.GetLatestArticlesPerMonth())))
 
 	}
 

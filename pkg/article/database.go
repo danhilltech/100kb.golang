@@ -3,11 +3,14 @@ package article
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"github.com/danhilltech/100kb.golang/pkg/utils"
 	"google.golang.org/protobuf/proto"
 )
+
+var mu sync.Mutex
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
@@ -41,6 +44,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 }
 
 func (engine *Engine) Insert(article *Article, feedUrl string, domain string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	_, err := engine.dbInsertPreparedArticle.Exec(article.Url, feedUrl, domain, article.PublishedAt)
 	if err != nil && err != sql.ErrNoRows {
 		return err
@@ -49,6 +54,8 @@ func (engine *Engine) Insert(article *Article, feedUrl string, domain string) er
 }
 
 func (engine *Engine) Update(article *Article) error {
+	mu.Lock()
+	defer mu.Unlock()
 	var articleBodyRaw []byte
 	var articleBody []byte
 	var extractedKeywords []byte

@@ -28,6 +28,31 @@ func (d *Domain) GetLatestArticlesToScore() []*article.Article {
 	return goodArticles
 }
 
+func (d *Domain) GetLatestArticlesPerMonth() float64 {
+	goodArticles := []*article.Article{}
+	if d.Articles == nil || len(d.Articles) == 0 {
+		return 0
+	}
+
+	sort.Slice(d.Articles, func(i, j int) bool {
+		return d.Articles[i].PublishedAt > d.Articles[j].PublishedAt
+	})
+
+	for _, a := range d.Articles {
+		if a.PublishedAt > (time.Now().Unix() - 60*60*24*180) {
+			goodArticles = append(goodArticles, a)
+		}
+	}
+
+	val := float64(len(goodArticles)) / 6.0
+
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		return 0
+	}
+
+	return val
+}
+
 func (d *Domain) GetFPR() float64 {
 	arts := d.GetLatestArticlesToScore()
 	if len(arts) == 0 {
@@ -218,6 +243,26 @@ func (d *Domain) GetWordsPerByte() float64 {
 	wordCount := d.GetWordCount()
 
 	val := float64(wordCount) / (bytSize / float64(len(arts)))
+
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		return 0.0
+	}
+
+	return val
+}
+
+func (d *Domain) GetGoodTagsPerByte() float64 {
+	var wordCount float64
+	arts := d.GetLatestArticlesToScore()
+	if len(arts) == 0 {
+		return 0
+	}
+
+	for _, a := range arts {
+		wordCount += float64(a.PCount+a.H1Count+a.HNCount) / float64(a.HTMLLength)
+	}
+
+	val := float64(wordCount) / float64(len(arts))
 
 	if math.IsNaN(val) || math.IsInf(val, 0) {
 		return 0.0

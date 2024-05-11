@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/http"
 	"github.com/danhilltech/100kb.golang/pkg/utils"
@@ -25,6 +26,8 @@ urlHumanName,
 domainIsPopular,
 domainTLD
 `
+
+var mu sync.Mutex
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
@@ -60,6 +63,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 }
 
 func (engine *Engine) Insert(domain string, feedurl string) error {
+	mu.Lock()
+	defer mu.Unlock()
 	_, err := engine.dbInsertPreparedFeed.Exec(domain, feedurl)
 	if err != nil && err != sql.ErrNoRows {
 		return err
@@ -69,6 +74,8 @@ func (engine *Engine) Insert(domain string, feedurl string) error {
 }
 
 func (engine *Engine) Update(feed *Domain) error {
+	mu.Lock()
+	defer mu.Unlock()
 	_, err := engine.dbUpdatePreparedFeed.Exec(
 		utils.NullInt64(feed.LastFetchAt),
 		utils.NullString(feed.FeedTitle),
@@ -196,7 +203,7 @@ func (engine *Engine) getURLsToCrawl() ([]string, error) {
 		FROM to_crawl h
 		LEFT JOIN domains d ON d.domain = h.domain
 		LEFT JOIN url_requests u on u.domain = h.domain
-		WHERE h.url IS NOT NULL AND d.domain IS NULL AND u.domain IS NULL
+		WHERE h.url IS NOT NULL AND d.domain IS NULL AND u.domain IS NULL AND h.score > 2
 	) raw 
 	
 	WHERE rn <= 2;`)

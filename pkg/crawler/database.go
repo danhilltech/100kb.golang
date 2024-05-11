@@ -32,7 +32,7 @@ func (engine *Engine) InsertToCrawl(item *ToCrawl) error {
 func (engine *Engine) getExistingIDs() ([]int, error) {
 	fmt.Printf("Getting existing IDs\t")
 	defer fmt.Printf("❄️\n")
-	res, err := engine.db.Query("SELECT hn_id FROM to_crawl")
+	res, err := engine.db.Query("SELECT hn_id FROM to_crawl WHERE hn_id > 0")
 	if err != nil {
 		return nil, err
 	}
@@ -41,12 +41,14 @@ func (engine *Engine) getExistingIDs() ([]int, error) {
 	var ids []int
 
 	for res.Next() {
-		var id int
+		var id sql.NullInt64
 		err = res.Scan(&id)
 		if err != nil {
 			return nil, err
 		}
-		ids = append(ids, id)
+		if id.Valid {
+			ids = append(ids, int(id.Int64))
+		}
 	}
 	if err := res.Err(); err != nil {
 		return nil, err

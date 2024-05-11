@@ -28,7 +28,7 @@ func main() {
 	fmt.Println("Running\t\t\t🔥🔥🔥")
 
 	httpChunkSize := flag.Int("http-chunk-size", 100, "number of http chunks")
-	hnFetchSize := flag.Int("hn-fetch-size", 10_000, "number of hn links to get")
+	hnFetchSize := flag.Int("hn-fetch-size", 100_000, "number of hn links to get")
 	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
 	debug := flag.Bool("debug", false, "run debugging tools")
 	mode := flag.String("mode", "index", "which process to run")

@@ -20,7 +20,7 @@ type HNItemType string
 type ToCrawl struct {
 	URL string
 
-	HNID   int
+	HNID   int `json:"id"`
 	Domain string
 	By     string
 	Type   HNItemType

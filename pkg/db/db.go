@@ -105,6 +105,12 @@ func InitDB(name string, mode string) (*Database, error) {
 	fmt.Printf("creating database with mode %s\t", mode)
 	defer fmt.Printf("❄️\n")
 
+	// file, err := os.Create("/dbs/output.db") // Create SQLite file
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// file.Close()
+
 	sqliteDatabase, err := sql.Open("sqlite3", fmt.Sprintf("file:%s.db?mode=%s&_journal_mode=WAL&_sync=FULL", name, mode)) // Open the created SQLite File
 	if err != nil {
 		return nil, err
