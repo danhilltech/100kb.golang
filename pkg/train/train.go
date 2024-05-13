@@ -347,7 +347,7 @@ func trainRF(goodEntries []Entry, allDomains []*domain.Domain) error {
 	// https://webring.xxiivv.com/#vitbaisa
 	// https://frankmeeuwsen.com/blogroll/
 	// title uniqueness/levenstien
-	GetCodeTagCount
+	// GetCodeTagCount
 
 	for i, train := range goodEntries {
 

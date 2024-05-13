@@ -161,7 +161,7 @@ func (d *Domain) GetHCount() uint64 {
 	return uint64(val)
 }
 
-func (d *Domain) GetGoodTagCount() uint64 {
+func (d *Domain) GetGoodTagCount() float64 {
 	var count int64
 	arts := d.GetLatestArticlesToScore()
 	if len(arts) == 0 {
@@ -182,10 +182,10 @@ func (d *Domain) GetGoodTagCount() uint64 {
 		return 0
 	}
 
-	return uint64(val)
+	return val
 }
 
-func (d *Domain) GetCodeTagCount() uint64 {
+func (d *Domain) GetCodeTagCount() float64 {
 	var count int64
 	arts := d.GetLatestArticlesToScore()
 	if len(arts) == 0 {
@@ -206,10 +206,10 @@ func (d *Domain) GetCodeTagCount() uint64 {
 		return 0
 	}
 
-	return uint64(val)
+	return val
 }
 
-func (d *Domain) GetBadTagCount() uint64 {
+func (d *Domain) GetBadTagCount() float64 {
 	var wordCount int64
 	arts := d.GetLatestArticlesToScore()
 	if len(arts) == 0 {
@@ -226,7 +226,7 @@ func (d *Domain) GetBadTagCount() uint64 {
 		return 0
 	}
 
-	return uint64(val)
+	return val
 }
 
 func (d *Domain) GetWordsPerByte() float64 {
