@@ -5,8 +5,11 @@
 {{define "content"}}
 <ul>
     {{ range .Data }}
-    <li><a href="/article/{{.GetSlug}}">{{ .GetTitle }}</a> <br />
-        S: {{.GetScore}} | FPR: {{.GetFPR}} | K: {{.GetKeywords}}<br />
+    {{$domain := GetDomain .}}
+    <li><a href="{{.GetURL}}">{{ .GetTitle }}</a> <br />
+        {{$domain.GetFPR}}
+        {{.GetDomain}} <br />
+        S: {{.GetScore}} | K: {{.GetKeywords}}<br />
         {{.GetPublishedAt}}
     </li>
     {{ end }}

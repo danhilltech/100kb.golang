@@ -3,7 +3,6 @@ package output
 import (
 	"database/sql"
 	"embed"
-	"encoding/csv"
 	"fmt"
 	"io/fs"
 	"math"
@@ -13,7 +12,7 @@ import (
 	"text/template"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
-	"github.com/danhilltech/100kb.golang/pkg/svm"
+	"github.com/danhilltech/100kb.golang/pkg/domain"
 )
 
 type RenderEngine struct {
@@ -23,8 +22,7 @@ type RenderEngine struct {
 	articleEngine *article.Engine
 
 	articles []*article.Article
-
-	svmModel *svm.Model
+	domains  []*domain.Domain
 }
 
 type PageData struct {
@@ -40,7 +38,7 @@ var tmplFS embed.FS
 //go:embed views/static/*
 var staticFS embed.FS
 
-func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB, articleEngine *article.Engine) (*RenderEngine, error) {
+func NewRenderEnding(outputDir string, articles []*article.Article, domains []*domain.Domain, db *sql.DB, articleEngine *article.Engine) (*RenderEngine, error) {
 
 	templates := make(map[string]*template.Template)
 
@@ -54,7 +52,17 @@ func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB, 
 			continue
 		}
 
-		pt, err := template.ParseFS(tmplFS, "views/"+tmpl.Name(), "views/layouts/*html")
+		pt, err := template.New(tmpl.Name()).Funcs(template.FuncMap{
+			"GetDomain": func(a article.Article) *domain.Domain {
+				for _, d := range domains {
+					if d.Domain == a.Domain {
+						return d
+					}
+
+				}
+				return nil
+			},
+		}).ParseFS(tmplFS, "views/"+tmpl.Name(), "views/layouts/*html")
 		if err != nil {
 			return nil, err
 		}
@@ -68,37 +76,6 @@ func NewRenderEnding(outputDir string, articles []*article.Article, db *sql.DB, 
 		articleEngine: articleEngine,
 		db:            db,
 	}, nil
-}
-
-func (engine *RenderEngine) WriteCSV() error {
-	file, err := os.Create(engine.getFilePath("articles.csv"))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	csvwriter := csv.NewWriter(file)
-
-	var data [][]string
-
-	row := []string{
-		"url",
-		"domain",
-		"feedUrl",
-		"title",
-	}
-	data = append(data, row)
-
-	for _, a := range engine.articles {
-		row := []string{
-			a.Url,
-			a.Domain,
-			a.FeedUrl,
-			a.Title,
-		}
-		data = append(data, row)
-	}
-	return csvwriter.WriteAll(data)
 }
 
 func (engine *RenderEngine) StaticFiles() error {
@@ -152,7 +129,7 @@ func (engine *RenderEngine) ArticleLists() error {
 	fmt.Printf("Pages:\t%d\n", numPages)
 
 	sort.Slice(engine.articles, func(i, j int) bool {
-		return engine.articles[i].Score() > engine.articles[j].Score()
+		return engine.articles[i].PublishedAt > engine.articles[j].PublishedAt
 	})
 
 	for page := 0; page < numPages-1; page++ {
@@ -166,12 +143,12 @@ func (engine *RenderEngine) ArticleLists() error {
 		}
 	}
 
-	for _, article := range engine.articles {
-		err := engine.articlePage(article)
-		if err != nil {
-			return err
-		}
-	}
+	// for _, article := range engine.articles {
+	// 	err := engine.articlePage(article)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	return nil
 }
@@ -197,32 +174,6 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 	if err != nil {
 		// return err
 		fmt.Println(err)
-	}
-
-	return nil
-}
-
-func (engine *RenderEngine) articlePage(article *article.Article) error {
-
-	err := os.MkdirAll(filepath.Join(engine.outputDir, "article"), os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Create(engine.getFilePath(fmt.Sprintf("article/%s", article.GetSlug())))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	pageData := PageData{
-		Title: article.Title,
-		Data:  article,
-	}
-
-	err = engine.templates["articleInfo.html"].Execute(f, pageData)
-	if err != nil {
-		return err
 	}
 
 	return nil

@@ -16,6 +16,14 @@ func (article *Article) GetScore() string {
 	return fmt.Sprintf("%0.4f", article.Score())
 }
 
+func (article *Article) GetURL() string {
+	return article.Url
+}
+
+func (article *Article) GetDomain() string {
+	return article.Domain
+}
+
 func (article *Article) GetSlug() string {
 	keyHash := fnv.New64()
 

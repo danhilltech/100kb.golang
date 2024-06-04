@@ -24,11 +24,13 @@ models/*.bin
 target/
 _obj
 *.db
+*.db-shm
+*.db-wal
 dbs/*.db
 dbs/*.db*
 log.txt
 output/*
-output/
+output
 .cache/**/*.txt
 .cache/
 models/*
@@ -38,3 +40,5 @@ libsvm/
 .DS_Store
 
 !pkg/output
+output-train
+output-train/*

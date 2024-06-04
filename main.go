@@ -192,25 +192,20 @@ func main() {
 		db.Tidy()
 
 	case "output":
-		txn, err := db.DB.Begin()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		defer txn.Rollback()
 
 		articles, err := articleEngine.GetAllValid()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		err = txn.Commit()
+
+		domains, err := feedEngine.GetAll()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 
-		engine, err := output.NewRenderEnding("output", articles, db.DB, articleEngine)
+		engine, err := output.NewRenderEnding("output", articles, domains, db.DB, articleEngine)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

@@ -337,7 +337,7 @@ func (engine *Engine) getArticlesByFeed(feed string, excludeUrl string) ([]*Arti
 }
 
 func (engine *Engine) GetAllValid() ([]*Article, error) {
-	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastMetaAt IS NOT NULL AND wordCount > 10", ARTICLE_SELECT))
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastMetaAt IS NOT NULL", ARTICLE_SELECT))
 
 	if err != nil {
 		return nil, err
