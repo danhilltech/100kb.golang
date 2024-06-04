@@ -5,20 +5,11 @@ import (
 	"math"
 
 	"github.com/danhilltech/100kb.golang/pkg/domain"
+	"github.com/danhilltech/100kb.golang/pkg/scorer"
 	"github.com/sjwhitworth/golearn/base"
-	"github.com/sjwhitworth/golearn/evaluation"
 )
 
-type LogisticModel struct {
-	weights []float64
-	bias    float64
-}
-
-func (l *LogisticModel) Save(filename string) error {
-	return nil
-}
-
-func trainLogistic(goodEntries []Entry, allDomains []*domain.Domain) (*LogisticModel, error) {
+func trainLogistic(goodEntries []Entry, allDomains []*domain.Domain) (*scorer.LogisticModel, error) {
 
 	instances, attrSpecs, allAttrs, _, err := domainsToFeaturesFloat(goodEntries, allDomains, 1.0)
 	if err != nil {
@@ -27,20 +18,15 @@ func trainLogistic(goodEntries []Entry, allDomains []*domain.Domain) (*LogisticM
 
 	fmt.Println("## Logistic")
 
-	trainData, testData := base.InstancesTrainTestSplit(instances, 0.1)
-
 	var x_train [][]float64
 	var y_train []float64
 
-	var x_test [][]float64
-	var y_test []float64
-
-	trainData.MapOverRows(attrSpecs, func(row [][]byte, srcRowNo int) (bool, error) {
+	instances.MapOverRows(attrSpecs, func(row [][]byte, srcRowNo int) (bool, error) {
 		// var prediction float64 = lr.disturbance
 
 		trainRowBuf := make([]float64, len(allAttrs))
 
-		byteVal := trainData.Get(attrSpecs[0], srcRowNo)
+		byteVal := instances.Get(attrSpecs[0], srcRowNo)
 
 		str := attrSpecs[0].GetAttribute().GetStringFromSysVal(byteVal)
 
@@ -59,61 +45,58 @@ func trainLogistic(goodEntries []Entry, allDomains []*domain.Domain) (*LogisticM
 		return true, nil
 	})
 
-	testData.MapOverRows(attrSpecs, func(row [][]byte, srcRowNo int) (bool, error) {
-		// var prediction float64 = lr.disturbance
+	// testData.MapOverRows(attrSpecs, func(row [][]byte, srcRowNo int) (bool, error) {
+	// 	// var prediction float64 = lr.disturbance
 
-		trainRowBuf := make([]float64, len(allAttrs))
+	// 	trainRowBuf := make([]float64, len(allAttrs))
 
-		byteVal := testData.Get(attrSpecs[0], srcRowNo)
+	// 	byteVal := testData.Get(attrSpecs[0], srcRowNo)
 
-		str := attrSpecs[0].GetAttribute().GetStringFromSysVal(byteVal)
+	// 	str := attrSpecs[0].GetAttribute().GetStringFromSysVal(byteVal)
 
-		fltVal := float64(0)
-		if str == "good" {
-			fltVal = 1
-		}
+	// 	fltVal := float64(0)
+	// 	if str == "good" {
+	// 		fltVal = 1
+	// 	}
 
-		for i := range allAttrs {
-			trainRowBuf[i] = base.UnpackBytesToFloat(row[i])
-		}
+	// 	for i := range allAttrs {
+	// 		trainRowBuf[i] = base.UnpackBytesToFloat(row[i])
+	// 	}
 
-		y_test = append(y_test, fltVal)
+	// 	y_test = append(y_test, fltVal)
 
-		x_test = append(x_test, trainRowBuf[1:])
-		return true, nil
-	})
+	// 	x_test = append(x_test, trainRowBuf[1:])
+	// 	return true, nil
+	// })
 
-	legacyRun(x_train, y_train, x_test, y_test, 5000, 0.01)
+	// legacyRun(x_train, y_train, x_test, y_test, 5000, 0.01)
 
 	w, b, err := buildLogisticModel(x_train, y_train, 50000, 1e-4)
 	if err != nil {
 		return nil, err
 	}
 
-	predictions, err := predictLogistic(testData, w, b)
-	if err != nil {
-		return nil, err
-	}
+	model := &scorer.LogisticModel{Weights: w, Bias: b}
 
-	// var predictions base.FixedDataGrid
+	// predictions, err := predictLogistic(testData, model)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	// Prints precision/recall metrics
-	confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get confusion matrix: %s", err.Error())
-	}
-	fmt.Println(evaluation.GetSummary(confusionMat))
-	return &LogisticModel{weights: w, bias: b}, nil
+	// // var predictions base.FixedDataGrid
+
+	// // Prints precision/recall metrics
+	// confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("Unable to get confusion matrix: %s", err.Error())
+	// }
+	// fmt.Println(evaluation.GetSummary(confusionMat))
+	return model, nil
 }
 
 func logloss(yTrue float64, yPred float64) float64 {
 	loss := yTrue*math.Log1p(yPred) + (1-yTrue)*math.Log1p(1-yPred)
 	return loss
-}
-
-func sigmoid(z float64) float64 {
-	sigmoid := 1 / (1 + math.Pow(math.E, -1*z))
-	return sigmoid
 }
 
 func initialize(features int) ([]float64, float64) {
@@ -140,7 +123,7 @@ func Propagate(w []float64, b float64, x [][]float64, y []float64) (float64, []f
 			result = result + (w[j] * x[i][j])
 		}
 		z := result + b
-		a := sigmoid(z)
+		a := scorer.Sigmoid(z)
 
 		activations = append(activations, a)
 
@@ -195,23 +178,6 @@ func Optimize(w []float64, b float64, x [][]float64, y []float64, num_iterations
 	return w, b
 }
 
-func Predict(w []float64, b float64, x [][]float64) []float64 {
-	var y_pred []float64
-
-	for i := range x {
-		z := 0.0
-		for j := range w {
-			z += w[j] * x[i][j]
-		}
-		z += b
-		a := sigmoid(z)
-
-		y_pred = append(y_pred, a)
-
-	}
-	return y_pred
-}
-
 func legacyPredict(w []float64, b float64, x [][]float64) []float64 {
 	var y_pred []float64
 
@@ -221,7 +187,7 @@ func legacyPredict(w []float64, b float64, x [][]float64) []float64 {
 			z += w[j] * x[i][j]
 		}
 		z += b
-		a := sigmoid(z)
+		a := scorer.Sigmoid(z)
 
 		if a >= 0.5 {
 			y_pred = append(y_pred, 1)
@@ -241,7 +207,7 @@ func buildLogisticModel(x_train [][]float64, y_train []float64, num_iterations i
 	return w, b, nil
 }
 
-func predictLogistic(what base.FixedDataGrid, w []float64, b float64) (base.FixedDataGrid, error) {
+func predictLogistic(what base.FixedDataGrid, l *scorer.LogisticModel) (base.FixedDataGrid, error) {
 
 	_, rows := what.Size()
 
@@ -284,7 +250,7 @@ func predictLogistic(what base.FixedDataGrid, w []float64, b float64) (base.Fixe
 			trainRowBuf[i] = base.UnpackBytesToFloat(row[i])
 		}
 
-		predict := Predict(w, b, [][]float64{trainRowBuf})
+		predict := l.Predict([][]float64{trainRowBuf})
 
 		// fmt.Println(trainRowBuf, predict)
 

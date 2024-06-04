@@ -3,15 +3,26 @@
 {{define "title"}}{{.Title}}{{end}}
 
 {{define "content"}}
+<nav>
+    <a href="/page/{{.PrevPage}}.html">Previous</a>
+    <span>{{.Page}}</span>
+    <a href="/page/{{.NextPage}}.html">Next</a>
+</nav>
+
 <ul>
     {{ range .Data }}
-    {{$domain := GetDomain .}}
-    <li><a href="{{.GetURL}}">{{ .GetTitle }}</a> <br />
-        {{$domain.GetFPR}}
+    <li class="{{.GetDomainClassName}}"><a href="{{.GetURL}}" target="_blank">{{ .GetTitle }}</a> <br />
         {{.GetDomain}} <br />
-        S: {{.GetScore}} | K: {{.GetKeywords}}<br />
+        {{.GetDomainScore}} <br />
+        
         {{.GetPublishedAt}}
     </li>
     {{ end }}
 </ul>
+
+<nav>
+    <a href="/page/{{.PrevPage}}.html">Previous</a>
+    <span>{{.Page}}</span>
+    <a href="/page/{{.NextPage}}.html">Next</a>
+</nav>
 {{end}}

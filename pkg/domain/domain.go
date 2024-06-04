@@ -38,6 +38,9 @@ type Domain struct {
 	DomainTLD       string
 
 	Articles []*article.Article
+
+	// Only used at runtime/output
+	LiveScore float64
 }
 
 func NewEngine(db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cacheDir string) (*Engine, error) {

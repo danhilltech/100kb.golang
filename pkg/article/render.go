@@ -12,16 +12,28 @@ func (article *Article) GetTitle() string {
 	return article.Title
 }
 
-func (article *Article) GetScore() string {
-	return fmt.Sprintf("%0.4f", article.Score())
-}
-
 func (article *Article) GetURL() string {
 	return article.Url
 }
 
 func (article *Article) GetDomain() string {
 	return article.Domain
+}
+
+func (article *Article) GetDomainScore() float64 {
+	return article.DomainScore
+}
+
+func (article *Article) GetDomainClassName() string {
+	if article.DomainScore > 0.8 {
+		return "score-excellent"
+	} else if article.DomainScore > 0.5 {
+		return "score-good"
+	} else if article.DomainScore > 0.2 {
+		return "score-bad"
+	} else {
+		return "score-poor"
+	}
 }
 
 func (article *Article) GetSlug() string {

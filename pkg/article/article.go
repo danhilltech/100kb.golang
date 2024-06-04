@@ -53,6 +53,9 @@ type Article struct {
 	SentenceEmbedding *serialize.Embeddings
 	ExtractedKeywords *serialize.Keywords
 	Classifications   *serialize.Keywords
+
+	// Used in live/output
+	DomainScore float64
 }
 
 func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool) (*Engine, error) {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	"github.com/danhilltech/100kb.golang/pkg/domain"
+	"github.com/danhilltech/100kb.golang/pkg/scorer"
 )
 
 type RenderEngine struct {
@@ -23,11 +24,15 @@ type RenderEngine struct {
 
 	articles []*article.Article
 	domains  []*domain.Domain
+	model    *scorer.LogisticModel
 }
 
-type PageData struct {
-	Title string
-	Data  interface{}
+type ArticleListData struct {
+	Title    string
+	Data     []*article.Article
+	Page     int
+	PrevPage int
+	NextPage int
 }
 
 var pageSize = 100
@@ -38,7 +43,7 @@ var tmplFS embed.FS
 //go:embed views/static/*
 var staticFS embed.FS
 
-func NewRenderEnding(outputDir string, articles []*article.Article, domains []*domain.Domain, db *sql.DB, articleEngine *article.Engine) (*RenderEngine, error) {
+func NewRenderEnding(outputDir string, articles []*article.Article, domains []*domain.Domain, model *scorer.LogisticModel, db *sql.DB, articleEngine *article.Engine) (*RenderEngine, error) {
 
 	templates := make(map[string]*template.Template)
 
@@ -52,17 +57,7 @@ func NewRenderEnding(outputDir string, articles []*article.Article, domains []*d
 			continue
 		}
 
-		pt, err := template.New(tmpl.Name()).Funcs(template.FuncMap{
-			"GetDomain": func(a article.Article) *domain.Domain {
-				for _, d := range domains {
-					if d.Domain == a.Domain {
-						return d
-					}
-
-				}
-				return nil
-			},
-		}).ParseFS(tmplFS, "views/"+tmpl.Name(), "views/layouts/*html")
+		pt, err := template.ParseFS(tmplFS, "views/"+tmpl.Name(), "views/layouts/*html")
 		if err != nil {
 			return nil, err
 		}
@@ -72,8 +67,10 @@ func NewRenderEnding(outputDir string, articles []*article.Article, domains []*d
 	return &RenderEngine{
 		templates:     templates,
 		articles:      articles,
+		domains:       domains,
 		outputDir:     outputDir,
 		articleEngine: articleEngine,
+		model:         model,
 		db:            db,
 	}, nil
 }
@@ -113,13 +110,21 @@ func (engine *RenderEngine) StaticFiles() error {
 
 func (engine *RenderEngine) ArticleLists() error {
 
-	// articlesFiltered := []*article.Article{}
+	domainScores := make(map[string]float64, len(engine.domains))
 
-	// for _, a := range engine.articles {
-	// 	if a.FirstPersonRatio > 0.02 && a.Score() > 0 {
-	// 		articlesFiltered = append(articlesFiltered, a)
-	// 	}
-	// }
+	// Prepare
+	for _, d := range engine.domains {
+		fts := d.GetFloatFeatures()
+		score := engine.model.Predict([][]float64{fts})
+		d.LiveScore = score[0]
+
+		fmt.Println(d.Domain, d.LiveScore)
+		domainScores[d.Domain] = d.LiveScore
+	}
+
+	for _, a := range engine.articles {
+		a.DomainScore = domainScores[a.Domain]
+	}
 
 	articleCount := len(engine.articles)
 
@@ -143,13 +148,6 @@ func (engine *RenderEngine) ArticleLists() error {
 		}
 	}
 
-	// for _, article := range engine.articles {
-	// 	err := engine.articlePage(article)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
 	return nil
 }
 
@@ -165,9 +163,12 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 	}
 	defer f.Close()
 
-	pageData := PageData{
-		Title: "test",
-		Data:  articles,
+	pageData := ArticleListData{
+		Title:    fmt.Sprintf("Page %d", page),
+		Data:     articles,
+		Page:     page,
+		NextPage: page + 1,
+		PrevPage: page - 1,
 	}
 
 	err = engine.templates["articleList.html"].Execute(f, pageData)

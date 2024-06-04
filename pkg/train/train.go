@@ -237,7 +237,12 @@ func TrainSVM(cacheDir string) error {
 	// 	return err
 	// }
 
-	err = trainLogistic(goodEntries, allDomains)
+	mdl, err := trainLogistic(goodEntries, allDomains)
+	if err != nil {
+		return err
+	}
+
+	err = mdl.Save("model.json")
 	if err != nil {
 		return err
 	}
@@ -248,7 +253,7 @@ func TrainSVM(cacheDir string) error {
 		return err
 	}
 
-	engine, err := output.NewRenderEnding("output-train", articles, allDomains, database, articleEngine)
+	engine, err := output.NewRenderEnding("output-train", articles, allDomains, mdl, database, articleEngine)
 	if err != nil {
 		return err
 	}

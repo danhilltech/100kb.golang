@@ -20,6 +20,7 @@ import (
 	"github.com/danhilltech/100kb.golang/pkg/db"
 	"github.com/danhilltech/100kb.golang/pkg/domain"
 	"github.com/danhilltech/100kb.golang/pkg/output"
+	"github.com/danhilltech/100kb.golang/pkg/scorer"
 	"github.com/danhilltech/100kb.golang/pkg/train"
 	"github.com/smira/go-statsd"
 )
@@ -205,7 +206,13 @@ func main() {
 			os.Exit(1)
 		}
 
-		engine, err := output.NewRenderEnding("output", articles, domains, db.DB, articleEngine)
+		model, err := scorer.LoadModel("model.json")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		engine, err := output.NewRenderEnding("output", articles, domains, model, db.DB, articleEngine)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
