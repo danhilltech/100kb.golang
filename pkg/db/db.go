@@ -38,7 +38,9 @@ CREATE TABLE IF NOT EXISTS url_requests (
 	domain TEXT NOT NULL,
 	lastAttemptAt INTEGER,
 	status INTEGER,
-	contentType TEXT
+	contentType TEXT,
+	etag TEXT,
+	lastModified TEXT
 );
 
 CREATE TABLE IF NOT EXISTS domains (

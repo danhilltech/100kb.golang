@@ -78,6 +78,7 @@ func (engine *Engine) crawlURLForFeedWorker(jobs <-chan string, results chan<- s
 func (engine *Engine) extractFeed(candidate string) (string, error) {
 	// First check the URL isn't banned
 
+	fmt.Println(candidate)
 	parsedUrl, err := url.Parse(candidate)
 	if err != nil {
 		return "", err
@@ -95,6 +96,7 @@ func (engine *Engine) extractFeed(candidate string) (string, error) {
 	if res == nil || res.Response == nil {
 		return "", err
 	}
+	fmt.Println("here")
 	defer res.Response.Body.Close()
 
 	feed := extractFeedURL(res.Response.Body)

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -32,6 +33,8 @@ type retryableTransport struct {
 	db        *sql.DB
 	sd        *statsd.Client
 }
+
+var ErrFailingRemote = fmt.Errorf("remote is known to be failing")
 
 func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
@@ -66,9 +69,18 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 
 	checkDisk := true
 
-	if urlRequest.LastAttemptAt < (time.Now().Unix() - 60*60*24*5) {
+	// It failed last time, and we tried in last 24 hours
+	if urlRequest.Status >= 400 && urlRequest.LastAttemptAt > (time.Now().Unix()-60*60*24) {
+		fmt.Println("FAILING REMOTE")
+		return nil, ErrFailingRemote
+	}
+
+	// Within 2 hours, always use disk
+	if urlRequest.LastAttemptAt < (time.Now().Unix() - 60*60*2) {
 		checkDisk = false
 	}
+
+	// If cloudflare limited us
 	if urlRequest.Status == 403 {
 		checkDisk = false
 	}
@@ -105,19 +117,36 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	urlRequest.LastAttemptAt = time.Now().Unix()
 	urlRequest.Save(t.db)
 
-	// ctx, cancelFunc := context.WithTimeout(context.Background(), 6*time.Second)
-	// defer cancelFunc()
+	if urlRequest.Etag != "" {
+		req.Header.Set("if-none-match", urlRequest.Etag)
+	} else if urlRequest.LastModified != "" {
+		req.Header.Set("if-modified-since", urlRequest.LastModified)
+	}
 
-	// t.limiter.Wait(ctx)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 6*time.Second)
+	defer cancelFunc()
 
-	// t.limiter.WaitHost(ctx, req.Host)
+	t.limiter.Wait(ctx)
+
+	t.limiter.WaitHost(ctx, req.Host)
+
+	debugDump, err := httputil.DumpRequestOut(req, false)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("%s\n\n", string(debugDump))
 
 	// Send the request
 	resp, err := t.transport.RoundTrip(req)
 	if err != nil {
+
 		if resp != nil {
 			urlRequest.Status = int64(resp.StatusCode)
 			urlRequest.ContentType = resp.Header.Get("Content-Type")
+			urlRequest.LastAttemptAt = time.Now().Unix()
+			urlRequest.Save(t.db)
+		} else {
+			urlRequest.Status = 500
 			urlRequest.LastAttemptAt = time.Now().Unix()
 			urlRequest.Save(t.db)
 		}
@@ -132,6 +161,8 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 
 	urlRequest.Status = int64(resp.StatusCode)
 	urlRequest.ContentType = resp.Header.Get("Content-Type")
+	urlRequest.Etag = resp.Header.Get("Etag")
+	urlRequest.LastModified = resp.Header.Get("Last-modified")
 	urlRequest.LastAttemptAt = time.Now().Unix()
 	urlRequest.Save(t.db)
 
