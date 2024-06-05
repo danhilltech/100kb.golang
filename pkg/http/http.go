@@ -361,35 +361,3 @@ func (c *Client) Get(u string) (*http.Response, error) {
 func (c *Client) Head(u string) (*http.Response, error) {
 	return c.httpClient.Head(u)
 }
-
-// func (c *Client) GetFromDisk(u string) (io.ReadCloser, error) {
-
-// 	req, err := http.NewRequest("GET", u, nil)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Check our cache
-// 	k, err := getHTMLKey(req)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	c.httpClient.
-
-// 	diskStream, _ := c.httpClient..ReadStream(k, false)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if diskStream != nil {
-// 		defer diskStream.Close()
-// 		data, err := io.ReadAll(diskStream)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		buf := bytes.NewBuffer(data)
-// 		bufReader := bufio.NewReader(buf)
-// 		return http.ReadResponse(bufReader, req)
-// 	}
-// }
