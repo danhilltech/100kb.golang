@@ -34,14 +34,19 @@ CREATE INDEX IF NOT EXISTS to_crawl_hn_id ON to_crawl(hn_id);
 CREATE INDEX IF NOT EXISTS to_crawl_domain ON to_crawl(domain);
 
 CREATE TABLE IF NOT EXISTS url_requests (
-	url TEXT PRIMARY KEY,
+	url TEXT NOT NULL,
 	domain TEXT NOT NULL,
 	lastAttemptAt INTEGER,
 	status INTEGER,
 	contentType TEXT,
 	etag TEXT,
-	lastModified TEXT
+	lastModified TEXT,
+	method TEXT NOT NULL,
+	diskPath TEXT,
+	CHECK (lastAttemptAt >= 0 AND status >= 0),
+	PRIMARY KEY (url, method)
 );
+
 
 CREATE TABLE IF NOT EXISTS domains (
 	domain TEXT PRIMARY KEY,
@@ -49,6 +54,7 @@ CREATE TABLE IF NOT EXISTS domains (
 	lastFetchAt INTEGER,
 	feedTitle TEXT,
 	language TEXT,
+	platform TEXT,
 
 	latestPostAt INTEGER,
 	domainIsPopular INTEGER,

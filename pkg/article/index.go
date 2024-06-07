@@ -17,10 +17,10 @@ func (engine *Engine) articleIndex(article *Article) error {
 	if err != nil {
 		return err
 	}
-	if resp != nil && resp.Response != nil {
-		defer resp.Response.Body.Close()
+	if resp != nil {
+		defer resp.Body.Close()
 
-		byts, err := io.ReadAll(resp.Response.Body)
+		byts, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}

@@ -78,7 +78,6 @@ func (engine *Engine) crawlURLForFeedWorker(jobs <-chan string, results chan<- s
 func (engine *Engine) extractFeed(candidate string) (string, error) {
 	// First check the URL isn't banned
 
-	fmt.Println(candidate)
 	parsedUrl, err := url.Parse(candidate)
 	if err != nil {
 		return "", err
@@ -93,13 +92,12 @@ func (engine *Engine) extractFeed(candidate string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if res == nil || res.Response == nil {
+	if res == nil {
 		return "", err
 	}
-	fmt.Println("here")
-	defer res.Response.Body.Close()
+	defer res.Body.Close()
 
-	feed := extractFeedURL(res.Response.Body)
+	feed := extractFeedURL(res.Body)
 
 	// Check for malformed
 	if strings.HasPrefix(feed, "//") {
@@ -129,26 +127,26 @@ func (engine *Engine) extractFeed(candidate string) (string, error) {
 			return v1, nil
 		}
 
-		possibles := []string{"/feed", "/rss", "/rss.xml", "/blog/feed", "/blog/rss", "/blog/rss.xml"}
+		// possibles := []string{"/feed", "/rss", "/rss.xml", "/blog/feed", "/blog/rss", "/blog/rss.xml"}
 
-		for _, poss := range possibles {
-			u := url.URL{}
-			u.Path = poss
-			clean := parsedUrl.ResolveReference(&u)
+		// for _, poss := range possibles {
+		// 	u := url.URL{}
+		// 	u.Path = poss
+		// 	clean := parsedUrl.ResolveReference(&u)
 
-			v := clean.String()
-			h, err := engine.httpCrawl.Head(v)
-			if err != nil {
-				return "", err
-			}
-			if h.StatusCode < 400 &&
-				(strings.Contains(h.Header.Get("Content-Type"), "application/rss+xml") ||
-					strings.Contains(h.Header.Get("Content-Type"), "application/atom+xml") ||
-					strings.Contains(h.Header.Get("Content-Type"), "text/xml") ||
-					strings.Contains(h.Header.Get("Content-Type"), "application/xml")) {
-				return v1, nil
-			}
-		}
+		// 	v := clean.String()
+		// 	h, err := engine.httpCrawl.Head(v)
+		// 	if err != nil {
+		// 		return "", err
+		// 	}
+		// 	if h.StatusCode < 400 &&
+		// 		(strings.Contains(h.Header.Get("Content-Type"), "application/rss+xml") ||
+		// 			strings.Contains(h.Header.Get("Content-Type"), "application/atom+xml") ||
+		// 			strings.Contains(h.Header.Get("Content-Type"), "text/xml") ||
+		// 			strings.Contains(h.Header.Get("Content-Type"), "application/xml")) {
+		// 		return v1, nil
+		// 	}
+		// }
 
 	}
 

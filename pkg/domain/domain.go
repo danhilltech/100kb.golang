@@ -37,6 +37,8 @@ type Domain struct {
 	DomainIsPopular bool
 	DomainTLD       string
 
+	Platform string
+
 	Articles []*article.Article
 
 	// Only used at runtime/output

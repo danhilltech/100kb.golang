@@ -64,24 +64,35 @@ func (engine *Engine) RunFeedRefresh(chunkSize int, workers int) error {
 	return nil
 }
 
+func isGoodServedHeader(header string) bool {
+	return !strings.HasPrefix(header, "cache-") &&
+		!strings.HasPrefix(header, "php")
+}
+
+func cleanPlatform(in string) string {
+	switch in {
+	case "wp engine", "wordpress vip <https://wpvip.com>":
+		return "wordpress"
+	default:
+		return strings.ToLower(in)
+	}
+}
+
 // Crawls
 func (engine *Engine) feedRefresh(feed *Domain) error {
 	feed.LastFetchAt = time.Now().Unix()
 	// First check the URL isn't banned
 
 	// crawl it
-	resp, err := engine.httpCrawl.GetWithSafety(feed.FeedURL)
+	resp, err := engine.httpCrawl.Get(feed.FeedURL)
 	if err != nil || resp == nil {
-		return nil
-	}
-	if resp.Response == nil {
-		return nil
+		return err
 	}
 
-	defer resp.Response.Body.Close()
+	defer resp.Body.Close()
 
 	fp := gofeed.NewParser()
-	rss, err := fp.Parse(resp.Response.Body)
+	rss, err := fp.Parse(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -92,40 +103,69 @@ func (engine *Engine) feedRefresh(feed *Domain) error {
 
 	fullDomain := fmt.Sprintf("https://%s", feed.Domain)
 
-	headResp, err := engine.httpCrawl.Head(fmt.Sprintf("%s/about", fullDomain))
-	if err == nil && headResp.StatusCode < 400 {
-		feed.PageAbout = true
-	}
-	if !feed.PageAbout {
-		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/me", fullDomain))
-		if err == nil && headResp.StatusCode < 400 {
-			feed.PageAbout = true
-		}
-	}
-	if !feed.PageAbout {
-		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/about.html", fullDomain))
-		if err == nil && headResp.StatusCode < 400 {
-			feed.PageAbout = true
-		}
-	}
-	if !feed.PageAbout {
-		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/whoami", fullDomain))
-		if err == nil && headResp.StatusCode < 400 {
-			feed.PageAbout = true
-		}
-	}
-	headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/blogroll", fullDomain))
-	if err == nil && headResp.StatusCode < 400 {
-		feed.PageBlogRoll = true
-	}
-	headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/archive", fullDomain))
-	if err == nil && headResp.StatusCode < 400 {
-		feed.PageWriting = true
+	// Detect hosting/platform providers
+	if strings.Contains(fullDomain, "substack.com") {
+		feed.Platform = "substack"
 	}
 
-	headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/now", fullDomain))
-	if err == nil && headResp.StatusCode < 400 {
-		feed.PageNow = true
+	if resp.Header.Get("x-served-by") != "" {
+
+		if feed.Platform == "" && isGoodServedHeader(resp.Header.Get("x-served-by")) {
+
+			feed.Platform = cleanPlatform(resp.Header.Get("x-served-by"))
+		}
+	}
+
+	if resp.Header.Get("x-powered-by") != "" {
+
+		if feed.Platform == "" && isGoodServedHeader(resp.Header.Get("x-powered-by")) {
+
+			feed.Platform = cleanPlatform(resp.Header.Get("x-powered-by"))
+		}
+	}
+
+	switch feed.Platform {
+	case "substack":
+		{
+			feed.PageAbout = true
+			feed.PageWriting = true
+		}
+	default:
+		headResp, err := engine.httpCrawl.Head(fmt.Sprintf("%s/about", fullDomain))
+		if err == nil && headResp.StatusCode < 400 {
+			feed.PageAbout = true
+		}
+		if !feed.PageAbout {
+			headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/me", fullDomain))
+			if err == nil && headResp.StatusCode < 400 {
+				feed.PageAbout = true
+			}
+		}
+		if !feed.PageAbout {
+			headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/about.html", fullDomain))
+			if err == nil && headResp.StatusCode < 400 {
+				feed.PageAbout = true
+			}
+		}
+		if !feed.PageAbout {
+			headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/whoami", fullDomain))
+			if err == nil && headResp.StatusCode < 400 {
+				feed.PageAbout = true
+			}
+		}
+		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/blogroll", fullDomain))
+		if err == nil && headResp.StatusCode < 400 {
+			feed.PageBlogRoll = true
+		}
+		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/archive", fullDomain))
+		if err == nil && headResp.StatusCode < 400 {
+			feed.PageWriting = true
+		}
+
+		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/now", fullDomain))
+		if err == nil && headResp.StatusCode < 400 {
+			feed.PageNow = true
+		}
 	}
 
 	tld, _ := publicsuffix.PublicSuffix(fullDomain)

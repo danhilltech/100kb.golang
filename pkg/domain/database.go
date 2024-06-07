@@ -24,7 +24,8 @@ urlNews,
 urlBlog,
 urlHumanName,
 domainIsPopular,
-domainTLD
+domainTLD,
+platform
 `
 
 var mu sync.Mutex
@@ -50,7 +51,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	urlBlog = ?,
 	urlHumanName = ?,
 	domainIsPopular = ?,
-	domainTLD = ?
+	domainTLD = ?,
+	platform = ?
 	
 	WHERE domain = ?;`)
 	if err != nil {
@@ -89,6 +91,7 @@ func (engine *Engine) Update(feed *Domain) error {
 		utils.NullBool(feed.URLHumanName),
 		utils.NullBool(feed.DomainIsPopular),
 		utils.NullString(feed.DomainTLD),
+		utils.NullString(feed.Platform),
 		feed.Domain,
 	)
 	if err != nil && err != sql.ErrNoRows {
@@ -104,7 +107,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 	var feedTitle, language sql.NullString
 
 	var pageAbout, pageBlogRoll, pageWriting, pageNow, urlNews, urlBlog, urlHumanName, domainIsPopular sql.NullInt64
-	var domainTLD sql.NullString
+	var domainTLD, platform sql.NullString
 
 	err := res.Scan(
 		&domain,
@@ -121,6 +124,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		&urlHumanName,
 		&domainIsPopular,
 		&domainTLD,
+		&platform,
 	)
 	if err != nil {
 		return nil, err
@@ -141,6 +145,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		URLHumanName:    urlHumanName.Int64 > 0,
 		DomainIsPopular: domainIsPopular.Int64 > 0,
 		DomainTLD:       domainTLD.String,
+		Platform:        platform.String,
 	}
 	return d, nil
 }

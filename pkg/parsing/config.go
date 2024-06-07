@@ -3,7 +3,7 @@ package parsing
 // Everything inside these is gobbeld up into a string
 var textTags = []string{"p", "h1", "h2", "h3", "li", "blockquote", "code"}
 
-var badAreas = []string{"nav", "footer", "iframe", "code", "pre"}
+var badAreas = []string{"nav", "footer", "iframe"}
 
 var internalLinkTags = []string{"a"}
 
@@ -29,10 +29,4 @@ var badClassesAndIds = []string{
 	"toolbar",
 	"twitter-tweet",
 	"post-meta",
-}
-
-var badWildcards = []string{
-	"footer",
-	"dropdown",
-	"hidden",
 }
