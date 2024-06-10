@@ -112,11 +112,27 @@ func (engine *RenderEngine) ArticleLists() error {
 
 	domainScores := make(map[string]float64, len(engine.domains))
 
+	for _, a := range engine.articles {
+		for _, d := range engine.domains {
+			if d.Domain == a.Domain {
+				if d.Articles == nil {
+					d.Articles = []*article.Article{}
+				}
+				d.Articles = append(d.Articles, a)
+			}
+		}
+	}
+
 	// Prepare
 	for _, d := range engine.domains {
 		fts := d.GetFloatFeatures()
+		fmt.Println(fts)
 		score := engine.model.Predict([][]float64{fts})
-		d.LiveScore = score[0]
+		if len(d.Articles) == 0 {
+			d.LiveScore = 0
+		} else {
+			d.LiveScore = score[0]
+		}
 
 		fmt.Println(d.Domain, d.LiveScore)
 		domainScores[d.Domain] = d.LiveScore

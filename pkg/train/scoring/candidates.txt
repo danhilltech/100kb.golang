@@ -1152,3 +1152,5 @@ https://www.cbsnews.com
 https://www.chendurs.com
 https://www.chicagotribune.com
 https://www.cinemasound.com
+https://pypi.org/
+https://yaleclimateconnections.org/

@@ -2,17 +2,18 @@ FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 
 # [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
 
-COPY --from=golang:1.21-alpine /usr/local/go/ /usr/local/go/
+COPY --from=golang:1.22-alpine /usr/local/go/ /usr/local/go/
 
 ARG USERNAME=builder
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
+ARG LIBTORCH_URL=https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcu118.zip
 
 ENV TORCH_HOME=/usr/local/lib/libtorch
 ENV LIBTORCH=/usr/local/lib/libtorch
 ENV LD_LIBRARY_PATH=${LIBTORCH}/lib:$LD_LIBRARY_PATH
 ENV DEBIAN_FRONTEND=noninteractive
-ENV LIBTORCH_URL=https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.1.2%2Bcu118.zip
+
 # ENV LIBTORCH_URL=https://download.pytorch.org/libtorch/cpu/libtorch-macos-2.1.2.zip
 ENV GOROOT="/usr/local/go"
 ENV GOPATH="/go"

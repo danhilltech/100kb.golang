@@ -13,8 +13,10 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 	// Check we have enough data
 	article.LastContentExtractAt = time.Now().Unix()
 
+	// check status ok
+
 	htmlStream, err := engine.http.Get(article.Url)
-	if err != nil {
+	if err != nil || htmlStream.StatusCode > 400 {
 		return fmt.Errorf("could not get article %w", err)
 	}
 	defer htmlStream.Body.Close()

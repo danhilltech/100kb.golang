@@ -1,60 +1,92 @@
 package output
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 )
 
 // var trackFile = "scoring/scored.csv"
 
 type ScoreRequest struct {
-	URL   string
-	Score int
+	Domain string `json:"domain"`
+	Score  int    `json:"score"`
 }
 
-func (engine *RenderEngine) RunHttp() {
+func (engine *RenderEngine) RunHttp(dir string) {
 
 	fmt.Println("Starting output http server...")
 
-	fs := http.FileServer(http.Dir("./output-train"))
+	http.HandleFunc("/score", engine.handleScore)
+	fs := http.FileServer(http.Dir(dir))
 	http.Handle("/", fs)
 
 	http.ListenAndServe(":8081", nil)
 }
 
-// func (engine *RenderEngine) handleScore(w http.ResponseWriter, r *http.Request) {
-// 	err := r.ParseForm()
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
+func (engine *RenderEngine) handleScore(w http.ResponseWriter, r *http.Request) {
 
-// 	score := r.PostFormValue("score")
-// 	url := r.PostFormValue("url")
+	reqBody, _ := io.ReadAll(r.Body)
 
-// 	f, err := os.OpenFile(trackFile,
-// 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-// 	defer f.Close()
-// 	if _, err := f.WriteString(fmt.Sprintf("%s,%s\n", url, score)); err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
+	var data ScoreRequest
 
-// 	// articlesFiltered := []*article.Article{}
+	err := json.Unmarshal(reqBody, &data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-// 	// for _, a := range engine.articles {
-// 	// 	if a.FirstPersonRatio > 0.03 && a.WordCount > 200 && a.WordCount < 2000 && a.BadCount < 50 {
-// 	// 		articlesFiltered = append(articlesFiltered, a)
-// 	// 	}
-// 	// }
+	existingCandidates, err := ioutil.ReadFile("output/candidates.txt")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	candidates := strings.Split(string(existingCandidates), "\n")
 
-// 	// rand.Seed(time.Now().Unix())
-// 	// article := articlesFiltered[rand.Intn(len(articlesFiltered))]
-// 	article := engine.articles[rand.Intn(len(engine.articles))]
+	found := false
+	for _, c := range candidates {
+		if c == fmt.Sprintf("https://%s", data.Domain) {
+			found = true
+		}
+	}
 
-// 	http.Redirect(w, r, fmt.Sprintf("/article/%s", article.GetSlug()), http.StatusMovedPermanently)
-// }
+	if !found {
+		f, err := os.OpenFile("output/candidates.txt",
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+		if _, err := f.WriteString(fmt.Sprintf("https://%s\n", data.Domain)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	labels := readJSON("output/labels.json")
+
+	labels[data.Domain] = data.Score
+	writeJSON("output/labels.json", labels)
+
+}
+
+func readJSON(fileName string) map[string]int {
+	datas := map[string]int{}
+
+	file, _ := os.ReadFile(fileName)
+	json.Unmarshal(file, &datas)
+
+	return datas
+}
+
+func writeJSON(fileName string, data map[string]int) error {
+	jsonString, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(fileName, jsonString, os.ModePerm)
+}

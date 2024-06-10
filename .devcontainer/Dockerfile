@@ -2,8 +2,9 @@ FROM debian:latest
 
 # [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
 
-COPY --from=golang:1.21-alpine /usr/local/go/ /usr/local/go/
-COPY --from=bitnami/pytorch:2.1.2 /opt/bitnami/python/lib/python3.11/site-packages/torch/ /opt/libtorch/
+COPY --from=golang:1.22-alpine /usr/local/go/ /usr/local/go/
+COPY --from=bitnami/pytorch:2.2.2 /opt/bitnami/python/lib/python3.11/site-packages/torch/ /opt/libtorch/
+COPY --from=bitnami/pytorch:2.2.2 /opt/bitnami/python/lib/python3.11/site-packages/torch.libs/ /opt/libtorch/lib/
 
 ARG USERNAME=vscode
 ARG USER_UID=1000
@@ -13,7 +14,6 @@ ENV TORCH_HOME=/opt/libtorch
 ENV LIBTORCH=/opt/libtorch
 ENV LD_LIBRARY_PATH=${LIBTORCH}/lib:$LD_LIBRARY_PATH:/workspaces/100kb.golang/lib
 ENV DEBIAN_FRONTEND=noninteractive
-ENV LIBTORCH_URL=https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.2%2Bcpu.zip
 ENV GOROOT="/usr/local/go"
 ENV GOPATH="/go"
 ENV PATH="/home/vscode/.cargo/bin:/usr/local/go/bin:/go/bin:${PATH}"
@@ -50,6 +50,7 @@ ENV TERM xterm
 # set the zsh theme
 ENV ZSH_THEME agnoster
 ENV RUSTBERT_CACHE /workspaces/100kb.golang/models
+ENV LIBTORCH_CXX11_ABI 0
 
 # run the installation script  
 RUN wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true

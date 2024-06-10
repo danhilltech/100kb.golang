@@ -35,6 +35,7 @@ func main() {
 	mode := flag.String("mode", "index", "which process to run")
 	cacheDir := flag.String("cache-dir", ".cache", "where to cache html")
 	utilization := flag.Float64("util", 1.0, "pcnt of cores to use")
+	articleLoadML := flag.Bool("cuda", false, "use CUDA")
 
 	flag.Parse()
 
@@ -72,18 +73,14 @@ func main() {
 	}
 
 	dbMode := "r"
-	articleLoadML := false
 
 	switch *mode {
 	case "index":
 		dbMode = "rwc"
-		articleLoadML = false
 	case "meta":
 		dbMode = "rw"
-		articleLoadML = true
 	case "output":
 		dbMode = "rw"
-		articleLoadML = false
 	case "train":
 
 		err := train.TrainSVM(*cacheDir)
@@ -94,7 +91,6 @@ func main() {
 		return
 	default:
 		dbMode = "rw"
-		articleLoadML = false
 	}
 
 	db, err := db.InitDB("/dbs/output", dbMode)
@@ -121,7 +117,7 @@ func main() {
 		os.Exit(1)
 	}()
 
-	articleEngine, err := article.NewEngine(db.DB, statsdClient, *cacheDir, articleLoadML)
+	articleEngine, err := article.NewEngine(db.DB, statsdClient, *cacheDir, *articleLoadML)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -206,7 +202,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		model, err := scorer.LoadModel("model.json")
+		model, err := scorer.LoadModel("models/model.json")
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -230,7 +226,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		engine.RunHttp()
+		engine.RunHttp("./output")
 
 	}
 

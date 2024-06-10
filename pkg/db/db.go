@@ -20,18 +20,20 @@ var (
 
 const DB_INIT_SCRIPT = `
 CREATE TABLE IF NOT EXISTS to_crawl (
-	url TEXT PRIMARY KEY,
+	url TEXT,
 	hn_id INTEGER,
 	domain TEXT,
     author TEXT,
 	type TEXT,
     addedAt INTEGER NOT NULL,
 	postedAt INTEGER,
-	score INTEGER
+	score INTEGER,
+	PRIMARY KEY (url, hn_id)
 );
 
-CREATE INDEX IF NOT EXISTS to_crawl_hn_id ON to_crawl(hn_id);
+CREATE UNIQUE INDEX IF NOT EXISTS to_crawl_hn_id ON to_crawl(hn_id);
 CREATE INDEX IF NOT EXISTS to_crawl_domain ON to_crawl(domain);
+CREATE INDEX IF NOT EXISTS to_crawl_score ON to_crawl(score);
 
 CREATE TABLE IF NOT EXISTS url_requests (
 	url TEXT NOT NULL,

@@ -268,7 +268,7 @@ func TrainSVM(cacheDir string) error {
 		return err
 	}
 
-	engine.RunHttp()
+	engine.RunHttp("./output-train")
 
 	return nil
 

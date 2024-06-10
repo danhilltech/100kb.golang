@@ -207,8 +207,7 @@ func (engine *Engine) getURLsToCrawl() ([]string, error) {
 		
 		FROM to_crawl h
 		LEFT JOIN domains d ON d.domain = h.domain
-		LEFT JOIN url_requests u on u.domain = h.domain
-		WHERE h.url IS NOT NULL AND d.domain IS NULL AND u.domain IS NULL AND h.score > 2
+		WHERE h.url IS NOT NULL AND d.domain IS NULL AND h.score >= 2
 	) raw 
 	
 	WHERE rn <= 2;`)

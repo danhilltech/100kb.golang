@@ -88,8 +88,8 @@ func (engine *Engine) extractFeed(candidate string) (string, error) {
 	}
 
 	// crawl it
-	res, err := engine.httpCrawl.GetWithSafety(candidate)
-	if err != nil {
+	res, err := engine.httpCrawl.Get(candidate)
+	if err != nil || res.StatusCode > 400 {
 		return "", err
 	}
 	if res == nil {
@@ -119,11 +119,7 @@ func (engine *Engine) extractFeed(candidate string) (string, error) {
 			return "", err
 		}
 
-		if h1.StatusCode < 400 &&
-			(strings.Contains(h1.Header.Get("Content-Type"), "application/rss+xml") ||
-				strings.Contains(h1.Header.Get("Content-Type"), "application/atom+xml") ||
-				strings.Contains(h1.Header.Get("Content-Type"), "text/xml") ||
-				strings.Contains(h1.Header.Get("Content-Type"), "application/xml")) {
+		if h1.StatusCode < 400 {
 			return v1, nil
 		}
 

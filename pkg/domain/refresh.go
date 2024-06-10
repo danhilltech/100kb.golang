@@ -85,7 +85,7 @@ func (engine *Engine) feedRefresh(feed *Domain) error {
 
 	// crawl it
 	resp, err := engine.httpCrawl.Get(feed.FeedURL)
-	if err != nil || resp == nil {
+	if err != nil || resp == nil || resp.StatusCode > 400 {
 		return err
 	}
 

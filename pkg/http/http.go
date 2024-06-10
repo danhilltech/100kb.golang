@@ -4,14 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -30,10 +28,10 @@ type Client struct {
 
 type retryableTransport struct {
 	transport http.RoundTripper
-	limiter   *Limiter
-	cache     *diskv.Diskv
-	db        *sql.DB
-	sd        *statsd.Client
+
+	cache   *diskv.Diskv
+	limiter *Limiter
+	sd      *statsd.Client
 }
 
 var ErrFailingRemote = fmt.Errorf("remote is known to be failing")
@@ -64,196 +62,131 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 
 	var err error
 
-	// Check for existing
-	existing, err := getURLRequestFromDB(req.URL.String(), req.Method, t.db)
-	if err != nil {
-		return nil, err
-	}
-
-	var urlRequest *URLRequest
-
-	// Check it's a valid domain
-	for _, bad := range BANNED_URLS {
-		if req.URL.Hostname() == bad {
-			return nil, ErrBannedUrl
-		}
-	}
-
-	if strings.HasSuffix(req.URL.String(), ".mp4") {
-		return nil, ErrBadFormat
-	}
-	if strings.HasSuffix(req.URL.String(), ".mp3") {
-		return nil, ErrBadFormat
-	}
-	if strings.HasSuffix(req.URL.String(), ".pdf") {
-		return nil, ErrBadFormat
-	}
-	if !strings.HasPrefix(req.URL.String(), "http") {
-		return nil, ErrBadFormat
-	}
-
-	checkDisk := true
-
-	if existing != nil {
-		urlRequest = existing
-	} else {
-		// checkDisk = false
-
-		urlRequest = &URLRequest{
-			Url:           req.URL.String(),
-			LastAttemptAt: time.Now().Unix(),
-			Method:        req.Method,
-			Domain:        req.URL.Hostname(),
-		}
-	}
-	defer urlRequest.Save(t.db)
-
-	// It failed last time, and we tried in last 24 hours
-	if urlRequest.Status >= 400 && urlRequest.LastAttemptAt > (time.Now().Unix()-60*60*24) {
-		return nil, ErrFailingRemote
-	}
-
-	// Within 2 hours, always use disk
-
-	// TODO here check if its a feed or an article
-	if existing != nil && urlRequest.LastAttemptAt < (time.Now().Unix()-60*60*2) {
-		checkDisk = false
-	}
-
-	// If cloudflare limited us
-	if urlRequest.Status == 403 {
-		checkDisk = false
-	}
-
 	k, err := getHTMLKey(req)
 	if err != nil {
 		return nil, err
 	}
 
-	if checkDisk {
-		t.sd.Incr("http.roundtrip.checkingDisk", 1)
-		// Check our cache
+	t.sd.Incr("http.roundtrip.checkingDisk", 1)
+	// Check our cache
 
-		diskStream, _ := t.cache.ReadStream(k, false)
+	diskStream, _ := t.cache.ReadStream(k, false)
 
-		if diskStream != nil {
-			t.sd.Incr("http.roundtrip.diskCacheHit", 1)
-			defer diskStream.Close()
-			data, err := io.ReadAll(diskStream)
+	var cached *http.Response
 
-			if err != nil {
-				return nil, err
-			}
-			buf := bytes.NewBuffer(data)
-			bufReader := bufio.NewReader(buf)
+	if diskStream != nil {
+		t.sd.Incr("http.roundtrip.diskCacheHit", 1)
+		defer diskStream.Close()
+		data, err := io.ReadAll(diskStream)
 
-			// todo check how old the response is based on the code
-
-			return http.ReadResponse(bufReader, req)
+		if err != nil {
+			return nil, err
 		}
+		buf := bytes.NewBuffer(data)
+		bufReader := bufio.NewReader(buf)
+
+		// todo check how old the response is based on the code
+
+		cached, err = http.ReadResponse(bufReader, req)
+		if err != nil {
+			return nil, err
+		}
+
+		cachedHeader := cached.Header.Get("x-100kb-cached-at")
+
+		lastAttemptAt, _ := strconv.Atoi(cachedHeader)
+
+		if cached.StatusCode != http.StatusTooManyRequests {
+			cached.Header.Set("x-100kb-from-cache", "1")
+			// Todo, retry some errors?
+
+			if int64(lastAttemptAt) > (time.Now().Unix()-60*60*24*3) && cached.StatusCode == http.StatusTeapot {
+				return cached, nil
+			}
+
+			if cached.StatusCode >= 400 {
+				return cached, nil
+			}
+
+			if int64(lastAttemptAt) > (time.Now().Unix()-60*60*24*7) && strings.Contains(cached.Header.Get("Content-Type"), "text/html") {
+				return cached, nil
+			}
+
+			if cachedHeader == "" || int64(lastAttemptAt) > (time.Now().Unix()-60*60*24) {
+				return cached, nil
+			}
+		}
+
 	}
+
 	t.sd.Incr("http.roundtrip.diskCacheMiss", 1)
 
-	urlRequest.LastAttemptAt = time.Now().Unix()
-
-	if urlRequest.Etag != "" {
-		req.Header.Set("if-none-match", urlRequest.Etag)
-	} else if urlRequest.LastModified != "" {
-		req.Header.Set("if-modified-since", urlRequest.LastModified)
+	if cached != nil {
+		if cached.Header.Get("etag") != "" {
+			req.Header.Set("if-none-match", cached.Header.Get("etag"))
+		} else if cached.Header.Get("Last-Modified") != "" {
+			req.Header.Set("if-modified-since", cached.Header.Get("Last-Modified"))
+		}
 	}
 
-	sleep := 0
-	servingHost := req.URL.Hostname()
+	servingHosts := strings.Split(req.URL.Hostname(), ".")
 
-	for i := 0; ; i++ {
+	servingHost := strings.Join(servingHosts[len(servingHosts)-2:], ".")
 
-		if i > 3 {
-			return nil, ErrTooManyRetries
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 600*time.Millisecond)
+	defer cancelFunc()
+
+	Response429 := &http.Response{
+		Status:     "FAILED",
+		StatusCode: http.StatusTooManyRequests,
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Body:       io.NopCloser(bytes.NewBufferString("")),
+		Header:     make(http.Header),
+	}
+
+	err = t.limiter.Wait(ctx)
+	if err != nil {
+		return Response429, nil
+	}
+
+	err = t.limiter.WaitHost(ctx, servingHost)
+	if err != nil {
+		return Response429, nil
+	}
+
+	// debugDump, err := httputil.DumpRequestOut(req, false)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// fmt.Printf("%s\n\n", string(debugDump))
+
+	cacheState := "NO CACHE"
+	cacheStatus := 0
+	if cached != nil {
+		cacheState = "CACHE"
+		cacheStatus = cached.StatusCode
+	}
+
+	fmt.Println("🏃", req.Method, cacheState, cacheStatus, req.URL.String())
+
+	// Send the request
+	resp, err := t.transport.RoundTrip(req)
+	if err != nil {
+		fmt.Println(err)
+		failedResponse := &http.Response{
+			Status:     "FAILED",
+			StatusCode: http.StatusTeapot,
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+			Body:       io.NopCloser(bytes.NewBufferString("")),
+			Header:     make(http.Header),
 		}
 
-		if sleep > 0 {
-			fmt.Println("Sleeping for", sleep, i, req.URL.String(), servingHost)
-			time.Sleep(time.Duration(sleep) * time.Millisecond)
-		}
-		ctx, cancelFunc := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancelFunc()
-
-		err = t.limiter.Wait(ctx)
-		if err != nil {
-			fmt.Println("Global limit")
-			sleep += 200
-			continue
-		}
-
-		err = t.limiter.WaitHost(ctx, servingHost)
-		if err != nil {
-			fmt.Println("Host limit", servingHost)
-			sleep += 500
-			continue
-		}
-
-		// debugDump, err := httputil.DumpRequestOut(req, false)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// fmt.Printf("%s\n\n", string(debugDump))
-
-		fmt.Println("🏃", req.Method, req.URL.String())
-
-		// Send the request
-		resp, err := t.transport.RoundTrip(req)
-		if err != nil {
-
-			if isFatalError(err) {
-				fmt.Println("🛜  fatal", err)
-				urlRequest.Status = 509
-				return nil, ErrFailingRemote
-			}
-			if err == context.DeadlineExceeded {
-				fmt.Println("🛜  deadline", err)
-				urlRequest.Status = 509
-				sleep += 2000
-			}
-			if err == context.Canceled {
-				fmt.Println("🛜  canceled", err)
-				urlRequest.Status = 509
-				sleep += 2000
-			}
-
-			fmt.Println("🛜 other", err, req.URL.String())
-
-			continue
-		}
-
-		urlRequest.Status = int64(resp.StatusCode)
-		urlRequest.ContentType = resp.Header.Get("Content-Type")
-
-		switch resp.StatusCode {
-
-		case http.StatusTooManyRequests:
-			{
-				if resp.Header.Get("x-served-by") != "" {
-					servingHost = resp.Header.Get("x-served-by")
-				}
-
-				if s, ok := parseRetryAfterHeader(resp.Header["Retry-After"]); ok {
-
-					sleep += int(s.Milliseconds())
-					continue
-				}
-
-				sleep *= 2
-				continue
-			}
-		case http.StatusNotFound:
-			{
-
-				return nil, ErrNotFound
-			}
-		}
+		failedResponse.Header.Set("x-100kb-cached-at", fmt.Sprintf("%d", time.Now().Unix()))
 
 		// Cache it
-		buf, err := httputil.DumpResponse(resp, true)
+		buf, err := httputil.DumpResponse(failedResponse, true)
 		if err != nil {
 			return nil, err
 		}
@@ -262,14 +195,29 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 			return nil, err
 		}
 
-		urlRequest.Etag = resp.Header.Get("Etag")
-		urlRequest.LastModified = resp.Header.Get("Last-modified")
-		urlRequest.LastAttemptAt = time.Now().Unix()
-		urlRequest.DiskPath = k
+		return failedResponse, err
 
-		// Return the response
-		return resp, err
 	}
+
+	if resp.StatusCode == http.StatusNotModified {
+		cached.StatusCode = http.StatusOK
+		return cached, nil
+	}
+
+	resp.Header.Set("x-100kb-cached-at", fmt.Sprintf("%d", time.Now().Unix()))
+
+	// Cache it
+	buf, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		return nil, err
+	}
+	err = t.cache.Write(k, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the response
+	return resp, err
 
 }
 
@@ -317,15 +265,15 @@ func NewClient(cacheDir string, db *sql.DB, sd *statsd.Client) (*Client, error) 
 			MaxIdleConnsPerHost:   100,
 			DialContext:           dialContext,
 		},
-		limiter: limiter,
+
 		cache:   cache,
-		db:      db,
+		limiter: limiter,
 		sd:      sd,
 	}
 
 	httpC := http.Client{
 		Transport: transport,
-		Timeout:   20 * time.Second,
+		Timeout:   3 * time.Second,
 	}
 
 	client := Client{
@@ -337,42 +285,57 @@ func NewClient(cacheDir string, db *sql.DB, sd *statsd.Client) (*Client, error) 
 	return &client, nil
 }
 
-func (c *Client) GetWithSafety(u string) (*http.Response, error) {
+func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 
-	req, err := http.NewRequest("GET", u, nil)
+	if attempt > 3 {
+		return nil, ErrTooManyRetries
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// Now do a head request to check type
+	switch resp.StatusCode {
+	case http.StatusTeapot:
+		{
+			err = resp.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+			return nil, ErrNotFound
+		}
+	case http.StatusTooManyRequests:
+		{
+			err = resp.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+			// if resp.Header.Get("x-served-by") != "" {
+			// 	servingHost = resp.Header.Get("x-served-by")
+			// }
 
-	err = c.headCheck(req.URL.String(), 0)
-	if err != nil {
-		return nil, err
-	}
+			if s, ok := parseRetryAfterHeader(resp.Header["Retry-After"]); ok {
+				if s > 0 {
+					time.Sleep(s)
+				} else {
+					time.Sleep(time.Duration(1100) * time.Millisecond * time.Duration(attempt+1))
+				}
+				return c.doGet(req, attempt+1)
+			} else {
+				time.Sleep(time.Duration(1100) * time.Millisecond * time.Duration(attempt+1))
+				return c.doGet(req, attempt+1)
+			}
 
-	return c.httpClient.Do(req)
-
-}
-
-func (c *Client) headCheck(u string, n int) error {
-	if n > 2 {
-		return ErrTooManyRedirects
-	}
-
-	head, err := c.httpClient.Head(u)
-	if err != nil {
-		return err
-	}
-	defer head.Body.Close()
-
-	if head.StatusCode >= 400 {
-		return Err400GreaterError
-	}
-
-	loc := head.Header.Get("Location")
-	if loc != "" {
-		return c.headCheck(loc, n+1)
+		}
+	case http.StatusNotFound:
+		{
+			err = resp.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+			return nil, ErrNotFound
+		}
 	}
 
 	isGoodContentType := false
@@ -380,102 +343,114 @@ func (c *Client) headCheck(u string, n int) error {
 	goodTypes := []string{"text/html", "application/rss+xml", "application/atom+xml", "text/xml", "application/xml", "application/rss"}
 
 	for _, typ := range goodTypes {
-		if strings.Contains(head.Header.Get("Content-Type"), typ) {
+		if strings.Contains(resp.Header.Get("Content-Type"), typ) {
 			isGoodContentType = true
-
 		}
 	}
 
 	if !isGoodContentType {
-		return ErrBadContentType
+		resp.Body.Close()
+		return nil, fmt.Errorf("%w %s %d %s", ErrBadContentType, req.URL.String(), resp.StatusCode, resp.Header.Get("Content-Type"))
 	}
 
-	size := head.Header.Get("Content-Length")
+	size := resp.Header.Get("Content-Length")
 
 	if size != "" {
 		sizeInt, err := strconv.ParseInt(size, 10, 64)
 		if err != nil {
-			return ErrTooLarge
+			resp.Body.Close()
+			return nil, fmt.Errorf("%w %s", ErrTooLarge, req.URL.String())
 		}
-		if sizeInt > 200000 { // 100 kb
-			return ErrTooLarge
+		if sizeInt > 500000 { // 100 kb
+			resp.Body.Close()
+
+			return nil, fmt.Errorf("%w %s", ErrTooLarge, req.URL.String())
 		}
 	}
 
-	return nil
+	return resp, nil
+}
+
+func (c *Client) startRequest(method string, url string) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check it's a valid domain
+	for _, bad := range BANNED_URLS {
+		if req.URL.Hostname() == bad {
+			return nil, ErrBannedUrl
+		}
+	}
+
+	// todo check if substack etc
+	// servingHost := req.URL.Hostname()
+
+	// Check for existing
+	existing, err := getURLRequestFromDB(req.URL.String(), req.Method, c.db)
+	if err != nil {
+		return nil, err
+	}
+
+	var urlRequest *URLRequest
+
+	if strings.HasSuffix(req.URL.String(), ".mp4") {
+		return nil, ErrBadFormat
+	}
+	if strings.HasSuffix(req.URL.String(), ".mp3") {
+		return nil, ErrBadFormat
+	}
+	if strings.HasSuffix(req.URL.String(), ".pdf") {
+		return nil, ErrBadFormat
+	}
+	if !strings.HasPrefix(req.URL.String(), "http") {
+		return nil, ErrBadFormat
+	}
+
+	if existing != nil {
+		urlRequest = existing
+		urlRequest.LastAttemptAt = time.Now().Unix()
+	} else {
+		urlRequest = &URLRequest{
+			Url:           req.URL.String(),
+			LastAttemptAt: time.Now().Unix(),
+			Method:        req.Method,
+			Domain:        req.URL.Hostname(),
+		}
+	}
+	defer urlRequest.Save(c.db)
+
+	if urlRequest.Status >= 500 {
+		return nil, ErrFailingRemote
+	}
+
+	resp, err := c.doGet(req, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	k, err := getHTMLKey(req)
+	if err != nil {
+		return nil, err
+	}
+
+	urlRequest.Status = int64(resp.StatusCode)
+	urlRequest.ContentType = resp.Header.Get("Content-Type")
+	urlRequest.Etag = resp.Header.Get("Etag")
+	urlRequest.LastModified = resp.Header.Get("Last-modified")
+
+	urlRequest.DiskPath = k
+	return resp, nil
 }
 
 func (c *Client) Get(u string) (*http.Response, error) {
-	return c.httpClient.Get(u)
+	return c.startRequest(http.MethodGet, u)
+
 }
 
 func (c *Client) Head(u string) (*http.Response, error) {
-	return c.httpClient.Head(u)
-}
-
-var ( // A regular expression to match the error returned by net/http when the
-	// configured number of redirects is exhausted. This error isn't typed
-	// specifically so we resort to matching on the error string.
-	redirectsErrorRe = regexp.MustCompile(`stopped after \d+ redirects\z`)
-
-	// A regular expression to match the error returned by net/http when the
-	// scheme specified in the URL is invalid. This error isn't typed
-	// specifically so we resort to matching on the error string.
-	schemeErrorRe = regexp.MustCompile(`unsupported protocol scheme`)
-
-	// A regular expression to match the error returned by net/http when a
-	// request header or value is invalid. This error isn't typed
-	// specifically so we resort to matching on the error string.
-	invalidHeaderErrorRe = regexp.MustCompile(`invalid header`)
-
-	// A regular expression to match the error returned by net/http when the
-	// TLS certificate is not trusted. This error isn't typed
-	// specifically so we resort to matching on the error string.
-	notTrustedErrorRe = regexp.MustCompile(`certificate is not trusted`)
-
-	tlsUnrecognizedNameRe = regexp.MustCompile(`unrecognized name`)
-	refusedRe             = regexp.MustCompile(`connection refused`)
-	noSuchHostRe          = regexp.MustCompile(`no such host`)
-)
-
-func isFatalError(err error) bool {
-
-	_, ok := err.(*tls.CertificateVerificationError)
-	if ok {
-		return true
-	}
-
-	// Don't retry if the error was due to too many redirects.
-	if redirectsErrorRe.MatchString(err.Error()) {
-		return true
-	}
-
-	// Don't retry if the error was due to an invalid protocol scheme.
-	if schemeErrorRe.MatchString(err.Error()) {
-		return true
-	}
-
-	// Don't retry if the error was due to an invalid header.
-	if invalidHeaderErrorRe.MatchString(err.Error()) {
-		return true
-	}
-
-	// Don't retry if the error was due to TLS cert verification failure.
-	if notTrustedErrorRe.MatchString(err.Error()) {
-		return true
-	}
-
-	if tlsUnrecognizedNameRe.MatchString(err.Error()) {
-		return true
-	}
-	if refusedRe.MatchString(err.Error()) {
-		return true
-	}
-	if noSuchHostRe.MatchString(err.Error()) {
-		return true
-	}
-
-	return false
+	return c.startRequest(http.MethodHead, u)
 }
 
 func parseRetryAfterHeader(headers []string) (time.Duration, bool) {

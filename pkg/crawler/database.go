@@ -10,7 +10,7 @@ import (
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
-	engine.dbInsertPreparedToCrawl, err = db.Prepare("INSERT INTO to_crawl(url, hn_id, author, type, addedAt, postedAt, score, domain) VALUES(?, ?, ?, ?, ?, ?, ?, ?)  ON CONFLICT(url) DO NOTHING")
+	engine.dbInsertPreparedToCrawl, err = db.Prepare("INSERT INTO to_crawl(url, hn_id, author, type, addedAt, postedAt, score, domain) VALUES(?, ?, ?, ?, ?, ?, ?, ?)  ON CONFLICT(hn_id) DO NOTHING")
 	if err != nil {
 
 		return err

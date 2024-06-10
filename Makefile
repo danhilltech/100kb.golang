@@ -2,36 +2,50 @@ RUST_SRC = $(shell find ./lib -type f -name '*.rs' -not -path "./target/*" -o -n
 GO_PROTO_SRC = $(shell find ./lib -type f -name '*.proto' -not -path "./target/*")
 GO_SVM_SRC = $(shell find ./pkg/svm -type f -name '*.cpp')
 REV := $(shell git rev-parse HEAD)
-CUDA = $(LIBTORCH)
+HAS_CUDA = ${shell command -v nvidia-smi}
+DOCKER_TAG = danhilltech/100kb
+DOCKER_CORE_ARGS = --dns=1.1.1.1 --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models --mount type=bind,source=./output,target=/app/output -p 8081:8081
+DOCKER_RUN_ARGS = --cache-dir=/cache
+DOCKER_GPUS = ${shell if command -v nvidia_smi >&/dev/null; then echo "--gpus all"; fi}
 
 GO_BUILD_TAGS :=
+CUDA :=
+LIBTORCH_URL := https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcpu.zip
 
-ifdef CUDA
+ifneq (, ${HAS_CUDA})
+CUDA = 1
 GO_BUILD_TAGS += cuda
+LIBTORCH_URL = https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcu118.zip
 endif
+
 
 .PHONY: debug
 debug:
 	@echo "🍔🍔🍔🍔🍔"
 	@echo "CUDA: ${CUDA}"
-	@echo
-	@echo
+	@echo "Build Tags: ${GO_BUILD_TAGS}"
+	@echo "Docker GPUs: ${DOCKER_GPUS}"
+	@echo "HAs Cuda: ${HAS_CUDA}"
+ifdef CUDA
+	@echo "Will build for cuda"
+endif
 
 lib/libgobert.so: $(RUST_SRC)
+ifdef CUDA
 	@echo "👉 Building libgobert"
 	@rm -f target/release/libgobert.so || true
 	cargo build --release --package gobert
 	@mkdir -p lib
 	@cp target/release/libgobert.so lib/libgobert.so
+endif
 
 lib/libgoadblock.so: $(RUST_SRC)
-ifdef CUDA
 	@echo "👉 Building libgoadblock"
 	@rm -f target/release/libgoadblock.so || true
 	cargo build --release --package goadblock
 	@mkdir -p lib
 	@cp target/release/libgoadblock.so lib/libgoadblock.so
-endif
+
 
 
 pkg/ai/keywords.pb.go: ${GO_PROTO_SRC}
@@ -78,26 +92,23 @@ godefs:
 
 .PHONY: dockerbuild
 dockerbuild:
-	docker build --tag '100kb.golang' .
+	docker build --tag '${DOCKER_TAG}' --build-arg="LIBTORCH_URL=${LIBTORCH_URL}" .
 
 .PHONY: dockerbuild
 dockerterm:
-	docker run --gpus all --rm --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./,target=/app  -it --entrypoint zsh  100kb.golang
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} --rm  -it --entrypoint zsh ${DOCKER_TAG}
 
 .PHONY: index
 index:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models 100kb.golang -mode=index -http-chunk-size=200 -hn-fetch-size=1000000 --cache-dir=/cache > log.txt 2>&1
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=index -http-chunk-size=200 -hn-fetch-size=1000000 ${DOCKER_RUN_ARGS}
 
 .PHONY: meta
 meta:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models 100kb.golang -mode=meta --cache-dir=/cache > log.txt 2>&1
-
-
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=meta ${DOCKER_RUN_ARGS}
 
 .PHONY: output
 output:
-	docker run --dns=1.1.1.1 --gpus all --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models --mount type=bind,source=./output,target=/app/output --mount type=bind,source=./scoring,target=/app/scoring -p 8080:8080 100kb.golang -mode=output > log.txt 2>&1
-
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=output ${DOCKER_RUN_ARGS}
 
 .PHONY: transfer
 transfer:

@@ -11,6 +11,7 @@ import (
 
 func (d *Domain) GetLatestArticlesToScore() []*article.Article {
 	goodArticles := []*article.Article{}
+
 	if d.Articles == nil || len(d.Articles) == 0 {
 		return goodArticles
 	}
