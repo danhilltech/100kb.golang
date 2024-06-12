@@ -33,7 +33,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	badCount = ?, 
 	classifications = ?,
 	htmlLength = ?,
-	stage = ?
+	stage = ?,
+	containsGoogleTagManager = ?
 	WHERE url = ?;`)
 	if err != nil {
 		return err
@@ -43,19 +44,17 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	return nil
 }
 
-func (engine *Engine) Insert(article *Article, feedUrl string, domain string) error {
-	mu.Lock()
-	defer mu.Unlock()
-	_, err := engine.dbInsertPreparedArticle.Exec(article.Url, feedUrl, domain, article.PublishedAt)
+func (engine *Engine) Insert(txn *sql.Tx, article *Article, feedUrl string, domain string) error {
+
+	_, err := txn.Stmt(engine.dbInsertPreparedArticle).Exec(article.Url, feedUrl, domain, article.PublishedAt)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
 	return nil
 }
 
-func (engine *Engine) Update(article *Article) error {
-	mu.Lock()
-	defer mu.Unlock()
+func (engine *Engine) Update(txn *sql.Tx, article *Article) error {
+
 	var articleBodyRaw []byte
 	var articleBody []byte
 	var extractedKeywords []byte
@@ -96,7 +95,7 @@ func (engine *Engine) Update(article *Article) error {
 		}
 	}
 
-	_, err = engine.dbUpdatePreparedArticle.Exec(
+	_, err = txn.Stmt(engine.dbUpdatePreparedArticle).Exec(
 		utils.NullInt64(article.LastFetchAt),
 		utils.NullInt64(article.LastMetaAt),
 		utils.NullString(string(articleBodyRaw)),
@@ -110,6 +109,7 @@ func (engine *Engine) Update(article *Article) error {
 		utils.NullString(string(classifications)),
 		utils.NullInt64(article.HTMLLength),
 		utils.NullInt64(article.Stage),
+		utils.NullInt64(article.ContainsGoogleTagManager),
 		article.Url,
 	)
 	return err
@@ -131,7 +131,8 @@ lastContentExtractAt,
 badCount, 
 classifications, 
 htmlLength,
-stage`
+stage,
+containsGoogleTagManager`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
@@ -154,6 +155,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var htmlLength sql.NullInt64
 
 	var stage sql.NullInt64
+	var containsGoogleTagManager sql.NullInt64
 
 	err := res.Scan(
 		&url,
@@ -173,6 +175,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&classificationsJSON,
 		&htmlLength,
 		&stage,
+		&containsGoogleTagManager,
 	)
 	if err != nil {
 		return nil, err
@@ -219,22 +222,23 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	}
 
 	article := &Article{
-		Url:                  url,
-		FeedUrl:              feedUrl,
-		PublishedAt:          publishedAt,
-		LastFetchAt:          lastFetchAt.Int64,
-		LastMetaAt:           lastMetaAt.Int64,
-		LastContentExtractAt: lastContentExtractAt.Int64,
-		Title:                title.String,
-		Description:          description.String,
-		BodyRaw:              &bodyRaw,
-		Body:                 &body,
-		SentenceEmbedding:    &sentenceEmbeding,
-		ExtractedKeywords:    &extractedKeywords,
-		Domain:               domain,
-		BadCount:             badCount.Int64,
-		Classifications:      &classifications,
-		HTMLLength:           htmlLength.Int64,
+		Url:                      url,
+		FeedUrl:                  feedUrl,
+		PublishedAt:              publishedAt,
+		LastFetchAt:              lastFetchAt.Int64,
+		LastMetaAt:               lastMetaAt.Int64,
+		LastContentExtractAt:     lastContentExtractAt.Int64,
+		Title:                    title.String,
+		Description:              description.String,
+		BodyRaw:                  &bodyRaw,
+		Body:                     &body,
+		SentenceEmbedding:        &sentenceEmbeding,
+		ExtractedKeywords:        &extractedKeywords,
+		Domain:                   domain,
+		BadCount:                 badCount.Int64,
+		Classifications:          &classifications,
+		HTMLLength:               htmlLength.Int64,
+		ContainsGoogleTagManager: containsGoogleTagManager.Int64,
 
 		Stage: stage.Int64,
 	}

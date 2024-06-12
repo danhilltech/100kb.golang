@@ -35,20 +35,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS to_crawl_hn_id ON to_crawl(hn_id);
 CREATE INDEX IF NOT EXISTS to_crawl_domain ON to_crawl(domain);
 CREATE INDEX IF NOT EXISTS to_crawl_score ON to_crawl(score);
 
-CREATE TABLE IF NOT EXISTS url_requests (
-	url TEXT NOT NULL,
-	domain TEXT NOT NULL,
-	lastAttemptAt INTEGER,
-	status INTEGER,
-	contentType TEXT,
-	etag TEXT,
-	lastModified TEXT,
-	method TEXT NOT NULL,
-	diskPath TEXT,
-	CHECK (lastAttemptAt >= 0 AND status >= 0),
-	PRIMARY KEY (url, method)
-);
-
 
 CREATE TABLE IF NOT EXISTS domains (
 	domain TEXT PRIMARY KEY,
@@ -90,6 +76,7 @@ CREATE TABLE IF NOT EXISTS articles (
 	extractedKeywords BLOB,
 	classifications BLOB,
 	htmlLength INTEGER,
+	containsGoogleTagManager INTEGER,
 	stage INTEGER
 );
 

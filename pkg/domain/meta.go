@@ -304,6 +304,28 @@ func (d *Domain) GetWordsPerParagraph() float64 {
 	return val
 }
 
+func (d *Domain) ContainsGoogleTagManager() bool {
+	arts := d.GetLatestArticlesToScore()
+	if len(arts) == 0 {
+		return false
+	}
+
+	tagCount := int64(0)
+
+	for _, a := range arts {
+		tagCount += a.ContainsGoogleTagManager
+
+	}
+
+	val := float64(tagCount) / float64(len(arts))
+
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		return false
+	}
+
+	return val > 0.5
+}
+
 func (d *Domain) GetGoodBadTagRatio() float64 {
 
 	val := float64(d.GetGoodTagCount()) / float64(d.GetBadTagCount()+d.GetGoodTagCount())
@@ -329,7 +351,11 @@ func (domain *Domain) GetFloatFeatureNames() []string {
 	names = append(names, "badTagCount")
 	names = append(names, "pCount")
 	names = append(names, "codeCount")
-	names = append(names, "pageNow")
+	names = append(names, "urlHuman")
+	names = append(names, "urlBlog")
+	names = append(names, "urlNews")
+	names = append(names, "popularDomain")
+	names = append(names, "containsGoogleTagManager")
 
 	return names
 }
@@ -360,7 +386,29 @@ func (domain *Domain) GetFloatFeatures() []float64 {
 	features = append(features, safeLog(domain.GetPCount()))
 	features = append(features, safeLog(domain.GetCodeTagCount()))
 
-	if domain.PageNow {
+	if domain.URLHumanName {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, -1.0)
+	}
+
+	if domain.URLBlog {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, -1.0)
+	}
+
+	if domain.URLNews {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, -1.0)
+	}
+	if domain.DomainIsPopular {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, -1.0)
+	}
+	if domain.ContainsGoogleTagManager() {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, -1.0)

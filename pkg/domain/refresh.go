@@ -33,17 +33,19 @@ func (engine *Engine) RunFeedRefresh(chunkSize int, workers int) error {
 
 	t := time.Now().UnixMilli()
 
+	txn, _ := engine.db.Begin()
+
 	for a := 1; a <= len(feeds); a++ {
 		domain := <-results
 
-		err = engine.Update(domain)
+		err = engine.Update(txn, domain)
 		if err != nil {
 			return err
 		}
 
 		for _, article := range domain.Articles {
 
-			err = engine.articleEngine.Insert(article, domain.FeedURL, domain.Domain)
+			err = engine.articleEngine.Insert(txn, article, domain.FeedURL, domain.Domain)
 			if err != nil {
 				return err
 			}
@@ -51,6 +53,13 @@ func (engine *Engine) RunFeedRefresh(chunkSize int, workers int) error {
 		}
 
 		if a > 0 && a%chunkSize == 0 {
+
+			err := txn.Commit()
+			if err != nil {
+				return err
+			}
+			txn, _ = engine.db.Begin()
+
 			diff := time.Now().UnixMilli() - t
 			qps := (float64(chunkSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
@@ -58,6 +67,10 @@ func (engine *Engine) RunFeedRefresh(chunkSize int, workers int) error {
 
 		}
 
+	}
+	err = txn.Commit()
+	if err != nil {
+		return err
 	}
 	fmt.Printf("\tdone %d\n", len(feeds))
 
@@ -121,50 +134,6 @@ func (engine *Engine) feedRefresh(feed *Domain) error {
 		if feed.Platform == "" && isGoodServedHeader(resp.Header.Get("x-powered-by")) {
 
 			feed.Platform = cleanPlatform(resp.Header.Get("x-powered-by"))
-		}
-	}
-
-	switch feed.Platform {
-	case "substack":
-		{
-			feed.PageAbout = true
-			feed.PageWriting = true
-		}
-	default:
-		headResp, err := engine.httpCrawl.Head(fmt.Sprintf("%s/about", fullDomain))
-		if err == nil && headResp.StatusCode < 400 {
-			feed.PageAbout = true
-		}
-		if !feed.PageAbout {
-			headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/me", fullDomain))
-			if err == nil && headResp.StatusCode < 400 {
-				feed.PageAbout = true
-			}
-		}
-		if !feed.PageAbout {
-			headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/about.html", fullDomain))
-			if err == nil && headResp.StatusCode < 400 {
-				feed.PageAbout = true
-			}
-		}
-		if !feed.PageAbout {
-			headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/whoami", fullDomain))
-			if err == nil && headResp.StatusCode < 400 {
-				feed.PageAbout = true
-			}
-		}
-		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/blogroll", fullDomain))
-		if err == nil && headResp.StatusCode < 400 {
-			feed.PageBlogRoll = true
-		}
-		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/archive", fullDomain))
-		if err == nil && headResp.StatusCode < 400 {
-			feed.PageWriting = true
-		}
-
-		headResp, err = engine.httpCrawl.Head(fmt.Sprintf("%s/now", fullDomain))
-		if err == nil && headResp.StatusCode < 400 {
-			feed.PageNow = true
 		}
 	}
 

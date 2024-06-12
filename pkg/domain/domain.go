@@ -25,11 +25,6 @@ type Domain struct {
 	FeedTitle   string
 	Language    string
 
-	PageAbout    bool
-	PageBlogRoll bool
-	PageWriting  bool
-	PageNow      bool
-
 	URLNews      bool
 	URLBlog      bool
 	URLHumanName bool

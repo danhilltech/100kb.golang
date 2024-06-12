@@ -4,7 +4,7 @@ GO_SVM_SRC = $(shell find ./pkg/svm -type f -name '*.cpp')
 REV := $(shell git rev-parse HEAD)
 HAS_CUDA = ${shell command -v nvidia-smi}
 DOCKER_TAG = danhilltech/100kb
-DOCKER_CORE_ARGS = --dns=1.1.1.1 --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models --mount type=bind,source=./output,target=/app/output -p 8081:8081
+DOCKER_CORE_ARGS = --dns=1.1.1.1 --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models --mount type=bind,source=./output,target=/app/output -p 9081:8081
 DOCKER_RUN_ARGS = --cache-dir=/cache
 DOCKER_GPUS = ${shell if command -v nvidia_smi >&/dev/null; then echo "--gpus all"; fi}
 
@@ -25,7 +25,7 @@ debug:
 	@echo "CUDA: ${CUDA}"
 	@echo "Build Tags: ${GO_BUILD_TAGS}"
 	@echo "Docker GPUs: ${DOCKER_GPUS}"
-	@echo "HAs Cuda: ${HAS_CUDA}"
+	@echo "Has Cuda: ${HAS_CUDA}"
 ifdef CUDA
 	@echo "Will build for cuda"
 endif
@@ -100,7 +100,7 @@ dockerterm:
 
 .PHONY: index
 index:
-	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=index -http-chunk-size=200 -hn-fetch-size=1000000 ${DOCKER_RUN_ARGS}
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=index -http-chunk-size=200 -hn-fetch-size=10000 ${DOCKER_RUN_ARGS}
 
 .PHONY: meta
 meta:

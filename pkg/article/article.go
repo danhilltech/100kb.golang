@@ -54,6 +54,8 @@ type Article struct {
 	ExtractedKeywords *serialize.Keywords
 	Classifications   *serialize.Keywords
 
+	ContainsGoogleTagManager int64
+
 	// Used in live/output
 	DomainScore float64
 }

@@ -34,6 +34,7 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 	}
 	close(jobs)
 
+	txn, _ := engine.db.Begin()
 	t := time.Now().UnixMilli()
 	for a := 1; a <= len(urls); a++ {
 		feed := <-results
@@ -42,7 +43,7 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 			u, err := url.Parse(feed)
 
 			if err == nil {
-				err = engine.Insert(u.Hostname(), feed)
+				err = engine.Insert(txn, u.Hostname(), feed)
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -50,6 +51,11 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 		}
 
 		if a > 0 && a%chunkSize == 0 {
+			err := txn.Commit()
+			if err != nil {
+				return err
+			}
+			txn, _ = engine.db.Begin()
 			diff := time.Now().UnixMilli() - t
 			qps := (float64(chunkSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
@@ -57,6 +63,10 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 
 		}
 
+	}
+	err = txn.Commit()
+	if err != nil {
+		return err
 	}
 	fmt.Printf("\tdone %d\n", len(urls))
 
@@ -123,27 +133,6 @@ func (engine *Engine) extractFeed(candidate string) (string, error) {
 			return v1, nil
 		}
 
-		// possibles := []string{"/feed", "/rss", "/rss.xml", "/blog/feed", "/blog/rss", "/blog/rss.xml"}
-
-		// for _, poss := range possibles {
-		// 	u := url.URL{}
-		// 	u.Path = poss
-		// 	clean := parsedUrl.ResolveReference(&u)
-
-		// 	v := clean.String()
-		// 	h, err := engine.httpCrawl.Head(v)
-		// 	if err != nil {
-		// 		return "", err
-		// 	}
-		// 	if h.StatusCode < 400 &&
-		// 		(strings.Contains(h.Header.Get("Content-Type"), "application/rss+xml") ||
-		// 			strings.Contains(h.Header.Get("Content-Type"), "application/atom+xml") ||
-		// 			strings.Contains(h.Header.Get("Content-Type"), "text/xml") ||
-		// 			strings.Contains(h.Header.Get("Content-Type"), "application/xml")) {
-		// 		return v1, nil
-		// 	}
-		// }
-
 	}
 
 	return "", nil
@@ -166,8 +155,12 @@ func extractFeedURL(resp io.Reader) string {
 					if attr.Key == "type" && (attr.Val == "application/rss+xml" || attr.Val == "application/atom+xml") {
 						isRSS = true
 					}
+
 					if attr.Key == "href" {
 						url = attr.Val
+					}
+					if attr.Key == "title" && strings.Contains(strings.ToLower(attr.Val), "comments") {
+						isRSS = false
 					}
 
 				}

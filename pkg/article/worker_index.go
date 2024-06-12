@@ -29,24 +29,35 @@ func (engine *Engine) RunArticleIndex(chunkSize int, workers int) error {
 	}
 	close(jobs)
 
+	txn, _ := engine.db.Begin()
+
 	t := time.Now().UnixMilli()
 	for a := 0; a < len(articles); a++ {
 		article := <-results
 
 		// save it
-		err = engine.Update(article)
+		err = engine.Update(txn, article)
 		if err != nil {
 			fmt.Println(article.Url, err)
 			continue
 		}
 
 		if a > 0 && a%chunkSize == 0 {
+			err := txn.Commit()
+			if err != nil {
+				return err
+			}
+			txn, _ = engine.db.Begin()
 			diff := time.Now().UnixMilli() - t
 			qps := (float64(chunkSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
 			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
 
 		}
+	}
+	err = txn.Commit()
+	if err != nil {
+		return err
 	}
 	fmt.Printf("\tdone %d\n", len(articles))
 

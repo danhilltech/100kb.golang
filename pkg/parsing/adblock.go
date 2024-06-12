@@ -87,7 +87,7 @@ func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []strin
 		return nil, nil, err
 	}
 	if baseUrlP.Scheme == "" || baseUrlP.Hostname() == "" {
-		return nil, nil, fmt.Errorf("No scheme or hostname found")
+		return nil, nil, fmt.Errorf("no scheme or hostname found")
 	}
 
 	urlsClean := []string{}
@@ -169,17 +169,19 @@ func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []strin
 	return resp.Matches, resp.BlockedDomains, nil
 }
 
-func (engine *Engine) IdentifyBadElements(z *html.Node, baseUrl string) ([]string, []string, int, error) {
+func (engine *Engine) IdentifyBadElements(z *html.Node, baseUrl string) ([]string, []string, int, bool, error) {
 
 	ids := []string{}
 	classes := []string{}
 	urls := []string{}
 
-	walkHtmlNodesBadClasses(z, &ids, &classes, &urls)
+	containsGoogleTagManager := false
+
+	walkHtmlNodesBadClasses(z, &ids, &classes, &urls, &containsGoogleTagManager)
 
 	badIdsAndClasses, badUrls, err := engine.adblock.Filter(ids, classes, urls, baseUrl)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, 0, false, err
 	}
 
 	badElementCount := len(badUrls)
@@ -187,7 +189,7 @@ func (engine *Engine) IdentifyBadElements(z *html.Node, baseUrl string) ([]strin
 	for _, ic := range badIdsAndClasses {
 		sel, err := cascadia.Parse(ic)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, false, err
 		}
 		for _, a := range cascadia.QueryAll(z, sel) {
 			badElementCount++
@@ -198,7 +200,7 @@ func (engine *Engine) IdentifyBadElements(z *html.Node, baseUrl string) ([]strin
 	for _, ic := range badAreas {
 		sel, err := cascadia.Parse(ic)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, false, err
 		}
 		for _, a := range cascadia.QueryAll(z, sel) {
 			a.Attr = append(a.Attr, html.Attribute{Key: "data-action", Val: "skip"})
@@ -208,7 +210,7 @@ func (engine *Engine) IdentifyBadElements(z *html.Node, baseUrl string) ([]strin
 	for _, ic := range badClassesAndIds {
 		sel, err := cascadia.Parse("#" + ic)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, false, err
 		}
 		for _, a := range cascadia.QueryAll(z, sel) {
 			a.Attr = append(a.Attr, html.Attribute{Key: "data-action", Val: "skip"})
@@ -218,14 +220,14 @@ func (engine *Engine) IdentifyBadElements(z *html.Node, baseUrl string) ([]strin
 	for _, ic := range badClassesAndIds {
 		sel, err := cascadia.Parse("." + ic)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, false, err
 		}
 		for _, a := range cascadia.QueryAll(z, sel) {
 			a.Attr = append(a.Attr, html.Attribute{Key: "data-action", Val: "skip"})
 		}
 	}
 
-	return badIdsAndClasses, badUrls, badElementCount, nil
+	return badIdsAndClasses, badUrls, badElementCount, containsGoogleTagManager, nil
 }
 
 func (engine *Engine) IdentifyGoodElements(z *html.Node, baseUrl string) error {
@@ -243,7 +245,7 @@ func (engine *Engine) IdentifyGoodElements(z *html.Node, baseUrl string) error {
 	return nil
 }
 
-func walkHtmlNodesBadClasses(n *html.Node, ids *[]string, classes *[]string, urls *[]string) {
+func walkHtmlNodesBadClasses(n *html.Node, ids *[]string, classes *[]string, urls *[]string, containsGoogleTagManager *bool) {
 
 	if n.Type == html.ElementNode {
 
@@ -260,12 +262,17 @@ func walkHtmlNodesBadClasses(n *html.Node, ids *[]string, classes *[]string, url
 			}
 			if attr.Key == "src" {
 				*urls = append(*urls, attr.Val)
+
+				if strings.Contains(attr.Val, "googletagmanager") {
+					*containsGoogleTagManager = true
+				}
 			}
+
 		}
 
 	}
 
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		walkHtmlNodesBadClasses(c, ids, classes, urls)
+		walkHtmlNodesBadClasses(c, ids, classes, urls, containsGoogleTagManager)
 	}
 }

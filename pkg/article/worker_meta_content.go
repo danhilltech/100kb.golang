@@ -23,6 +23,7 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 
 	printSize := 200
 
+	txn, _ := engine.db.Begin()
 	for _, article := range articles {
 
 		wg.Add(1)
@@ -33,7 +34,7 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 			err := engine.articleExtractContent(article)
 			if err != nil {
 				// fmt.Println(article.Url, err)
-				err = engine.Update(article)
+				err = engine.Update(txn, article)
 				if err != nil {
 					fmt.Println(article.Url, err)
 				}
@@ -41,7 +42,7 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 				return
 			}
 
-			err = engine.Update(article)
+			err = engine.Update(txn, article)
 			if err != nil {
 				fmt.Println(article.Url, err)
 				return
@@ -50,8 +51,14 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 
 		if a > 0 && a%chunkSize == 0 {
 			wg.Wait()
+			err := txn.Commit()
+			if err != nil {
+				return err
+			}
+			txn, _ = engine.db.Begin()
 		}
 		if a > 0 && a%printSize == 0 {
+
 			diff := time.Now().UnixMilli() - t
 			qps := (float64(a-lastA) / float64(diff)) * 1000
 			lastA = a
@@ -62,6 +69,10 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 		a++
 	}
 	wg.Wait()
+	err = txn.Commit()
+	if err != nil {
+		return err
+	}
 	fmt.Printf("\tdone %d/%d\n", a, len(articles))
 
 	return nil

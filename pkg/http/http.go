@@ -47,6 +47,7 @@ var ErrGlobalLimitHit = fmt.Errorf("global limit hit")
 var ErrHostLimitHit = fmt.Errorf("per host limit hit")
 var ErrTooManyRetries = fmt.Errorf("too many retries here")
 var ErrNotFound = fmt.Errorf("url not found")
+var ErrNotInCache = fmt.Errorf("url not in cache")
 
 func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
@@ -76,14 +77,14 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 
 	if diskStream != nil {
 		t.sd.Incr("http.roundtrip.diskCacheHit", 1)
-		defer diskStream.Close()
-		data, err := io.ReadAll(diskStream)
+		// defer diskStream.Close()
+		// data, err := io.ReadAll(diskStream)
 
-		if err != nil {
-			return nil, err
-		}
-		buf := bytes.NewBuffer(data)
-		bufReader := bufio.NewReader(buf)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// buf := bytes.NewBuffer(data)
+		bufReader := bufio.NewReader(diskStream)
 
 		// todo check how old the response is based on the code
 
@@ -359,9 +360,9 @@ func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 		sizeInt, err := strconv.ParseInt(size, 10, 64)
 		if err != nil {
 			resp.Body.Close()
-			return nil, fmt.Errorf("%w %s", ErrTooLarge, req.URL.String())
+			return nil, fmt.Errorf("%w %s parseInt failed", ErrTooLarge, req.URL.String())
 		}
-		if sizeInt > 500000 { // 100 kb
+		if sizeInt > 500000 && strings.Contains(resp.Header.Get("Content-Type"), "text/html") { // 100 kb
 			resp.Body.Close()
 
 			return nil, fmt.Errorf("%w %s", ErrTooLarge, req.URL.String())
@@ -384,17 +385,6 @@ func (c *Client) startRequest(method string, url string) (*http.Response, error)
 		}
 	}
 
-	// todo check if substack etc
-	// servingHost := req.URL.Hostname()
-
-	// Check for existing
-	existing, err := getURLRequestFromDB(req.URL.String(), req.Method, c.db)
-	if err != nil {
-		return nil, err
-	}
-
-	var urlRequest *URLRequest
-
 	if strings.HasSuffix(req.URL.String(), ".mp4") {
 		return nil, ErrBadFormat
 	}
@@ -408,39 +398,11 @@ func (c *Client) startRequest(method string, url string) (*http.Response, error)
 		return nil, ErrBadFormat
 	}
 
-	if existing != nil {
-		urlRequest = existing
-		urlRequest.LastAttemptAt = time.Now().Unix()
-	} else {
-		urlRequest = &URLRequest{
-			Url:           req.URL.String(),
-			LastAttemptAt: time.Now().Unix(),
-			Method:        req.Method,
-			Domain:        req.URL.Hostname(),
-		}
-	}
-	defer urlRequest.Save(c.db)
-
-	if urlRequest.Status >= 500 {
-		return nil, ErrFailingRemote
-	}
-
 	resp, err := c.doGet(req, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	k, err := getHTMLKey(req)
-	if err != nil {
-		return nil, err
-	}
-
-	urlRequest.Status = int64(resp.StatusCode)
-	urlRequest.ContentType = resp.Header.Get("Content-Type")
-	urlRequest.Etag = resp.Header.Get("Etag")
-	urlRequest.LastModified = resp.Header.Get("Last-modified")
-
-	urlRequest.DiskPath = k
 	return resp, nil
 }
 

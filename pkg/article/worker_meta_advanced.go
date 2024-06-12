@@ -18,6 +18,7 @@ func (engine *Engine) RunArticleMetaPassII(chunkSize int) error {
 
 	a := 0
 	t := time.Now().UnixMilli()
+	txn, _ := engine.db.Begin()
 	for _, article := range articles {
 
 		err := engine.articleMetaAdvanced(article)
@@ -26,13 +27,18 @@ func (engine *Engine) RunArticleMetaPassII(chunkSize int) error {
 			continue
 		}
 
-		err = engine.Update(article)
+		err = engine.Update(txn, article)
 		if err != nil {
 			fmt.Println(article.Url, err)
 			continue
 		}
 
 		if a > 0 && a%printSize == 0 {
+			err := txn.Commit()
+			if err != nil {
+				return err
+			}
+			txn, _ = engine.db.Begin()
 			diff := time.Now().UnixMilli() - t
 			qps := (float64(printSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
@@ -40,6 +46,10 @@ func (engine *Engine) RunArticleMetaPassII(chunkSize int) error {
 
 		}
 		a++
+	}
+	err = txn.Commit()
+	if err != nil {
+		return err
 	}
 	fmt.Printf("\tdone %d/%d\n\n", a, len(articles))
 

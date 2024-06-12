@@ -4,8 +4,8 @@ FROM debian:latest
 
 COPY --from=golang:1.22-alpine /usr/local/go/ /usr/local/go/
 COPY --from=bitnami/pytorch:2.2.2 /opt/bitnami/python/lib/python3.11/site-packages/torch/ /opt/libtorch/
-COPY --from=bitnami/pytorch:2.2.2 /opt/bitnami/python/lib/python3.11/site-packages/torch.libs/ /opt/libtorch/lib/
-
+# COPY --from=bitnami/pytorch:2.2.2 /opt/bitnami/python/lib/python3.11/site-packages/torch.libs/ /opt/libtorch/lib/
+# above is needed on arm64
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID

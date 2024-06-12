@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
-	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/http"
 	"github.com/danhilltech/100kb.golang/pkg/utils"
@@ -16,10 +15,6 @@ domains.feedUrl,
 domains.lastFetchAt, 
 feedTitle, 
 language,
-pageAbout,
-pageBlogRoll,
-pageWriting,
-pageNow,
 urlNews,
 urlBlog,
 urlHumanName,
@@ -27,8 +22,6 @@ domainIsPopular,
 domainTLD,
 platform
 `
-
-var mu sync.Mutex
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
@@ -43,10 +36,6 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	lastFetchAt = ?, 
 	feedTitle = ?, 
 	language = ?,
-	pageAbout = ?,
-	pageBlogRoll = ?,
-	pageWriting = ?,
-	pageNow = ?,
 	urlNews = ?,
 	urlBlog = ?,
 	urlHumanName = ?,
@@ -64,10 +53,9 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	return nil
 }
 
-func (engine *Engine) Insert(domain string, feedurl string) error {
-	mu.Lock()
-	defer mu.Unlock()
-	_, err := engine.dbInsertPreparedFeed.Exec(domain, feedurl)
+func (engine *Engine) Insert(txn *sql.Tx, domain string, feedurl string) error {
+
+	_, err := txn.Stmt(engine.dbInsertPreparedFeed).Exec(domain, feedurl)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -75,17 +63,11 @@ func (engine *Engine) Insert(domain string, feedurl string) error {
 
 }
 
-func (engine *Engine) Update(feed *Domain) error {
-	mu.Lock()
-	defer mu.Unlock()
-	_, err := engine.dbUpdatePreparedFeed.Exec(
+func (engine *Engine) Update(txn *sql.Tx, feed *Domain) error {
+	_, err := txn.Stmt(engine.dbUpdatePreparedFeed).Exec(
 		utils.NullInt64(feed.LastFetchAt),
 		utils.NullString(feed.FeedTitle),
 		utils.NullString(feed.Language),
-		utils.NullBool(feed.PageAbout),
-		utils.NullBool(feed.PageBlogRoll),
-		utils.NullBool(feed.PageWriting),
-		utils.NullBool(feed.PageNow),
 		utils.NullBool(feed.URLNews),
 		utils.NullBool(feed.URLBlog),
 		utils.NullBool(feed.URLHumanName),
@@ -106,7 +88,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 	var lastFetchAt sql.NullInt64
 	var feedTitle, language sql.NullString
 
-	var pageAbout, pageBlogRoll, pageWriting, pageNow, urlNews, urlBlog, urlHumanName, domainIsPopular sql.NullInt64
+	var urlNews, urlBlog, urlHumanName, domainIsPopular sql.NullInt64
 	var domainTLD, platform sql.NullString
 
 	err := res.Scan(
@@ -115,10 +97,6 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		&lastFetchAt,
 		&feedTitle,
 		&language,
-		&pageAbout,
-		&pageBlogRoll,
-		&pageWriting,
-		&pageNow,
 		&urlNews,
 		&urlBlog,
 		&urlHumanName,
@@ -136,10 +114,6 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		LastFetchAt:     lastFetchAt.Int64,
 		FeedTitle:       feedTitle.String,
 		Language:        language.String,
-		PageAbout:       pageAbout.Int64 > 0,
-		PageBlogRoll:    pageBlogRoll.Int64 > 0,
-		PageWriting:     pageWriting.Int64 > 0,
-		PageNow:         pageNow.Int64 > 0,
 		URLNews:         urlNews.Int64 > 0,
 		URLBlog:         urlBlog.Int64 > 0,
 		URLHumanName:    urlHumanName.Int64 > 0,
