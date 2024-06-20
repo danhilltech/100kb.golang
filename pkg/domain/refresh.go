@@ -142,16 +142,6 @@ func (engine *Engine) feedRefresh(feed *Domain) error {
 		feed.DomainTLD = tld
 	}
 
-	urlHumanName, urlNews, urlBlog, popularDomain, err := engine.parser.IdentifyURL(fullDomain)
-	if err != nil {
-		return fmt.Errorf("could not identify url %w", err)
-	}
-
-	feed.URLBlog = urlBlog
-	feed.URLHumanName = urlHumanName
-	feed.URLNews = urlNews
-	feed.DomainIsPopular = popularDomain
-
 	for _, item := range rss.Items {
 
 		if item.Link == "" {

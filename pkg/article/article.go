@@ -29,6 +29,8 @@ type Engine struct {
 	parser                 *parsing.Engine
 
 	http *retryhttp.Client
+
+	cacheArticles map[string][]*Article
 }
 
 type Article struct {
@@ -43,8 +45,11 @@ type Article struct {
 	Title                string
 	Description          string
 
-	Body     *serialize.Content
-	BadCount int64
+	Body            *serialize.Content
+	BadCount        int64
+	BadElementCount int64
+	LinkCount       int64
+	BadLinkCount    int64
 
 	HTMLLength int64
 
@@ -109,6 +114,8 @@ func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool)
 		FromLanguages(languages...).
 		WithLowAccuracyMode().
 		Build()
+
+	engine.cacheArticles = make(map[string][]*Article)
 
 	return &engine, nil
 }

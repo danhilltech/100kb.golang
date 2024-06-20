@@ -126,7 +126,6 @@ func (engine *RenderEngine) ArticleLists() error {
 	// Prepare
 	for _, d := range engine.domains {
 		fts := d.GetFloatFeatures()
-		fmt.Println(fts)
 		score := engine.model.Predict([][]float64{fts})
 		if len(d.Articles) == 0 {
 			d.LiveScore = 0
@@ -134,7 +133,7 @@ func (engine *RenderEngine) ArticleLists() error {
 			d.LiveScore = score[0]
 		}
 
-		fmt.Println(d.Domain, d.LiveScore)
+		fmt.Println(d.Domain, d.LiveScore, fts)
 		domainScores[d.Domain] = d.LiveScore
 	}
 

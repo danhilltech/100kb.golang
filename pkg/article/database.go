@@ -3,14 +3,11 @@ package article
 import (
 	"database/sql"
 	"fmt"
-	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"github.com/danhilltech/100kb.golang/pkg/utils"
 	"google.golang.org/protobuf/proto"
 )
-
-var mu sync.Mutex
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
@@ -31,6 +28,9 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	extractedKeywords = ?, 
 	lastContentExtractAt = ?, 
 	badCount = ?, 
+	badElementCount = ?,
+	linkCount = ?,
+	badLinkCount = ?,
 	classifications = ?,
 	htmlLength = ?,
 	stage = ?,
@@ -106,6 +106,9 @@ func (engine *Engine) Update(txn *sql.Tx, article *Article) error {
 		utils.NullString(string(extractedKeywords)),
 		utils.NullInt64(article.LastContentExtractAt),
 		utils.NullInt64(article.BadCount),
+		utils.NullInt64(article.BadElementCount),
+		utils.NullInt64(article.LinkCount),
+		utils.NullInt64(article.BadLinkCount),
 		utils.NullString(string(classifications)),
 		utils.NullInt64(article.HTMLLength),
 		utils.NullInt64(article.Stage),
@@ -129,6 +132,9 @@ sentenceEmbedding,
 extractedKeywords,
 lastContentExtractAt, 
 badCount, 
+badElementCount,
+linkCount,
+badLinkCount,
 classifications, 
 htmlLength,
 stage,
@@ -150,7 +156,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var extractedKeywordsJSON []byte
 	var classificationsJSON []byte
 
-	var badCount sql.NullInt64
+	var badCount, badElementCount, linkCount, badLinkCount sql.NullInt64
 
 	var htmlLength sql.NullInt64
 
@@ -172,6 +178,9 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&extractedKeywordsJSON,
 		&lastContentExtractAt,
 		&badCount,
+		&badElementCount,
+		&linkCount,
+		&badLinkCount,
 		&classificationsJSON,
 		&htmlLength,
 		&stage,
@@ -236,6 +245,9 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		ExtractedKeywords:        &extractedKeywords,
 		Domain:                   domain,
 		BadCount:                 badCount.Int64,
+		BadElementCount:          badElementCount.Int64,
+		LinkCount:                linkCount.Int64,
+		BadLinkCount:             badLinkCount.Int64,
 		Classifications:          &classifications,
 		HTMLLength:               htmlLength.Int64,
 		ContainsGoogleTagManager: containsGoogleTagManager.Int64,
@@ -314,9 +326,8 @@ func (engine *Engine) getArticlesToMetaDataAdvanved() ([]*Article, error) {
 	return urls, nil
 }
 
-func (engine *Engine) getArticlesByFeed(feed string, excludeUrl string) ([]*Article, error) {
-	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE feedUrl = ? AND bodyRaw IS NOT NULL AND url != ?", ARTICLE_SELECT), feed, excludeUrl)
-
+func (engine *Engine) getArticlesByFeed(txn *sql.Tx, feed string, excludeUrl string) ([]*Article, error) {
+	res, err := txn.Query(fmt.Sprintf("SELECT %s FROM articles WHERE feedUrl = ? AND bodyRaw IS NOT NULL AND url != ? ORDER BY publishedAt DESC LIMIT 10", ARTICLE_SELECT), feed, excludeUrl)
 	if err != nil {
 		return nil, err
 	}

@@ -135,6 +135,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	defer feedEngine.Close()
 
 	fmt.Println("Engines loaded\t\t🚂🚂🚂")
 
@@ -181,6 +182,13 @@ func main() {
 
 		// 6. Second pass metas
 		err = articleEngine.RunArticleMetaPassII(*metaChunkSize)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		// 7. Additional domain validation
+		err = feedEngine.RunDomainValidate(*metaChunkSize)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

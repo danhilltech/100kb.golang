@@ -5,7 +5,15 @@ var textTags = []string{"p", "h1", "h2", "h3", "li", "blockquote", "code"}
 
 var badAreas = []string{"nav", "footer", "iframe"}
 
-var internalLinkTags = []string{"a"}
+var badLinkTitles = []string{
+	"news",
+	"advertise",
+	"contact us",
+	"careers",
+	"help center",
+	"about us",
+	"press",
+}
 
 var badClassesAndIds = []string{
 	"share",

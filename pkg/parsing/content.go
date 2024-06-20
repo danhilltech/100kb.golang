@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/andybalholm/cascadia"
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"golang.org/x/net/html"
 )
@@ -15,6 +16,19 @@ type SimpleNode struct {
 	Type     SimpleNodeType
 	Text     string
 	Children []*SimpleNode
+}
+
+type ParseAnalysis struct {
+	Ids     []string
+	Classes []string
+	Urls    []string
+	Links   []string
+
+	BadUrls       []string
+	BadElements   []string
+	BadLinkTitles []string
+
+	ContainsGoogleTagManager bool
 }
 
 var whitespaceTable = [256]bool{
@@ -215,6 +229,11 @@ func walkHtmlNodes(n *html.Node, b *SimpleNode, depth int, title *string, descri
 			*description = descOg
 		}
 
+		titleOg, ok := extractMetaProperty(n, "og:title")
+		if ok {
+			*title = titleOg
+		}
+
 	}
 
 	if n.Type == html.ElementNode {
@@ -318,4 +337,129 @@ func (node *SimpleNode) String() string {
 	b, _ := json.MarshalIndent(node, "  ", " ")
 	return string(b)
 
+}
+
+func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnalysis, error) {
+
+	parseAnalysis := ParseAnalysis{}
+
+	walkHtmlNodesAndIdentify(z, &parseAnalysis)
+
+	badIdsAndClasses, badUrls, err := engine.adblock.Filter(parseAnalysis.Ids, parseAnalysis.Classes, parseAnalysis.Urls, baseUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	parseAnalysis.BadUrls = badUrls
+	parseAnalysis.BadElements = badIdsAndClasses
+
+	for _, ic := range badIdsAndClasses {
+		sel, err := cascadia.Parse(ic)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range cascadia.QueryAll(z, sel) {
+			a.Attr = append(a.Attr, html.Attribute{Key: "data-action", Val: "block"})
+		}
+	}
+
+	for _, ic := range badClassesAndIds {
+		sel, err := cascadia.Parse("#" + ic)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range cascadia.QueryAll(z, sel) {
+			a.Attr = append(a.Attr, html.Attribute{Key: "data-action", Val: "skip"})
+		}
+	}
+
+	for _, ic := range badClassesAndIds {
+		sel, err := cascadia.Parse("." + ic)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range cascadia.QueryAll(z, sel) {
+			a.Attr = append(a.Attr, html.Attribute{Key: "data-action", Val: "skip"})
+		}
+	}
+
+	for _, ic := range badAreas {
+		sel, err := cascadia.Parse(ic)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range cascadia.QueryAll(z, sel) {
+			a.Attr = append(a.Attr, html.Attribute{Key: "data-action", Val: "skip"})
+		}
+	}
+
+	for _, ic := range textTags {
+		sel, err := cascadia.Parse(ic)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range cascadia.QueryAll(z, sel) {
+			hasLabel := false
+			for _, ae := range a.Attr {
+				if ae.Key == "data-action" {
+					hasLabel = true
+				}
+			}
+			if !hasLabel {
+				a.Attr = append(a.Attr, html.Attribute{Key: "data-action", Val: "include"})
+			}
+		}
+	}
+
+	return &parseAnalysis, nil
+}
+
+func walkHtmlNodesAndIdentify(n *html.Node, pa *ParseAnalysis) {
+
+	if n.Type == html.ElementNode {
+
+		if n.Data == "a" {
+			for _, attr := range n.Attr {
+				if attr.Key == "href" {
+					pa.Links = append(pa.Links, attr.Val)
+				}
+			}
+			if n.FirstChild != nil {
+				title := strings.ToLower(n.FirstChild.Data)
+
+				for _, b := range badLinkTitles {
+					if strings.Contains(title, b) {
+						pa.BadLinkTitles = append(pa.BadLinkTitles, title)
+					}
+				}
+
+			}
+		}
+
+		for _, attr := range n.Attr {
+			if attr.Key == "class" {
+				nc := strings.Split(attr.Val, " ")
+				pa.Classes = append(pa.Classes, nc...)
+			}
+			if attr.Key == "id" {
+				pa.Ids = append(pa.Ids, attr.Val)
+			}
+			if attr.Key == "href" {
+				pa.Urls = append(pa.Urls, attr.Val)
+			}
+			if attr.Key == "src" {
+				pa.Urls = append(pa.Urls, attr.Val)
+
+				if strings.Contains(attr.Val, "googletagmanager") {
+					pa.ContainsGoogleTagManager = true
+				}
+			}
+
+		}
+
+	}
+
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		walkHtmlNodesAndIdentify(c, pa)
+	}
 }

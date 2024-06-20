@@ -5,7 +5,6 @@ import (
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
-	"github.com/danhilltech/100kb.golang/pkg/parsing"
 	"github.com/smira/go-statsd"
 )
 
@@ -15,15 +14,17 @@ type Engine struct {
 	db                   *sql.DB
 	articleEngine        *article.Engine
 	httpCrawl            *retryhttp.Client
-	parser               *parsing.Engine
+
+	chrome *ChromeRunner
 }
 
 type Domain struct {
-	Domain      string
-	FeedURL     string
-	LastFetchAt int64
-	FeedTitle   string
-	Language    string
+	Domain         string
+	FeedURL        string
+	LastFetchAt    int64
+	LastValidateAt int64
+	FeedTitle      string
+	Language       string
 
 	URLNews      bool
 	URLBlog      bool
@@ -31,6 +32,7 @@ type Domain struct {
 
 	DomainIsPopular bool
 	DomainTLD       string
+	DomainGoogleAds bool
 
 	Platform string
 
@@ -58,10 +60,15 @@ func NewEngine(db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cac
 		return nil, err
 	}
 
-	engine.parser, err = parsing.NewEngine()
+	engine.chrome, err = startChrome()
 	if err != nil {
 		return nil, err
 	}
 
 	return &engine, nil
+}
+
+func (d *Engine) Close() error {
+	return d.chrome.Shutdown()
+
 }

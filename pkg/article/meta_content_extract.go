@@ -27,18 +27,16 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 		return fmt.Errorf("could not parse %w", err)
 	}
 
-	_, _, badCount, containsGoogleTagManager, err := engine.parser.IdentifyBadElements(htmlDoc, article.Url)
+	analysis, err := engine.parser.IdentifyElements(htmlDoc, article.Url)
 	if err != nil {
 		return fmt.Errorf("could not identify bad element %w", err)
 	}
-	article.BadCount = int64(badCount)
-	if containsGoogleTagManager {
+	article.BadCount = int64(len(analysis.BadUrls))
+	article.BadElementCount = int64(len(analysis.BadElements))
+	article.LinkCount = int64(len(analysis.Links))
+	article.BadLinkCount = int64(len(analysis.BadLinkTitles))
+	if analysis.ContainsGoogleTagManager {
 		article.ContainsGoogleTagManager = 1
-	}
-
-	err = engine.parser.IdentifyGoodElements(htmlDoc, article.Url)
-	if err != nil {
-		return fmt.Errorf("could not identify good elements %w", err)
 	}
 
 	body, title, description, err := engine.parser.HtmlToText(htmlDoc)

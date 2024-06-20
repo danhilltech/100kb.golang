@@ -21,7 +21,7 @@ func (engine *Engine) RunArticleMetaPassII(chunkSize int) error {
 	txn, _ := engine.db.Begin()
 	for _, article := range articles {
 
-		err := engine.articleMetaAdvanced(article)
+		err := engine.articleMetaAdvanced(txn, article)
 		if err != nil {
 			fmt.Println(err)
 			continue

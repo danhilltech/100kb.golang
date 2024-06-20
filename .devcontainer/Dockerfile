@@ -21,7 +21,7 @@ ENV LIBTORCH_BYPASS_VERSION_CHECK="true"
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
   && apt-get update -y --no-install-recommends \
-  && apt-get -y install --no-install-recommends bash git wget curl tzdata build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev cmake unzip zsh ca-certificates sudo apt-transport-https nano zip openssh-client apt-utils pkg-config clang python3 python3-pip ninja-build gcc python3-dev protobuf-compiler \
+  && apt-get -y install --no-install-recommends bash git wget curl tzdata build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev cmake unzip zsh ca-certificates sudo apt-transport-https nano zip openssh-client apt-utils pkg-config clang python3 python3-pip ninja-build gcc python3-dev protobuf-compiler chromium \
   && apt-get autoremove -y
 
 # Create the user

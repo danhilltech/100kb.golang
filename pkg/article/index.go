@@ -14,11 +14,14 @@ func (engine *Engine) articleIndex(article *Article) error {
 
 	// crawl it
 	resp, err := engine.http.Get(article.Url)
-	if err != nil || resp.StatusCode > 400 {
+	if err != nil {
 		return err
 	}
 	if resp != nil {
 		defer resp.Body.Close()
+		if resp.StatusCode > 400 {
+			return nil
+		}
 
 		byts, err := io.ReadAll(resp.Body)
 		if err != nil {

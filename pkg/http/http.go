@@ -109,7 +109,7 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 				return cached, nil
 			}
 
-			if int64(lastAttemptAt) > (time.Now().Unix()-60*60*24*7) && strings.Contains(cached.Header.Get("Content-Type"), "text/html") {
+			if int64(lastAttemptAt) > (time.Now().Unix()-60*60*24*7) && isHTML(cached) {
 				return cached, nil
 			}
 
@@ -162,14 +162,14 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	// }
 	// fmt.Printf("%s\n\n", string(debugDump))
 
-	cacheState := "NO CACHE"
-	cacheStatus := 0
-	if cached != nil {
-		cacheState = "CACHE"
-		cacheStatus = cached.StatusCode
-	}
+	// cacheState := "NO CACHE"
+	// cacheStatus := 0
+	// if cached != nil {
+	// 	cacheState = "CACHE"
+	// 	cacheStatus = cached.StatusCode
+	// }
 
-	fmt.Println("🏃", req.Method, cacheState, cacheStatus, req.URL.String())
+	// fmt.Println("🏃", req.Method, cacheState, cacheStatus, req.URL.String())
 
 	// Send the request
 	resp, err := t.transport.RoundTrip(req)
@@ -200,8 +200,21 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 
 	}
 
-	if resp.StatusCode == http.StatusNotModified {
+	if resp.StatusCode == http.StatusNotModified && cached != nil {
 		cached.StatusCode = http.StatusOK
+		cached.Header.Set("x-100kb-cached-at", fmt.Sprintf("%d", time.Now().Unix()))
+
+		// Rewrite the cache
+		// Cache it
+		buf, err := httputil.DumpResponse(cached, true)
+		if err != nil {
+			return nil, err
+		}
+		err = t.cache.Write(k, buf)
+		if err != nil {
+			return nil, err
+		}
+
 		return cached, nil
 	}
 
@@ -362,7 +375,7 @@ func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 			resp.Body.Close()
 			return nil, fmt.Errorf("%w %s parseInt failed", ErrTooLarge, req.URL.String())
 		}
-		if sizeInt > 500000 && strings.Contains(resp.Header.Get("Content-Type"), "text/html") { // 100 kb
+		if sizeInt > 500000 && isHTML(resp) { // 100 kb
 			resp.Body.Close()
 
 			return nil, fmt.Errorf("%w %s", ErrTooLarge, req.URL.String())
@@ -380,7 +393,7 @@ func (c *Client) startRequest(method string, url string) (*http.Response, error)
 
 	// Check it's a valid domain
 	for _, bad := range BANNED_URLS {
-		if req.URL.Hostname() == bad {
+		if strings.Contains(req.URL.Hostname(), bad) {
 			return nil, ErrBannedUrl
 		}
 	}
@@ -438,4 +451,8 @@ func parseRetryAfterHeader(headers []string) (time.Duration, bool) {
 	}
 	// date is in the past
 	return 0, true
+}
+
+func isHTML(resp *http.Response) bool {
+	return strings.Contains(resp.Header.Get("Content-Type"), "text/html")
 }

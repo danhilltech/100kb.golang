@@ -114,22 +114,30 @@ func (d *Domain) GetWordCount() float64 {
 	return val
 }
 
-func (d *Domain) GetPCount() float64 {
+func (d *Domain) GetPTagToGoodRatio() float64 {
 	var count int64
 	arts := d.GetLatestArticlesToScore()
 	if len(arts) == 0 {
 		return 0
 	}
 
+	goodCount := 0
+
 	for _, a := range arts {
 		for _, t := range a.Body.GetContent() {
 			if t.Type == "p" || t.Type == "li" {
 				count++
 			}
+			for _, t := range a.Body.GetContent() {
+				if t.Type == "h1" || t.Type == "h2" || t.Type == "h3" || t.Type == "p" || t.Type == "li" {
+					goodCount++
+				}
+			}
 		}
+
 	}
 
-	val := float64(count) / float64(len(arts))
+	val := float64(count) / float64(goodCount)
 
 	if math.IsNaN(val) || math.IsInf(val, 0) {
 		return 0
@@ -218,7 +226,67 @@ func (d *Domain) GetBadTagCount() float64 {
 	}
 
 	for _, a := range arts {
+		wordCount += a.BadElementCount
+	}
+
+	val := float64(wordCount) / float64(len(arts))
+
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		return 0
+	}
+
+	return val
+}
+
+func (d *Domain) GetBadURLCount() float64 {
+	var wordCount int64
+	arts := d.GetLatestArticlesToScore()
+	if len(arts) == 0 {
+		return 0
+	}
+
+	for _, a := range arts {
 		wordCount += a.BadCount
+	}
+
+	val := float64(wordCount) / float64(len(arts))
+
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		return 0
+	}
+
+	return val
+}
+
+func (d *Domain) GetBadLinkCount() float64 {
+	var wordCount int64
+	arts := d.GetLatestArticlesToScore()
+	if len(arts) == 0 {
+		return 0
+	}
+
+	for _, a := range arts {
+		wordCount += a.BadLinkCount
+	}
+
+	val := float64(wordCount) / float64(len(arts))
+
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		return 0
+	}
+
+	return val
+}
+
+func (d *Domain) GetLinkCount() float64 {
+	var wordCount int64
+	arts := d.GetLatestArticlesToScore()
+	if len(arts) == 0 {
+		return 0
+	}
+
+	for _, a := range arts {
+		wordCount += a.LinkCount
 	}
 
 	val := float64(wordCount) / float64(len(arts))
@@ -337,6 +405,17 @@ func (d *Domain) GetGoodBadTagRatio() float64 {
 	return val
 }
 
+func (d *Domain) GetBadLinkRatio() float64 {
+
+	val := float64(d.GetBadLinkCount()) / float64(d.GetLinkCount())
+
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		return 0.0
+	}
+
+	return val
+}
+
 func (domain *Domain) GetFloatFeatureNames() []string {
 	names := []string{}
 
@@ -347,15 +426,18 @@ func (domain *Domain) GetFloatFeatureNames() []string {
 	names = append(names, "goodPcnt")
 	names = append(names, "goodTagsPerByte")
 	names = append(names, "articlesPerMonth")
-	names = append(names, "goodTagCount")
-	names = append(names, "badTagCount")
-	names = append(names, "pCount")
-	names = append(names, "codeCount")
+	// names = append(names, "goodTagCount")
+	// names = append(names, "badTagCount")
+	names = append(names, "badUrlCount")
+	names = append(names, "pToGoodRatio")
+	names = append(names, "badLinkRatio")
+	// names = append(names, "codeCount")
 	names = append(names, "urlHuman")
 	names = append(names, "urlBlog")
 	names = append(names, "urlNews")
 	names = append(names, "popularDomain")
 	names = append(names, "containsGoogleTagManager")
+	names = append(names, "containsGoogleAds")
 
 	return names
 }
@@ -381,98 +463,47 @@ func (domain *Domain) GetFloatFeatures() []float64 {
 	features = append(features, domain.GetGoodBadTagRatio())
 	features = append(features, domain.GetGoodTagsPerByte())
 	features = append(features, domain.GetLatestArticlesPerMonth())
-	features = append(features, safeLog(domain.GetGoodTagCount()))
-	features = append(features, safeLog(domain.GetBadTagCount()))
-	features = append(features, safeLog(domain.GetPCount()))
-	features = append(features, safeLog(domain.GetCodeTagCount()))
+	// features = append(features, safeLog(domain.GetGoodTagCount()))
+	// features = append(features, safeLog(domain.GetBadTagCount()))
+	features = append(features, safeLog(domain.GetBadURLCount()))
+	features = append(features, domain.GetPTagToGoodRatio())
+	// features = append(features, safeLog(domain.GetCodeTagCount()))
+
+	features = append(features, domain.GetBadLinkRatio())
 
 	if domain.URLHumanName {
 		features = append(features, 1.0)
 	} else {
-		features = append(features, -1.0)
+		features = append(features, 0)
 	}
 
 	if domain.URLBlog {
 		features = append(features, 1.0)
 	} else {
-		features = append(features, -1.0)
+		features = append(features, 0)
 	}
 
 	if domain.URLNews {
 		features = append(features, 1.0)
 	} else {
-		features = append(features, -1.0)
+		features = append(features, 0)
 	}
 	if domain.DomainIsPopular {
 		features = append(features, 1.0)
 	} else {
-		features = append(features, -1.0)
+		features = append(features, 0)
 	}
 	if domain.ContainsGoogleTagManager() {
 		features = append(features, 1.0)
 	} else {
-		features = append(features, -1.0)
+		features = append(features, 0)
 	}
 
-	// 1 title begins with a number
-	// 2 number of paragraphs with more than 40 words
-	// 3 average sentence length
-	// 4 number of code tags
-	// 5 bad keyword density ("how to", "github")
-	// 6 identify self help
-	// 7 youtube/podcasts
-	// https://webring.xxiivv.com/#vitbaisa
-	// https://frankmeeuwsen.com/blogroll/
-	// title uniqueness/levenstien
-
-	// if domain.URLHumanName {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
-	// } else {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
-	// }
-	// n++
-
-	// if domain.URLNews {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
-	// } else {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
-	// }
-	// n++
-
-	// if domain.URLBlog {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
-	// } else {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
-	// }
-	// n++
-
-	// if domain.PageAbout {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
-	// } else {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
-	// }
-	// n++
-
-	// if domain.PageBlogRoll {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
-	// } else {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
-	// }
-	// n++
-
-	// if domain.PageNow {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
-	// } else {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
-	// }
-	// n++
-
-	// if domain.PageWriting {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(1.0))
-	// } else {
-	// 	instances.Set(newSpecs[n], i, base.PackFloatToBytes(-1.0))
-	// }
-	// n++
+	if domain.DomainGoogleAds {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, 0)
+	}
 
 	return features
 }

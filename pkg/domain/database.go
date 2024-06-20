@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/danhilltech/100kb.golang/pkg/article"
 	"github.com/danhilltech/100kb.golang/pkg/http"
 	"github.com/danhilltech/100kb.golang/pkg/utils"
 )
@@ -13,6 +14,7 @@ const DOMAIN_SELECT = `
 domains.domain, 
 domains.feedUrl, 
 domains.lastFetchAt, 
+domains.lastValidateAt, 
 feedTitle, 
 language,
 urlNews,
@@ -20,7 +22,8 @@ urlBlog,
 urlHumanName,
 domainIsPopular,
 domainTLD,
-platform
+platform,
+domainGoogleAds
 `
 
 func (engine *Engine) initDB(db *sql.DB) error {
@@ -34,6 +37,7 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	domains 
 	SET 
 	lastFetchAt = ?, 
+	lastValidateAt = ?,
 	feedTitle = ?, 
 	language = ?,
 	urlNews = ?,
@@ -41,7 +45,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	urlHumanName = ?,
 	domainIsPopular = ?,
 	domainTLD = ?,
-	platform = ?
+	platform = ?,
+	domainGoogleAds = ?
 	
 	WHERE domain = ?;`)
 	if err != nil {
@@ -66,6 +71,7 @@ func (engine *Engine) Insert(txn *sql.Tx, domain string, feedurl string) error {
 func (engine *Engine) Update(txn *sql.Tx, feed *Domain) error {
 	_, err := txn.Stmt(engine.dbUpdatePreparedFeed).Exec(
 		utils.NullInt64(feed.LastFetchAt),
+		utils.NullInt64(feed.LastValidateAt),
 		utils.NullString(feed.FeedTitle),
 		utils.NullString(feed.Language),
 		utils.NullBool(feed.URLNews),
@@ -74,6 +80,7 @@ func (engine *Engine) Update(txn *sql.Tx, feed *Domain) error {
 		utils.NullBool(feed.DomainIsPopular),
 		utils.NullString(feed.DomainTLD),
 		utils.NullString(feed.Platform),
+		utils.NullBool(feed.DomainGoogleAds),
 		feed.Domain,
 	)
 	if err != nil && err != sql.ErrNoRows {
@@ -85,16 +92,17 @@ func (engine *Engine) Update(txn *sql.Tx, feed *Domain) error {
 func domainRowScan(res *sql.Rows) (*Domain, error) {
 	var feedUrl string
 	var domain string
-	var lastFetchAt sql.NullInt64
+	var lastFetchAt, lastValidateAt sql.NullInt64
 	var feedTitle, language sql.NullString
 
-	var urlNews, urlBlog, urlHumanName, domainIsPopular sql.NullInt64
+	var urlNews, urlBlog, urlHumanName, domainIsPopular, domainGoogleAds sql.NullInt64
 	var domainTLD, platform sql.NullString
 
 	err := res.Scan(
 		&domain,
 		&feedUrl,
 		&lastFetchAt,
+		&lastValidateAt,
 		&feedTitle,
 		&language,
 		&urlNews,
@@ -103,6 +111,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		&domainIsPopular,
 		&domainTLD,
 		&platform,
+		&domainGoogleAds,
 	)
 	if err != nil {
 		return nil, err
@@ -112,6 +121,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		Domain:          domain,
 		FeedURL:         feedUrl,
 		LastFetchAt:     lastFetchAt.Int64,
+		LastValidateAt:  lastValidateAt.Int64,
 		FeedTitle:       feedTitle.String,
 		Language:        language.String,
 		URLNews:         urlNews.Int64 > 0,
@@ -120,6 +130,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		DomainIsPopular: domainIsPopular.Int64 > 0,
 		DomainTLD:       domainTLD.String,
 		Platform:        platform.String,
+		DomainGoogleAds: domainGoogleAds.Int64 > 0,
 	}
 	return d, nil
 }
@@ -145,6 +156,44 @@ func (engine *Engine) getDomainsToRefresh() ([]*Domain, error) {
 		return nil, err
 	}
 	return urls, nil
+}
+
+func (engine *Engine) getDomainsToValidate() ([]*Domain, error) {
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM domains WHERE lastValidateAt IS NULL;", DOMAIN_SELECT))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	var urls []*Domain
+
+	for res.Next() {
+		domain, err := domainRowScan(res)
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, domain)
+
+	}
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+	return urls, nil
+}
+
+func (engine *Engine) getLatestArticleURL(d *Domain) (string, error) {
+	res := engine.db.QueryRow(fmt.Sprintf("SELECT url FROM articles WHERE domain = ? AND stage = ? ORDER BY lastContentExtractAt DESC LIMIT 1;", d.Domain, article.STAGE_COMPLETE))
+
+	var url string
+	err := res.Scan(&url)
+	if err != nil {
+		return "", err
+	}
+
+	if err := res.Err(); err != nil {
+		return "", err
+	}
+	return url, nil
 }
 
 func (engine *Engine) GetAll() ([]*Domain, error) {

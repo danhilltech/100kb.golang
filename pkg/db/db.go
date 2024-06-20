@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS domains (
 	domain TEXT PRIMARY KEY,
 	feedUrl TEXT,
 	lastFetchAt INTEGER,
+	lastValidateAt INTEGER,
 	feedTitle TEXT,
 	language TEXT,
 	platform TEXT,
@@ -53,7 +54,9 @@ CREATE TABLE IF NOT EXISTS domains (
 	pageNow INTEGER,
 	urlNews INTEGER,
 	urlBlog INTEGER,
-	urlHumanName INTEGER	
+	urlHumanName INTEGER,
+
+	domainGoogleAds INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS domains_feedUrl ON domains(feedUrl);
@@ -72,6 +75,9 @@ CREATE TABLE IF NOT EXISTS articles (
 	bodyRaw BLOB,
 	body BLOB,
 	badCount INTEGER,
+	badElementCount INTEGER,
+	linkCount INTEGER,
+	badLinkCount INTEGER,
 	sentenceEmbedding BLOB,
 	extractedKeywords BLOB,
 	classifications BLOB,

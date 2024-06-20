@@ -51,4 +51,5 @@ var BANNED_URLS = []string{
 	"phys.org",
 	"wikipedia.org",
 	"www.tiktok.com",
+	"stackexchange.com",
 }

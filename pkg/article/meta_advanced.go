@@ -1,6 +1,7 @@
 package article
 
 import (
+	"database/sql"
 	"fmt"
 	"hash/fnv"
 	"strings"
@@ -26,7 +27,7 @@ var zeroShotLabels = []string{
 	"nature",
 }
 
-func (engine *Engine) articleMetaAdvanced(article *Article) error {
+func (engine *Engine) articleMetaAdvanced(txn *sql.Tx, article *Article) error {
 
 	var t1, t2 int64
 
@@ -35,9 +36,18 @@ func (engine *Engine) articleMetaAdvanced(article *Article) error {
 	// Check we have enough data
 	article.LastMetaAt = time.Now().Unix()
 
-	feedArticles, err := engine.getArticlesByFeed(article.FeedUrl, article.Url)
-	if err != nil {
-		return err
+	var feedArticles []*Article
+
+	if engine.cacheArticles[article.Domain] != nil {
+		feedArticles = engine.cacheArticles[article.Domain]
+	} else {
+		var err error
+		feedArticles, err = engine.getArticlesByFeed(txn, article.FeedUrl, article.Url)
+		if err != nil {
+			return err
+
+		}
+		engine.cacheArticles[article.Domain] = feedArticles
 	}
 
 	currentCanon := make(map[uint64]bool)

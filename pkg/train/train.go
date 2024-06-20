@@ -110,9 +110,9 @@ func TrainSVM(cacheDir string) error {
 
 	domainEngine, err := domain.NewEngine(database, articleEngine, statsdClient, cacheDir)
 	if err != nil {
-
 		return err
 	}
+	defer domainEngine.Close()
 
 	for _, g := range candidates {
 		u, err := url.Parse(g)
@@ -162,6 +162,11 @@ func TrainSVM(cacheDir string) error {
 
 		// 6. Second pass metas
 		err = articleEngine.RunArticleMetaPassII(metaChunkSize)
+		if err != nil {
+			return err
+		}
+
+		err = domainEngine.RunDomainValidate(metaChunkSize)
 		if err != nil {
 			return err
 		}

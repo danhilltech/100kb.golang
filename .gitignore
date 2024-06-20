@@ -42,3 +42,4 @@ libsvm/
 !pkg/output
 output-train
 output-train/*
+.chrome
