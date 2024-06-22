@@ -2,7 +2,7 @@ package article
 
 import (
 	"fmt"
-	"sync"
+	"runtime"
 	"time"
 )
 
@@ -15,42 +15,38 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 
 	fmt.Printf("Generating %d article metas\n", len(articles))
 
-	a := 0
+	done := 0
 	lastA := 0
 	t := time.Now().UnixMilli()
-
-	var wg sync.WaitGroup
 
 	printSize := 200
 
 	txn, _ := engine.db.Begin()
-	for _, article := range articles {
 
-		wg.Add(1)
+	jobs := make(chan *Article, len(articles))
+	results := make(chan *Article, len(articles))
 
-		go func(article *Article) {
-			defer wg.Done()
+	workers := runtime.NumCPU()
 
-			err := engine.articleExtractContent(article)
-			if err != nil {
-				// fmt.Println(article.Url, err)
-				err = engine.Update(txn, article)
-				if err != nil {
-					fmt.Println(article.Url, err)
-				}
+	for w := 1; w <= workers; w++ {
+		go engine.articeMetaWorker(jobs, results)
+	}
 
-				return
-			}
+	for j := 1; j <= len(articles); j++ {
+		jobs <- articles[j-1]
+	}
+	close(jobs)
 
-			err = engine.Update(txn, article)
-			if err != nil {
-				fmt.Println(article.Url, err)
-				return
-			}
-		}(article)
+	for a := 0; a < len(articles); a++ {
+		article := <-results
+
+		err = engine.Update(txn, article)
+		if err != nil {
+			fmt.Println(article.Url, err)
+
+		}
 
 		if a > 0 && a%chunkSize == 0 {
-			wg.Wait()
 			err := txn.Commit()
 			if err != nil {
 				return err
@@ -58,23 +54,32 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 			txn, _ = engine.db.Begin()
 		}
 		if a > 0 && a%printSize == 0 {
-
 			diff := time.Now().UnixMilli() - t
-			qps := (float64(a-lastA) / float64(diff)) * 1000
-			lastA = a
+			qps := (float64(done-lastA) / float64(diff)) * 1000
+			lastA = done
 			t = time.Now().UnixMilli()
-			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
+			fmt.Printf("\tdone %d/%d at %0.2f/s\n", done, len(articles), qps)
 
 		}
-		a++
+		done++
 	}
-	wg.Wait()
+
 	err = txn.Commit()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("\tdone %d/%d\n", a, len(articles))
+	fmt.Printf("\tdone %d/%d\n", done, len(articles))
 
 	return nil
 
+}
+
+func (engine *Engine) articeMetaWorker(jobs <-chan *Article, results chan<- *Article) {
+	for id := range jobs {
+		err := engine.articleExtractContent(id)
+		if err != nil {
+			fmt.Println(err)
+		}
+		results <- id
+	}
 }

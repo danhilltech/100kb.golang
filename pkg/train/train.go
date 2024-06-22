@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"text/tabwriter"
 
@@ -135,7 +136,7 @@ func TrainSVM(cacheDir string) error {
 
 		httpChunkSize := 100
 		httpWorkers := 40
-		metaChunkSize := 10
+		metaChunkSize := runtime.NumCPU()
 
 		// // 2. Check HN stories for any new feeds
 		err = domainEngine.RunNewFeedSearch(httpChunkSize, httpWorkers)

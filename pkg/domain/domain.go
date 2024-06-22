@@ -39,7 +39,8 @@ type Domain struct {
 	Articles []*article.Article
 
 	// Only used at runtime/output
-	LiveScore float64
+	LiveScore            float64
+	LiveLatestArticleURL string
 }
 
 func NewEngine(db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cacheDir string) (*Engine, error) {
@@ -60,7 +61,7 @@ func NewEngine(db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cac
 		return nil, err
 	}
 
-	engine.chrome, err = startChrome()
+	engine.chrome, err = startChrome(cacheDir)
 	if err != nil {
 		return nil, err
 	}

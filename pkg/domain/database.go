@@ -182,15 +182,9 @@ func (engine *Engine) getDomainsToValidate() ([]*Domain, error) {
 }
 
 func (engine *Engine) getLatestArticleURL(d *Domain) (string, error) {
-	res := engine.db.QueryRow(fmt.Sprintf("SELECT url FROM articles WHERE domain = ? AND stage = ? ORDER BY lastContentExtractAt DESC LIMIT 1;", d.Domain, article.STAGE_COMPLETE))
 
 	var url string
-	err := res.Scan(&url)
-	if err != nil {
-		return "", err
-	}
-
-	if err := res.Err(); err != nil {
+	if err := engine.db.QueryRow("SELECT url FROM articles WHERE domain = ? AND stage = ? ORDER BY lastContentExtractAt DESC LIMIT 1;", d.Domain, article.STAGE_COMPLETE).Scan(&url); err != nil {
 		return "", err
 	}
 	return url, nil

@@ -2,7 +2,12 @@ package domain
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"hash/fnv"
+	"net/url"
+	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -29,18 +34,37 @@ func (engine *Engine) RunDomainValidate(chunkSize int) error {
 
 	fmt.Printf("Validating %d domains\n", len(domains))
 
+	for _, domain := range domains {
+		// Now load it in a chrome window
+		url, err := engine.getLatestArticleURL(domain)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		domain.LiveLatestArticleURL = url
+
+	}
+
 	printSize := 100
 
-	a := 0
+	jobs := make(chan *Domain, len(domains))
+	results := make(chan *Domain, len(domains))
+
+	workers := runtime.NumCPU() * 2
+
+	for w := 1; w <= workers; w++ {
+		go engine.validateDomainWorker(jobs, results)
+	}
+
+	for j := 1; j <= len(domains); j++ {
+		jobs <- domains[j-1]
+	}
+	close(jobs)
+
+	done := 0
 	t := time.Now().UnixMilli()
 	txn, _ := engine.db.Begin()
-	for _, domain := range domains {
-
-		err = engine.validateDomain(domain)
-		if err != nil {
-			fmt.Println(domain.Domain, err)
-			continue
-		}
+	for a := 0; a < len(domains); a++ {
+		domain := <-results
 
 		err = engine.Update(txn, domain)
 		if err != nil {
@@ -48,27 +72,42 @@ func (engine *Engine) RunDomainValidate(chunkSize int) error {
 			continue
 		}
 
-		if a > 0 && a%printSize == 0 {
+		if a > 0 && a%chunkSize == 0 {
+
 			err := txn.Commit()
 			if err != nil {
 				return err
 			}
 			txn, _ = engine.db.Begin()
+		}
+
+		if a > 0 && a%printSize == 0 {
 			diff := time.Now().UnixMilli() - t
 			qps := (float64(printSize) / float64(diff)) * 1000
 			t = time.Now().UnixMilli()
-			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(domains), qps)
+			fmt.Printf("\tdone %d/%d at %0.2f/s\n", done, len(domains), qps)
 
 		}
-		a++
+		done++
 	}
+
 	err = txn.Commit()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("\tdone %d/%d\n\n", a, len(domains))
+	fmt.Printf("\tdone %d/%d\n\n", done, len(domains))
 
 	return nil
+}
+
+func (engine *Engine) validateDomainWorker(jobs <-chan *Domain, results chan<- *Domain) {
+	for id := range jobs {
+		err := engine.validateDomain(id)
+		if err != nil {
+			fmt.Println(id.Domain, err)
+		}
+		results <- id
+	}
 }
 
 func (engine *Engine) validateDomain(domain *Domain) error {
@@ -87,26 +126,22 @@ func (engine *Engine) validateDomain(domain *Domain) error {
 	domain.URLNews = urlNews
 	domain.DomainIsPopular = popularDomain
 
-	// Now load it in a chrome window
-	url, err := engine.getLatestArticleURL(domain)
-	if err != nil {
-		return err
-	}
+	if domain.LiveLatestArticleURL != "" {
+		body, err := engine.chrome.GetDomFromChrone(domain.LiveLatestArticleURL)
+		if err != nil {
+			return err
+		}
 
-	body, err := engine.chrome.GetDomFromChrone(url)
-	if err != nil {
-		return err
-	}
-
-	if strings.Contains(body, "google_ads_") {
-		domain.DomainGoogleAds = true
+		if strings.Contains(body, "google_ads_") {
+			domain.DomainGoogleAds = true
+		}
 	}
 
 	return nil
 
 }
 
-func startChrome() (*ChromeRunner, error) {
+func startChrome(cacheDir string) (*ChromeRunner, error) {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.DisableGPU,
 		chromedp.UserDataDir(".chrome"),
@@ -114,6 +149,14 @@ func startChrome() (*ChromeRunner, error) {
 		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("no-first-run", true),
 		chromedp.Flag("--blink-settings", "imagesEnabled=false"),
+		chromedp.Flag("--disable-gl-drawing-for-tests", true),
+		chromedp.Flag("--disable-gl-drawing-for-tests", true),
+		chromedp.Flag("--hide-scrollbars", true),
+		chromedp.Flag("--mute-audio", true),
+		chromedp.Flag("--no-sandbox", true),
+		chromedp.Flag("--disable-setuid-sandbox", true),
+		chromedp.Flag("--disable-translate", true),
+		chromedp.Flag("--disable-extensions", true),
 	)
 
 	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), opts...)
@@ -128,11 +171,17 @@ func startChrome() (*ChromeRunner, error) {
 
 	ctx, cancel := chromedp.NewContext(allocCtx, contextOpts...)
 
+	err := chromedp.Run(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	runner := ChromeRunner{
 		AllocContext:       allocCtx,
 		Context:            ctx,
 		CancelAllocContext: allocCancel,
 		CancelContext:      cancel,
+		cacheDir:           cacheDir,
 	}
 
 	return &runner, nil
@@ -145,7 +194,28 @@ func (chrome *ChromeRunner) Shutdown() error {
 	return nil
 }
 
-func (chrome *ChromeRunner) GetDomFromChrone(url string) (string, error) {
+func (chrome *ChromeRunner) GetDomFromChrone(urlToGet string) (string, error) {
+
+	keyHash := fnv.New64()
+
+	u, err := url.Parse(urlToGet)
+	if err != nil {
+		return "", err
+	}
+
+	keyHash.Write([]byte(u.Hostname()))
+
+	key := keyHash.Sum64()
+
+	cacheFile := fmt.Sprintf("%s/dom/%d.txt", chrome.cacheDir, key)
+
+	fmt.Println(u, cacheFile)
+
+	existing, err := os.ReadFile(cacheFile)
+	if err == nil && existing != nil {
+		return string(existing), nil
+	}
+
 	ctx, cancel := chromedp.NewContext(chrome.Context)
 	defer cancel()
 
@@ -158,12 +228,15 @@ func (chrome *ChromeRunner) GetDomFromChrone(url string) (string, error) {
 	if err := chromedp.Run(ctx,
 		chromedp.Tasks{
 			chromedp.Emulate(device.IPhone13),
-			navigateAndWaitFor(url, "InteractiveTime"),
+			navigateAndWaitFor(urlToGet, "InteractiveTime"),
 			chromedp.OuterHTML("html", &body),
 		},
 	); err != nil {
 		return "", err
 	}
+
+	os.Mkdir(fmt.Sprintf("%s/dom", chrome.cacheDir), os.ModePerm)
+	os.WriteFile(cacheFile, []byte(body), os.ModePerm)
 
 	return body, nil
 }
