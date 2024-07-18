@@ -2,7 +2,6 @@ package article
 
 import (
 	"fmt"
-	"runtime"
 	"time"
 )
 
@@ -26,7 +25,7 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 	jobs := make(chan *Article, len(articles))
 	results := make(chan *Article, len(articles))
 
-	workers := runtime.NumCPU()
+	workers := 1 //runtime.NumCPU()
 
 	for w := 1; w <= workers; w++ {
 		go engine.articeMetaWorker(jobs, results)

@@ -359,6 +359,8 @@ func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnal
 
 	walkHtmlNodesAndIdentify(z, &parseAnalysis)
 
+	fmt.Println("ie on", baseUrl)
+
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("recovered", r, baseUrl, parseAnalysis)
