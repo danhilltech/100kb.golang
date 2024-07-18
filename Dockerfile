@@ -24,9 +24,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES all
 
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+RUN apt-get update \
+    && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:savoury1/pipewire \
+    && add-apt-repository ppa:savoury1/chromium \
+    && apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get update -y --no-install-recommends \
-    && apt-get -y install --no-install-recommends bash git wget curl tzdata build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev cmake unzip zsh ca-certificates sudo apt-transport-https nano zip openssh-client apt-utils pkg-config gcc protobuf-compiler chromium \
+    && apt-get -y install --no-install-recommends bash git wget curl tzdata build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev cmake unzip zsh ca-certificates sudo apt-transport-https nano zip openssh-client apt-utils pkg-config gcc protobuf-compiler chromium-browser \
     && apt-get autoremove -y
 
 # Create the user
