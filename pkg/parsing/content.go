@@ -354,7 +354,7 @@ func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnal
 
 	walkHtmlNodesAndIdentify(z, &parseAnalysis)
 
-	if parseAnalysis.Classes == nil {
+	if parseAnalysis.Classes == nil || parseAnalysis.Ids == nil {
 		return nil, fmt.Errorf("DANDANDAN invalid classes %+v", parseAnalysis)
 	}
 
