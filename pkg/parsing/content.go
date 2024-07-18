@@ -3,6 +3,7 @@ package parsing
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/andybalholm/cascadia"
@@ -352,6 +353,10 @@ func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnal
 	}
 
 	walkHtmlNodesAndIdentify(z, &parseAnalysis)
+
+	if parseAnalysis.Classes == nil {
+		return nil, fmt.Errorf("DANDANDAN invalid classes %+v", parseAnalysis)
+	}
 
 	badIdsAndClasses, badUrls, err := engine.adblock.Filter(parseAnalysis.Ids, parseAnalysis.Classes, parseAnalysis.Urls, baseUrl)
 	if err != nil {
