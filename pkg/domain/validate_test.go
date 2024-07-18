@@ -1,9 +1,8 @@
 package domain
 
 import (
-	"fmt"
 	"os"
-	"sync"
+	"strings"
 	"testing"
 )
 
@@ -15,24 +14,20 @@ func TestChrome(t *testing.T) {
 	}
 	defer chrome.Shutdown()
 
-	var wg sync.WaitGroup
+	body, err := chrome.GetDomFromChrone("https://www.theguardian.com/us")
 
-	wg.Add(2)
+	if len(body) > 100 {
+		t.Log("have body")
+	}
 
-	go func() {
-		t.Log("starting")
-		defer wg.Done()
-		body, err := chrome.GetDomFromChrone("https://danhill.is")
-		fmt.Println(err)
-		t.Log(body)
+	if err != nil {
+		t.Log(err)
+		t.Fail()
 
-	}()
+	}
+	if !strings.Contains(body, "google_ads_") {
+		t.Log("no body")
+		t.Fail()
+	}
 
-	go func() {
-		defer wg.Done()
-		_, err := chrome.GetDomFromChrone("https://dailymail.co.uk")
-		fmt.Println(err)
-	}()
-
-	wg.Wait()
 }

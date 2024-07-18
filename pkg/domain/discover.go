@@ -1,9 +1,11 @@
 package domain
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -171,4 +173,45 @@ func extractFeedURL(resp io.Reader) string {
 			}
 		}
 	}
+}
+
+func (engine *Engine) RunKagiList() error {
+
+	fmt.Println("Getting Kagi list...")
+
+	resp, err := http.Get("https://raw.githubusercontent.com/kagisearch/smallweb/main/smallweb.txt")
+	// handle the error if there is one
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	d := 0
+
+	txn, _ := engine.db.Begin()
+
+	scanner := bufio.NewScanner(resp.Body)
+
+	for scanner.Scan() {
+		feed := scanner.Text()
+
+		u, err := url.Parse(feed)
+
+		if err == nil {
+			err = engine.Insert(txn, u.Hostname(), feed)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+		d++
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("\tdone %d\n", d)
+
+	return nil
 }

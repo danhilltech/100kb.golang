@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/device"
@@ -220,8 +221,8 @@ func (chrome *ChromeRunner) GetDomFromChrone(urlToGet string) (string, error) {
 	defer cancel()
 
 	// create a timeout
-	ctx, cancelTimeout := context.WithTimeout(ctx, time.Second*30)
-	defer cancelTimeout()
+	// ctx, cancelTimeout := context.WithTimeout(ctx, time.Second*10)
+	// defer cancelTimeout()
 
 	var body string
 
@@ -232,7 +233,7 @@ func (chrome *ChromeRunner) GetDomFromChrone(urlToGet string) (string, error) {
 			chromedp.OuterHTML("html", &body),
 		},
 	); err != nil {
-		return "", err
+		return body, err
 	}
 
 	os.Mkdir(fmt.Sprintf("%s/dom", chrome.cacheDir), os.ModePerm)
@@ -254,21 +255,34 @@ func navigateAndWaitFor(url string, eventName string) chromedp.ActionFunc {
 
 func waitFor(ctx context.Context, eventName string) error {
 	ch := make(chan struct{})
-	cctx, cancel := context.WithCancel(ctx)
+	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	chromedp.ListenTarget(cctx, func(ev interface{}) {
 		switch e := ev.(type) {
 		case *page.EventLifecycleEvent:
-			if e.Name == eventName {
-				cancel()
-				close(ch)
+			{
+				if e.Name == eventName {
+					cancel()
+					close(ch)
+				}
+			}
+		case *network.EventRequestWillBeSent:
+			{
+				if strings.Contains(e.Request.URL, "google") {
+					fmt.Println(e.Request.URL)
+				}
 			}
 		}
 	})
+
 	select {
 	case <-ch:
 		return nil
-	case <-ctx.Done():
-		return ctx.Err()
+	case <-cctx.Done():
+		fmt.Println("done")
+
+		return nil
 	}
 
 }

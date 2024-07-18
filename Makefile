@@ -94,13 +94,18 @@ godefs:
 dockerbuild:
 	docker build --tag '${DOCKER_TAG}' --build-arg="LIBTORCH_URL=${LIBTORCH_URL}" .
 
-.PHONY: dockerbuild
+.PHONY: dockerterm
 dockerterm:
 	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} --rm  -it --entrypoint zsh ${DOCKER_TAG}
+
+.PHONY: search
+search:
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=search -http-chunk-size=200 -hn-fetch-size=10000 ${DOCKER_RUN_ARGS}
 
 .PHONY: index
 index:
 	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=index -http-chunk-size=200 -hn-fetch-size=10000 ${DOCKER_RUN_ARGS}
+
 
 .PHONY: meta
 meta:

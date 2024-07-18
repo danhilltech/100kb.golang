@@ -48,6 +48,7 @@ var ErrHostLimitHit = fmt.Errorf("per host limit hit")
 var ErrTooManyRetries = fmt.Errorf("too many retries here")
 var ErrNotFound = fmt.Errorf("url not found")
 var ErrNotInCache = fmt.Errorf("url not in cache")
+var ErrTeapotFailed = fmt.Errorf("teapot failing")
 
 func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
@@ -131,6 +132,10 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	}
 
 	servingHosts := strings.Split(req.URL.Hostname(), ".")
+
+	if len(servingHosts) < 2 {
+		return nil, fmt.Errorf("invalid serving host")
+	}
 
 	servingHost := strings.Join(servingHosts[len(servingHosts)-2:], ".")
 
@@ -317,7 +322,7 @@ func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 			if err != nil {
 				return nil, err
 			}
-			return nil, ErrNotFound
+			return nil, ErrTeapotFailed
 		}
 	case http.StatusTooManyRequests:
 		{
@@ -354,7 +359,7 @@ func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 
 	isGoodContentType := false
 
-	goodTypes := []string{"text/html", "application/rss+xml", "application/atom+xml", "text/xml", "application/xml", "application/rss"}
+	goodTypes := []string{"text/html", "application/rss+xml", "application/atom+xml", "text/xml", "application/xml", "application/rss", "application/xhtml+xml"}
 
 	for _, typ := range goodTypes {
 		if strings.Contains(resp.Header.Get("Content-Type"), typ) {

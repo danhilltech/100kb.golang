@@ -33,7 +33,7 @@ func (engine *Engine) identifyURL(baseUrl string) (bool, bool, bool, bool, error
 	domains := strings.Split(popularDomainsList, "\n")
 
 	for _, domain := range domains {
-		if strings.Contains(baseUrlP.Hostname(), domain) {
+		if strings.HasSuffix(baseUrlP.Hostname(), domain) {
 			popularDomain = true
 			break
 		}

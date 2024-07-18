@@ -25,6 +25,14 @@ import (
 	"github.com/smira/go-statsd"
 )
 
+var (
+	MODE_INDEX  = "index"
+	MODE_SEARCH = "search"
+	MODE_META   = "meta"
+	MODE_TRAIN  = "train"
+	MODE_OUTPUT = "output"
+)
+
 func main() {
 	fmt.Println("Running\t\t\t🔥🔥🔥")
 
@@ -75,13 +83,15 @@ func main() {
 	dbMode := "r"
 
 	switch *mode {
-	case "index":
+	case MODE_INDEX:
 		dbMode = "rwc"
-	case "meta":
+	case MODE_SEARCH:
+		dbMode = "rwc"
+	case MODE_META:
 		dbMode = "rw"
-	case "output":
+	case MODE_OUTPUT:
 		dbMode = "rw"
-	case "train":
+	case MODE_TRAIN:
 
 		err := train.TrainSVM(*cacheDir)
 		if err != nil {
@@ -107,7 +117,7 @@ func main() {
 	}
 	fmt.Printf("sqlite3 version: \t%s\n", dbVer)
 
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
@@ -141,20 +151,7 @@ func main() {
 
 	// Now run tasks
 	switch *mode {
-	case "index":
-		// 1. Get latest hackernews content
-		err = crawlEngine.RunHNRefresh(*httpChunkSize, *hnFetchSize, httpWorkers)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		// // 2. Check HN stories for any new feeds
-		err = feedEngine.RunNewFeedSearch(*httpChunkSize, httpWorkers)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	case MODE_INDEX:
 
 		// // 3. Get latest articles from our feeds
 		err = feedEngine.RunFeedRefresh(*httpChunkSize, httpWorkers)
@@ -171,8 +168,31 @@ func main() {
 		}
 
 		db.Tidy()
+	case MODE_SEARCH:
+		// 1. Get latest hackernews content
+		err = crawlEngine.RunHNRefresh(*httpChunkSize, *hnFetchSize, httpWorkers)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 
-	case "meta":
+		// // 2. Check HN stories for any new feeds
+		err = feedEngine.RunNewFeedSearch(*httpChunkSize, httpWorkers)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		// // 2. Check HN stories for any new feeds
+		err = feedEngine.RunKagiList()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		db.Tidy()
+
+	case MODE_META:
 		// 5. Generate metadata for articles
 		err = articleEngine.RunArticleMeta(*metaChunkSize)
 		if err != nil {
@@ -196,7 +216,7 @@ func main() {
 
 		db.Tidy()
 
-	case "output":
+	case MODE_OUTPUT:
 
 		articles, err := articleEngine.GetAllValid()
 		if err != nil {

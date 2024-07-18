@@ -341,7 +341,15 @@ func (node *SimpleNode) String() string {
 
 func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnalysis, error) {
 
-	parseAnalysis := ParseAnalysis{}
+	parseAnalysis := ParseAnalysis{
+		Ids:           make([]string, 0),
+		Classes:       make([]string, 0),
+		Urls:          make([]string, 0),
+		Links:         make([]string, 0),
+		BadUrls:       make([]string, 0),
+		BadElements:   make([]string, 0),
+		BadLinkTitles: make([]string, 0),
+	}
 
 	walkHtmlNodesAndIdentify(z, &parseAnalysis)
 
