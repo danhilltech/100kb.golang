@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/andybalholm/cascadia"
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
@@ -340,7 +341,11 @@ func (node *SimpleNode) String() string {
 
 }
 
+var ieMutex sync.Mutex
+
 func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnalysis, error) {
+	ieMutex.Lock()
+	defer ieMutex.Unlock()
 
 	parseAnalysis := ParseAnalysis{
 		Ids:           make([]string, 0),
