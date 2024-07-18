@@ -354,9 +354,11 @@ func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnal
 
 	walkHtmlNodesAndIdentify(z, &parseAnalysis)
 
-	if parseAnalysis.Classes == nil || parseAnalysis.Ids == nil {
-		return nil, fmt.Errorf("DANDANDAN invalid classes %+v", parseAnalysis)
-	}
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("recovered", r, baseUrl, parseAnalysis)
+		}
+	}()
 
 	badIdsAndClasses, badUrls, err := engine.adblock.Filter(parseAnalysis.Ids, parseAnalysis.Classes, parseAnalysis.Urls, baseUrl)
 	if err != nil {
