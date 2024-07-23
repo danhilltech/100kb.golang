@@ -64,12 +64,12 @@ func NewAdblockEngine() (*AdblockEngine, error) {
 	engine := AdblockEngine{}
 	engine.pinner = runtime.Pinner{}
 
-	engine.pinner.Pin(reqBytes)
-
 	reqSize := uintptr(len(reqBytes))
 
 	creqSize := unsafe.Pointer(&reqSize)
 	reqPtr := unsafe.Pointer(&reqBytes[0])
+
+	engine.pinner.Pin(reqPtr)
 
 	a := C.new_adblock((*C.uchar)(reqPtr), (*C.size_t)(creqSize))
 	engine.pinner.Pin(a)
