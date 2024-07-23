@@ -515,12 +515,6 @@ func (domain *Domain) GetFloatFeatures() []float64 {
 		features = append(features, 0)
 	}
 
-	if domain.LoadsAmazonAds {
-		features = append(features, 1.0)
-	} else {
-		features = append(features, 0)
-	}
-
 	features = append(features, safeLog(float64(domain.TotalNetworkRequests)))
 	features = append(features, safeLog(float64(domain.TotalScriptRequests)))
 	features = append(features, safeLog(float64(domain.TTI)))

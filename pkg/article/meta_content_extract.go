@@ -62,10 +62,10 @@ func (engine *Engine) articleExtractContent(article *Article, adblock *parsing.A
 
 	mapLock.Lock()
 	defer mapLock.Unlock()
-	if engine.langDomainCacheNonEng[article.Domain] > 2 {
+	if engine.langDomainCacheNonEng[article.Domain] > 3 {
 		article.Stage = STAGE_FAILED
 		return fmt.Errorf("not in english (cached) %s", article.Url)
-	} else if engine.langDomainCacheEng[article.Domain] > 2 {
+	} else if engine.langDomainCacheEng[article.Domain] > 3 {
 	} else {
 
 		mapLock.Unlock()

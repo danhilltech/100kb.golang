@@ -18,7 +18,7 @@ import (
 )
 
 type AdblockEngine struct {
-	engine unsafe.Pointer
+	engine *C.AdblockEngine
 	mutex  sync.Mutex
 }
 
@@ -66,7 +66,7 @@ func NewAdblockEngine() (*AdblockEngine, error) {
 
 	a := C.new_adblock((*C.uchar)(reqPtr), (*C.size_t)(creqSize))
 
-	return &AdblockEngine{engine: unsafe.Pointer(a)}, nil
+	return &AdblockEngine{engine: a}, nil
 
 }
 
