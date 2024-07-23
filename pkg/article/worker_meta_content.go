@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime"
 	"time"
+
+	"github.com/danhilltech/100kb.golang/pkg/parsing"
 )
 
 func (engine *Engine) RunArticleMeta(chunkSize int) error {
@@ -75,8 +77,16 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 }
 
 func (engine *Engine) articeMetaWorker(jobs <-chan *Article, results chan<- *Article) {
+
+	adblock, err := parsing.NewAdblockEngine()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer adblock.Close()
+
 	for id := range jobs {
-		err := engine.articleExtractContent(id)
+		err := engine.articleExtractContent(id, adblock)
 		if err != nil {
 			fmt.Println(err)
 		}

@@ -337,7 +337,7 @@ func (node *SimpleNode) String() string {
 
 }
 
-func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnalysis, error) {
+func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string, adblock *AdblockEngine) (*ParseAnalysis, error) {
 
 	parseAnalysis := ParseAnalysis{
 		Ids:           make([]string, 0),
@@ -351,7 +351,7 @@ func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnal
 
 	walkHtmlNodesAndIdentify(z, &parseAnalysis)
 
-	badIdsAndClasses, badUrls, err := engine.adblock.Filter(parseAnalysis.Ids, parseAnalysis.Classes, parseAnalysis.Urls, baseUrl)
+	badIdsAndClasses, badUrls, err := adblock.Filter(parseAnalysis.Ids, parseAnalysis.Classes, parseAnalysis.Urls, baseUrl)
 	if err != nil {
 		return nil, err
 	}

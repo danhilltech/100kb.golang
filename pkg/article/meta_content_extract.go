@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/danhilltech/100kb.golang/pkg/parsing"
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"github.com/pemistahl/lingua-go"
 	"golang.org/x/net/html"
@@ -12,7 +13,7 @@ import (
 
 var mapLock sync.Mutex
 
-func (engine *Engine) articleExtractContent(article *Article) error {
+func (engine *Engine) articleExtractContent(article *Article, adblock *parsing.AdblockEngine) error {
 	// Check we have enough data
 	article.LastContentExtractAt = time.Now().Unix()
 
@@ -29,7 +30,7 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 		return fmt.Errorf("could not parse %w", err)
 	}
 
-	analysis, err := engine.parser.IdentifyElements(htmlDoc, article.Url)
+	analysis, err := engine.parser.IdentifyElements(htmlDoc, article.Url, adblock)
 	if err != nil {
 		return fmt.Errorf("could not identify bad element %w", err)
 	}
