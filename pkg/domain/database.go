@@ -23,7 +23,15 @@ urlHumanName,
 domainIsPopular,
 domainTLD,
 platform,
-domainGoogleAds
+loadsGoogleTagManager,
+loadsGoogleAds,
+loadsGoogleAdServices,
+loadsPubmatic,
+loadsTwitterAds,
+loadsAmazonAds,
+totalNetworkRequests,
+totalScriptRequests,
+tti
 `
 
 func (engine *Engine) initDB(db *sql.DB) error {
@@ -46,7 +54,15 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	domainIsPopular = ?,
 	domainTLD = ?,
 	platform = ?,
-	domainGoogleAds = ?
+	loadsGoogleTagManager = ?,
+	loadsGoogleAds = ?,
+	loadsGoogleAdServices = ?,
+	loadsPubmatic = ?,
+	loadsTwitterAds = ?,
+	loadsAmazonAds = ?,
+	totalNetworkRequests = ?,
+	totalScriptRequests = ?,
+	tti = ?
 	
 	WHERE domain = ?;`)
 	if err != nil {
@@ -68,6 +84,8 @@ func (engine *Engine) Insert(txn *sql.Tx, domain string, feedurl string) error {
 
 }
 
+// move adblock filter to validate domain
+
 func (engine *Engine) Update(txn *sql.Tx, feed *Domain) error {
 	_, err := txn.Stmt(engine.dbUpdatePreparedFeed).Exec(
 		utils.NullInt64(feed.LastFetchAt),
@@ -80,7 +98,15 @@ func (engine *Engine) Update(txn *sql.Tx, feed *Domain) error {
 		utils.NullBool(feed.DomainIsPopular),
 		utils.NullString(feed.DomainTLD),
 		utils.NullString(feed.Platform),
-		utils.NullBool(feed.DomainGoogleAds),
+		utils.NullBool(feed.LoadsGoogleTagManager),
+		utils.NullBool(feed.LoadsGoogleAds),
+		utils.NullBool(feed.LoadsGoogleAdServices),
+		utils.NullBool(feed.LoadsPubmatic),
+		utils.NullBool(feed.LoadsTwitterAds),
+		utils.NullBool(feed.LoadsAmazonAds),
+		utils.NullInt64(feed.TotalNetworkRequests),
+		utils.NullInt64(feed.TotalScriptRequests),
+		utils.NullInt64(feed.TTI),
 		feed.Domain,
 	)
 	if err != nil && err != sql.ErrNoRows {
@@ -95,7 +121,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 	var lastFetchAt, lastValidateAt sql.NullInt64
 	var feedTitle, language sql.NullString
 
-	var urlNews, urlBlog, urlHumanName, domainIsPopular, domainGoogleAds sql.NullInt64
+	var urlNews, urlBlog, urlHumanName, domainIsPopular, loadsGoogleTagManager, loadsGoogleAds, loadsGoogleAdServices, loadsPubmatic, loadsTwitterAds, loadsAmazonAds, totalNetworkRequests, totalScriptRequests, tti sql.NullInt64
 	var domainTLD, platform sql.NullString
 
 	err := res.Scan(
@@ -111,26 +137,42 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		&domainIsPopular,
 		&domainTLD,
 		&platform,
-		&domainGoogleAds,
+		&loadsGoogleTagManager,
+		&loadsGoogleAds,
+		&loadsGoogleAdServices,
+		&loadsPubmatic,
+		&loadsTwitterAds,
+		&loadsAmazonAds,
+		&totalNetworkRequests,
+		&totalScriptRequests,
+		&tti,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	d := &Domain{
-		Domain:          domain,
-		FeedURL:         feedUrl,
-		LastFetchAt:     lastFetchAt.Int64,
-		LastValidateAt:  lastValidateAt.Int64,
-		FeedTitle:       feedTitle.String,
-		Language:        language.String,
-		URLNews:         urlNews.Int64 > 0,
-		URLBlog:         urlBlog.Int64 > 0,
-		URLHumanName:    urlHumanName.Int64 > 0,
-		DomainIsPopular: domainIsPopular.Int64 > 0,
-		DomainTLD:       domainTLD.String,
-		Platform:        platform.String,
-		DomainGoogleAds: domainGoogleAds.Int64 > 0,
+		Domain:                domain,
+		FeedURL:               feedUrl,
+		LastFetchAt:           lastFetchAt.Int64,
+		LastValidateAt:        lastValidateAt.Int64,
+		FeedTitle:             feedTitle.String,
+		Language:              language.String,
+		URLNews:               urlNews.Int64 > 0,
+		URLBlog:               urlBlog.Int64 > 0,
+		URLHumanName:          urlHumanName.Int64 > 0,
+		DomainIsPopular:       domainIsPopular.Int64 > 0,
+		DomainTLD:             domainTLD.String,
+		Platform:              platform.String,
+		LoadsGoogleTagManager: loadsGoogleTagManager.Int64 > 0,
+		LoadsGoogleAds:        loadsGoogleAds.Int64 > 0,
+		LoadsGoogleAdServices: loadsGoogleAdServices.Int64 > 0,
+		LoadsPubmatic:         loadsPubmatic.Int64 > 0,
+		LoadsTwitterAds:       loadsTwitterAds.Int64 > 0,
+		LoadsAmazonAds:        loadsAmazonAds.Int64 > 0,
+		TotalNetworkRequests:  totalNetworkRequests.Int64,
+		TotalScriptRequests:   totalScriptRequests.Int64,
+		TTI:                   tti.Int64,
 	}
 	return d, nil
 }

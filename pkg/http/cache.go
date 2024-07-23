@@ -12,6 +12,7 @@ import (
 func AdvancedTransformExample(key string) *diskv.PathKey {
 	path := strings.Split(key, "/")
 	last := len(path) - 1
+
 	return &diskv.PathKey{
 		Path:     path[:last],
 		FileName: path[last] + ".txt",

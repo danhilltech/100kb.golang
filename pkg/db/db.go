@@ -56,7 +56,15 @@ CREATE TABLE IF NOT EXISTS domains (
 	urlBlog INTEGER,
 	urlHumanName INTEGER,
 
-	domainGoogleAds INTEGER
+	loadsGoogleTagManager INTEGER,
+	loadsGoogleAds INTEGER,
+	loadsGoogleAdServices INTEGER,
+	loadsPubmatic INTEGER,
+	loadsTwitterAds INTEGER,
+	loadsAmazonAds INTEGER,
+	totalNetworkRequests INTEGER,
+	totalScriptRequests INTEGER,
+	tti INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS domains_feedUrl ON domains(feedUrl);
@@ -82,7 +90,6 @@ CREATE TABLE IF NOT EXISTS articles (
 	extractedKeywords BLOB,
 	classifications BLOB,
 	htmlLength INTEGER,
-	containsGoogleTagManager INTEGER,
 	stage INTEGER
 );
 

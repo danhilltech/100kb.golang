@@ -75,6 +75,11 @@ func (engine *AdblockEngine) Close() {
 }
 
 func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []string, baseUrl string) ([]string, []string, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+	}()
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 

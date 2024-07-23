@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"database/sql"
 	"fmt"
 	"io"
 	"net"
@@ -22,7 +21,6 @@ const RetryCount = 2
 
 type Client struct {
 	httpClient *http.Client
-	db         *sql.DB
 	sd         *statsd.Client
 }
 
@@ -60,7 +58,9 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	req.Header.Set("DNT", "1")
 
-	t.sd.Incr("http.roundtrip.start", 1)
+	if t.sd != nil {
+		t.sd.Incr("http.roundtrip.start", 1)
+	}
 
 	var err error
 
@@ -68,8 +68,9 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	if err != nil {
 		return nil, err
 	}
-
-	t.sd.Incr("http.roundtrip.checkingDisk", 1)
+	if t.sd != nil {
+		t.sd.Incr("http.roundtrip.checkingDisk", 1)
+	}
 	// Check our cache
 
 	diskStream, _ := t.cache.ReadStream(k, false)
@@ -77,7 +78,9 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	var cached *http.Response
 
 	if diskStream != nil {
-		t.sd.Incr("http.roundtrip.diskCacheHit", 1)
+		if t.sd != nil {
+			t.sd.Incr("http.roundtrip.diskCacheHit", 1)
+		}
 		// defer diskStream.Close()
 		// data, err := io.ReadAll(diskStream)
 
@@ -102,11 +105,11 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 			cached.Header.Set("x-100kb-from-cache", "1")
 			// Todo, retry some errors?
 
-			if int64(lastAttemptAt) > (time.Now().Unix()-60*60*24*3) && cached.StatusCode == http.StatusTeapot {
+			if int64(lastAttemptAt) > (time.Now().Unix()-60*60*3) && cached.StatusCode == http.StatusTeapot {
 				return cached, nil
 			}
 
-			if cached.StatusCode >= 400 {
+			if cached.StatusCode >= 400 && cached.StatusCode != http.StatusTeapot {
 				return cached, nil
 			}
 
@@ -118,10 +121,13 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 				return cached, nil
 			}
 		}
+		cached.Header.Set("x-100kb-from-cache", "0")
 
 	}
 
-	t.sd.Incr("http.roundtrip.diskCacheMiss", 1)
+	if t.sd != nil {
+		t.sd.Incr("http.roundtrip.diskCacheMiss", 1)
+	}
 
 	if cached != nil {
 		if cached.Header.Get("etag") != "" {
@@ -244,7 +250,7 @@ func dialTimeout(network, addr string) (net.Conn, error) {
 	return net.DialTimeout(network, addr, 3000*time.Millisecond)
 }
 
-func NewClient(cacheDir string, db *sql.DB, sd *statsd.Client) (*Client, error) {
+func NewClient(cacheDir string, sd *statsd.Client) (*Client, error) {
 
 	limiter, err := NewRateLimiter(50, 2, 50_000)
 	if err != nil {
@@ -297,7 +303,6 @@ func NewClient(cacheDir string, db *sql.DB, sd *statsd.Client) (*Client, error) 
 
 	client := Client{
 		httpClient: &httpC,
-		db:         db,
 		sd:         sd,
 	}
 
@@ -322,7 +327,7 @@ func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 			if err != nil {
 				return nil, err
 			}
-			return nil, ErrTeapotFailed
+			return nil, fmt.Errorf("%s: %w", req.URL.String(), ErrTeapotFailed)
 		}
 	case http.StatusTooManyRequests:
 		{

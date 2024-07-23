@@ -3,9 +3,7 @@ package parsing
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/andybalholm/cascadia"
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
@@ -29,8 +27,6 @@ type ParseAnalysis struct {
 	BadUrls       []string
 	BadElements   []string
 	BadLinkTitles []string
-
-	ContainsGoogleTagManager bool
 }
 
 var whitespaceTable = [256]bool{
@@ -341,11 +337,7 @@ func (node *SimpleNode) String() string {
 
 }
 
-var ieMutex sync.Mutex
-
 func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnalysis, error) {
-	ieMutex.Lock()
-	defer ieMutex.Unlock()
 
 	parseAnalysis := ParseAnalysis{
 		Ids:           make([]string, 0),
@@ -358,14 +350,6 @@ func (engine *Engine) IdentifyElements(z *html.Node, baseUrl string) (*ParseAnal
 	}
 
 	walkHtmlNodesAndIdentify(z, &parseAnalysis)
-
-	fmt.Println("ie on", baseUrl)
-
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("recovered", r, baseUrl, parseAnalysis)
-		}
-	}()
 
 	badIdsAndClasses, badUrls, err := engine.adblock.Filter(parseAnalysis.Ids, parseAnalysis.Classes, parseAnalysis.Urls, baseUrl)
 	if err != nil {
@@ -471,10 +455,6 @@ func walkHtmlNodesAndIdentify(n *html.Node, pa *ParseAnalysis) {
 			}
 			if attr.Key == "src" {
 				pa.Urls = append(pa.Urls, attr.Val)
-
-				if strings.Contains(attr.Val, "googletagmanager") {
-					pa.ContainsGoogleTagManager = true
-				}
 			}
 
 		}

@@ -68,7 +68,7 @@ pkg/svm/libsvm.so: $(GO_SVM_SRC)
 .PHONY: build
 build: lib/libgobert.so lib/libgoadblock.so pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go pkg/ai/zero_shot.pb.go pkg/svm/libsvm.so
 	@echo "👉 Building go binary"
-	go build -ldflags="-r $(ROOT_DIR)lib" -tags '$(GO_BUILD_TAGS)'
+	go build -gcflags=all=-d=checkptr -race -ldflags="-r $(ROOT_DIR)lib" -tags '$(GO_BUILD_TAGS)'
 
 .PHONY: release
 release: clean debug build

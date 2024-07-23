@@ -372,28 +372,6 @@ func (d *Domain) GetWordsPerParagraph() float64 {
 	return val
 }
 
-func (d *Domain) ContainsGoogleTagManager() bool {
-	arts := d.GetLatestArticlesToScore()
-	if len(arts) == 0 {
-		return false
-	}
-
-	tagCount := int64(0)
-
-	for _, a := range arts {
-		tagCount += a.ContainsGoogleTagManager
-
-	}
-
-	val := float64(tagCount) / float64(len(arts))
-
-	if math.IsNaN(val) || math.IsInf(val, 0) {
-		return false
-	}
-
-	return val > 0.5
-}
-
 func (d *Domain) GetGoodBadTagRatio() float64 {
 
 	val := float64(d.GetGoodTagCount()) / float64(d.GetBadTagCount()+d.GetGoodTagCount())
@@ -436,8 +414,15 @@ func (domain *Domain) GetFloatFeatureNames() []string {
 	names = append(names, "urlBlog")
 	names = append(names, "urlNews")
 	names = append(names, "popularDomain")
-	names = append(names, "containsGoogleTagManager")
-	names = append(names, "containsGoogleAds")
+	names = append(names, "loadsGoogleTagManager")
+	names = append(names, "loadsGoogleAds")
+	names = append(names, "loadsGoogleAdServices")
+	names = append(names, "loadsPubmatic")
+	names = append(names, "loadsTwitterAds")
+	names = append(names, "loadsAmazonAds")
+	names = append(names, "totalNetworkRequests")
+	names = append(names, "totalScriptRequests")
+	names = append(names, "tti")
 
 	return names
 }
@@ -493,17 +478,52 @@ func (domain *Domain) GetFloatFeatures() []float64 {
 	} else {
 		features = append(features, 0)
 	}
-	if domain.ContainsGoogleTagManager() {
+
+	if domain.LoadsGoogleTagManager {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, 0)
 	}
 
-	if domain.DomainGoogleAds {
+	if domain.LoadsGoogleAds {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, 0)
 	}
+
+	if domain.LoadsGoogleAdServices {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, 0)
+	}
+
+	if domain.LoadsPubmatic {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, 0)
+	}
+
+	if domain.LoadsTwitterAds {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, 0)
+	}
+
+	if domain.LoadsAmazonAds {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, 0)
+	}
+
+	if domain.LoadsAmazonAds {
+		features = append(features, 1.0)
+	} else {
+		features = append(features, 0)
+	}
+
+	features = append(features, safeLog(float64(domain.TotalNetworkRequests)))
+	features = append(features, safeLog(float64(domain.TotalScriptRequests)))
+	features = append(features, safeLog(float64(domain.TTI)))
 
 	return features
 }

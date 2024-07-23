@@ -59,8 +59,6 @@ type Article struct {
 	ExtractedKeywords *serialize.Keywords
 	Classifications   *serialize.Keywords
 
-	ContainsGoogleTagManager int64
-
 	// Used in live/output
 	DomainScore float64
 }
@@ -74,7 +72,7 @@ func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool)
 		return nil, err
 	}
 
-	engine.http, err = retryhttp.NewClient(cachePath, db, sd)
+	engine.http, err = retryhttp.NewClient(cachePath, sd)
 	if err != nil {
 		return nil, err
 	}

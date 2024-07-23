@@ -32,7 +32,16 @@ type Domain struct {
 
 	DomainIsPopular bool
 	DomainTLD       string
-	DomainGoogleAds bool
+
+	LoadsGoogleTagManager bool
+	LoadsGoogleAds        bool
+	LoadsGoogleAdServices bool
+	LoadsPubmatic         bool
+	LoadsTwitterAds       bool
+	LoadsAmazonAds        bool
+	TotalNetworkRequests  int64
+	TotalScriptRequests   int64
+	TTI                   int64
 
 	Platform string
 
@@ -56,7 +65,7 @@ func NewEngine(db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cac
 
 	// engine.http = hnClient
 
-	engine.httpCrawl, err = retryhttp.NewClient(cacheDir, db, sd)
+	engine.httpCrawl, err = retryhttp.NewClient(cacheDir, sd)
 	if err != nil {
 		return nil, err
 	}

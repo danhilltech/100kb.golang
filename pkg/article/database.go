@@ -33,8 +33,7 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	badLinkCount = ?,
 	classifications = ?,
 	htmlLength = ?,
-	stage = ?,
-	containsGoogleTagManager = ?
+	stage = ?
 	WHERE url = ?;`)
 	if err != nil {
 		return err
@@ -112,7 +111,6 @@ func (engine *Engine) Update(txn *sql.Tx, article *Article) error {
 		utils.NullString(string(classifications)),
 		utils.NullInt64(article.HTMLLength),
 		utils.NullInt64(article.Stage),
-		utils.NullInt64(article.ContainsGoogleTagManager),
 		article.Url,
 	)
 	return err
@@ -137,8 +135,7 @@ linkCount,
 badLinkCount,
 classifications, 
 htmlLength,
-stage,
-containsGoogleTagManager`
+stage`
 
 func articleRowScan(res *sql.Rows) (*Article, error) {
 	var url string
@@ -161,7 +158,6 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	var htmlLength sql.NullInt64
 
 	var stage sql.NullInt64
-	var containsGoogleTagManager sql.NullInt64
 
 	err := res.Scan(
 		&url,
@@ -184,7 +180,6 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 		&classificationsJSON,
 		&htmlLength,
 		&stage,
-		&containsGoogleTagManager,
 	)
 	if err != nil {
 		return nil, err
@@ -231,28 +226,26 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 	}
 
 	article := &Article{
-		Url:                      url,
-		FeedUrl:                  feedUrl,
-		PublishedAt:              publishedAt,
-		LastFetchAt:              lastFetchAt.Int64,
-		LastMetaAt:               lastMetaAt.Int64,
-		LastContentExtractAt:     lastContentExtractAt.Int64,
-		Title:                    title.String,
-		Description:              description.String,
-		BodyRaw:                  &bodyRaw,
-		Body:                     &body,
-		SentenceEmbedding:        &sentenceEmbeding,
-		ExtractedKeywords:        &extractedKeywords,
-		Domain:                   domain,
-		BadCount:                 badCount.Int64,
-		BadElementCount:          badElementCount.Int64,
-		LinkCount:                linkCount.Int64,
-		BadLinkCount:             badLinkCount.Int64,
-		Classifications:          &classifications,
-		HTMLLength:               htmlLength.Int64,
-		ContainsGoogleTagManager: containsGoogleTagManager.Int64,
-
-		Stage: stage.Int64,
+		Url:                  url,
+		FeedUrl:              feedUrl,
+		PublishedAt:          publishedAt,
+		LastFetchAt:          lastFetchAt.Int64,
+		LastMetaAt:           lastMetaAt.Int64,
+		LastContentExtractAt: lastContentExtractAt.Int64,
+		Title:                title.String,
+		Description:          description.String,
+		BodyRaw:              &bodyRaw,
+		Body:                 &body,
+		SentenceEmbedding:    &sentenceEmbeding,
+		ExtractedKeywords:    &extractedKeywords,
+		Domain:               domain,
+		BadCount:             badCount.Int64,
+		BadElementCount:      badElementCount.Int64,
+		LinkCount:            linkCount.Int64,
+		BadLinkCount:         badLinkCount.Int64,
+		Classifications:      &classifications,
+		HTMLLength:           htmlLength.Int64,
+		Stage:                stage.Int64,
 	}
 
 	return article, nil

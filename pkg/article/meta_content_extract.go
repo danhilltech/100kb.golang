@@ -2,12 +2,15 @@ package article
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/danhilltech/100kb.golang/pkg/serialize"
 	"github.com/pemistahl/lingua-go"
 	"golang.org/x/net/html"
 )
+
+var langMutex sync.Mutex
 
 func (engine *Engine) articleExtractContent(article *Article) error {
 	// Check we have enough data
@@ -22,7 +25,6 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 	defer htmlStream.Body.Close()
 
 	htmlDoc, err := html.Parse(htmlStream.Body)
-
 	if err != nil {
 		return fmt.Errorf("could not parse %w", err)
 	}
@@ -35,9 +37,6 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 	article.BadElementCount = int64(len(analysis.BadElements))
 	article.LinkCount = int64(len(analysis.Links))
 	article.BadLinkCount = int64(len(analysis.BadLinkTitles))
-	if analysis.ContainsGoogleTagManager {
-		article.ContainsGoogleTagManager = 1
-	}
 
 	body, title, description, err := engine.parser.HtmlToText(htmlDoc)
 	if err != nil {
@@ -53,16 +52,15 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 
 	for _, b := range body {
 		considerText = fmt.Sprintf("%s %s", considerText, b.Text)
+		if len(considerText) > 512 {
+			break
+		}
 	}
 
-	// if len(considerText) < 5*100 { // 100 words roughly
-	// 	article.Stage = STAGE_FAILED
-	// 	return fmt.Errorf("short text: %s %s", body[0].Text, article.Url)
-
-	// }
-
 	// Check its in English
+	langMutex.Lock()
 	res, exists := engine.langId.DetectLanguageOf(considerText)
+	langMutex.Unlock()
 
 	if !exists || res != lingua.English {
 		article.Stage = STAGE_FAILED

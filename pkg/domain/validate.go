@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"net/url"
@@ -12,9 +13,7 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
-	"github.com/chromedp/chromedp/device"
 )
 
 type ChromeRunner struct {
@@ -24,6 +23,24 @@ type ChromeRunner struct {
 	CancelContext      context.CancelFunc
 
 	cacheDir string
+}
+
+type ChromeAnalysis struct {
+	LoadsGoogleTagManager bool `json:"loadsGoogleTagManager"`
+	LoadsGoogleAds        bool `json:"loadsGoogleAds"`
+	LoadsGoogleAdServices bool `json:"loadsGoogleAdServices"`
+	LoadsPubmatic         bool `json:"loadsPubmatic"`
+	LoadsTwitterAds       bool `json:"loadsTwitterAds"`
+	LoadsAmazonAds        bool `json:"loadsAmazonAds"`
+
+	TotalNetworkRequests int64 `json:"totalNetworkRequests"`
+	TotalScriptRequests  int64 `json:"totalScriptRequests"`
+
+	BeganAt int64 `json:"beganAt"`
+	TTI     int64 `json:"tti"`
+
+	FinalBody  string `json:"finalBody"`
+	Screenshot []byte `json:"screenshot"`
 }
 
 func (engine *Engine) RunDomainValidate(chunkSize int) error {
@@ -50,7 +67,7 @@ func (engine *Engine) RunDomainValidate(chunkSize int) error {
 	jobs := make(chan *Domain, len(domains))
 	results := make(chan *Domain, len(domains))
 
-	workers := runtime.NumCPU() * 2
+	workers := runtime.NumCPU()
 
 	for w := 1; w <= workers; w++ {
 		go engine.validateDomainWorker(jobs, results)
@@ -128,14 +145,21 @@ func (engine *Engine) validateDomain(domain *Domain) error {
 	domain.DomainIsPopular = popularDomain
 
 	if domain.LiveLatestArticleURL != "" {
-		body, err := engine.chrome.GetDomFromChrone(domain.LiveLatestArticleURL)
+		analysis, err := engine.chrome.GetChromeAnalysis(domain.LiveLatestArticleURL)
 		if err != nil {
 			return err
 		}
 
-		if strings.Contains(body, "google_ads_") {
-			domain.DomainGoogleAds = true
-		}
+		domain.LoadsGoogleAdServices = analysis.LoadsGoogleAdServices
+		domain.LoadsGoogleAds = analysis.LoadsGoogleAds
+		domain.LoadsGoogleTagManager = analysis.LoadsGoogleTagManager
+		domain.LoadsPubmatic = analysis.LoadsPubmatic
+		domain.LoadsTwitterAds = analysis.LoadsTwitterAds
+		domain.LoadsAmazonAds = analysis.LoadsAmazonAds
+		domain.TotalNetworkRequests = analysis.TotalNetworkRequests
+		domain.TotalScriptRequests = analysis.TotalScriptRequests
+		domain.TTI = analysis.TTI
+
 	}
 
 	return nil
@@ -145,30 +169,28 @@ func (engine *Engine) validateDomain(domain *Domain) error {
 func startChrome(cacheDir string) (*ChromeRunner, error) {
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.DisableGPU,
-		chromedp.UserDataDir(".chrome"),
+		chromedp.UserDataDir("/workspaces/100kb.golang/.chrome"),
 		chromedp.Flag("headless", "new"),
-		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("no-first-run", true),
-		chromedp.Flag("--blink-settings", "imagesEnabled=false"),
-		chromedp.Flag("--disable-gl-drawing-for-tests", true),
-		chromedp.Flag("--disable-gl-drawing-for-tests", true),
-		chromedp.Flag("--hide-scrollbars", true),
-		chromedp.Flag("--mute-audio", true),
-		chromedp.Flag("--no-sandbox", true),
-		chromedp.Flag("--disable-setuid-sandbox", true),
-		chromedp.Flag("--disable-translate", true),
-		chromedp.Flag("--disable-extensions", true),
+		chromedp.Flag("blink-settings", "imagesEnabled=false"),
+		chromedp.Flag("disable-gl-drawing-for-tests", true),
+		chromedp.Flag("disable-web-security", true),
+		chromedp.Flag("disable-site-isolation-trials", true),
+		chromedp.Flag("disable-site-isolation-for-policy", true),
+		chromedp.Flag("disable-features", "StrictOriginIsolation,IsolateOrigins"),
+		chromedp.Flag("hide-scrollbars", true),
+		chromedp.Flag("mute-audio", true),
+		chromedp.Flag("no-sandbox", true),
+		chromedp.Flag("disable-setuid-sandbox", true),
+		chromedp.Flag("disable-translate", true),
+		chromedp.Flag("disable-extensions", true),
 	)
 
 	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), opts...)
 
 	var contextOpts []chromedp.ContextOption
 
-	// opts = append(opts, chromedp.WithDebugf(log.Printf))
-
-	// opts = append(opts, chromedp.WithBrowserOption())
-
-	// contextOpts = append(contextOpts, )
+	// contextOpts = append(contextOpts, chromedp.WithDebugf(log.Printf))
 
 	ctx, cancel := chromedp.NewContext(allocCtx, contextOpts...)
 
@@ -195,94 +217,115 @@ func (chrome *ChromeRunner) Shutdown() error {
 	return nil
 }
 
-func (chrome *ChromeRunner) GetDomFromChrone(urlToGet string) (string, error) {
+func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis, error) {
 
 	keyHash := fnv.New64()
 
 	u, err := url.Parse(urlToGet)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	keyHash.Write([]byte(u.Hostname()))
 
 	key := keyHash.Sum64()
 
-	cacheFile := fmt.Sprintf("%s/dom/%d.txt", chrome.cacheDir, key)
-
-	fmt.Println(u, cacheFile)
+	cacheFile := fmt.Sprintf("%s/dom/%d.json", chrome.cacheDir, key)
 
 	existing, err := os.ReadFile(cacheFile)
 	if err == nil && existing != nil {
-		return string(existing), nil
+
+		var existingParsed *ChromeAnalysis
+
+		err = json.Unmarshal(existing, &existingParsed)
+		if err != nil {
+			return nil, err
+		}
+		return existingParsed, nil
+
 	}
 
 	ctx, cancel := chromedp.NewContext(chrome.Context)
 	defer cancel()
 
-	// create a timeout
-	// ctx, cancelTimeout := context.WithTimeout(ctx, time.Second*10)
-	// defer cancelTimeout()
-
 	var body string
+	var screenshot []byte
 
-	if err := chromedp.Run(ctx,
-		chromedp.Tasks{
-			chromedp.Emulate(device.IPhone13),
-			navigateAndWaitFor(urlToGet, "InteractiveTime"),
-			chromedp.OuterHTML("html", &body),
-		},
-	); err != nil {
-		return body, err
+	start := time.Now().UnixMilli()
+
+	analysis := ChromeAnalysis{
+		BeganAt: start,
+		TTI:     1000 * 60,
 	}
 
-	os.Mkdir(fmt.Sprintf("%s/dom", chrome.cacheDir), os.ModePerm)
-	os.WriteFile(cacheFile, []byte(body), os.ModePerm)
-
-	return body, nil
-}
-
-func navigateAndWaitFor(url string, eventName string) chromedp.ActionFunc {
-	return func(ctx context.Context) error {
-		_, _, _, err := page.Navigate(url).Do(ctx)
-		if err != nil {
-			return err
-		}
-
-		return waitFor(ctx, eventName)
-	}
-}
-
-func waitFor(ctx context.Context, eventName string) error {
-	ch := make(chan struct{})
-	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	chromedp.ListenTarget(cctx, func(ev interface{}) {
+	chromedp.ListenTarget(ctx, func(ev interface{}) {
 		switch e := ev.(type) {
-		case *page.EventLifecycleEvent:
-			{
-				if e.Name == eventName {
-					cancel()
-					close(ch)
-				}
-			}
+
 		case *network.EventRequestWillBeSent:
 			{
-				if strings.Contains(e.Request.URL, "google") {
-					fmt.Println(e.Request.URL)
+				// fmt.Println(e.Request.URL)
+
+				if e.Type == "Script" {
+					analysis.TotalScriptRequests++
+				}
+
+				analysis.TotalNetworkRequests++
+
+				if strings.Contains(e.Request.URL, "googleadservices.com") {
+					analysis.LoadsGoogleAdServices = true
+				}
+				if strings.Contains(e.Request.URL, "googlesyndication.com") {
+					analysis.LoadsGoogleAds = true
+				}
+				if strings.Contains(e.Request.URL, "googletagmanager.com") {
+					analysis.LoadsGoogleTagManager = true
+				}
+				if strings.Contains(e.Request.URL, "pubmatic.com") {
+					analysis.LoadsPubmatic = true
+				}
+				if strings.Contains(e.Request.URL, "ads-twitter.com") {
+					analysis.LoadsTwitterAds = true
+				}
+				if strings.Contains(e.Request.URL, "amazon-adsystem.com") {
+					analysis.LoadsAmazonAds = true
 				}
 			}
 		}
 	})
 
-	select {
-	case <-ch:
-		return nil
-	case <-cctx.Done():
-		fmt.Println("done")
+	cctx, ccancel := context.WithTimeout(ctx, 35*time.Second)
+	defer ccancel()
 
-		return nil
+	chromedp.Run(cctx,
+		chromedp.Tasks{
+			chromedp.EmulateViewport(1440, 900),
+			enableLifeCycleEvents(),
+			navigateTo(urlToGet),
+			waitForEvent("InteractiveTime", &analysis),
+			acceptCookies(),
+			chromedp.Sleep(1 * time.Second),
+			waitForEvent("networkIdle", &analysis),
+			chromedp.Sleep(3 * time.Second),
+			captureScreenshot(&screenshot),
+			chromedp.OuterHTML("html", &body),
+		},
+	)
+
+	analysis.Screenshot = screenshot
+	analysis.FinalBody = body
+
+	os.Mkdir(fmt.Sprintf("%s/dom", chrome.cacheDir), os.ModePerm)
+
+	cacheWrite, err := json.Marshal(analysis)
+	if err != nil {
+		return nil, err
 	}
 
+	os.WriteFile(cacheFile, cacheWrite, os.ModePerm)
+
+	end := time.Now().UnixMilli()
+
+	fmt.Printf("chrome for %s took %dms\n", urlToGet, end-start)
+
+	return &analysis, nil
 }
