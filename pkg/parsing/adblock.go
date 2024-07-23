@@ -10,6 +10,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync"
 	"unsafe"
@@ -20,6 +21,7 @@ import (
 type AdblockEngine struct {
 	engine *C.AdblockEngine
 	mutex  sync.Mutex
+	pinner runtime.Pinner
 }
 
 //go:embed data/adblock/*.txt
@@ -59,19 +61,27 @@ func NewAdblockEngine() (*AdblockEngine, error) {
 		return nil, err
 	}
 
+	engine := AdblockEngine{}
+	engine.pinner = runtime.Pinner{}
+
+	engine.pinner.Pin(reqBytes)
+
 	reqSize := uintptr(len(reqBytes))
 
 	creqSize := unsafe.Pointer(&reqSize)
 	reqPtr := unsafe.Pointer(&reqBytes[0])
 
 	a := C.new_adblock((*C.uchar)(reqPtr), (*C.size_t)(creqSize))
+	engine.pinner.Pin(a)
+	engine.engine = a
 
-	return &AdblockEngine{engine: a}, nil
+	return &engine, nil
 
 }
 
 func (engine *AdblockEngine) Close() {
 	C.drop_adblock((*C.AdblockEngine)(engine.engine))
+	engine.pinner.Unpin()
 }
 
 func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []string, baseUrl string) ([]string, []string, error) {
