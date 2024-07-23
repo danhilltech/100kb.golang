@@ -67,7 +67,7 @@ func (engine *Engine) RunDomainValidate(chunkSize int) error {
 	jobs := make(chan *Domain, len(domains))
 	results := make(chan *Domain, len(domains))
 
-	workers := runtime.NumCPU()
+	workers := runtime.NumCPU() * 2
 
 	for w := 1; w <= workers; w++ {
 		go engine.validateDomainWorker(jobs, results)
@@ -241,6 +241,7 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("chrome cache hit for %s\n", urlToGet)
 		return existingParsed, nil
 
 	}
@@ -306,8 +307,8 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 			chromedp.Sleep(1 * time.Second),
 			waitForEvent("networkIdle", &analysis),
 			chromedp.Sleep(3 * time.Second),
-			captureScreenshot(&screenshot),
-			chromedp.OuterHTML("html", &body),
+			// captureScreenshot(&screenshot),
+			// chromedp.OuterHTML("html", &body),
 		},
 	)
 

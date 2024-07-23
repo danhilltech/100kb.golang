@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-var langMutex sync.Mutex
+var mapLock sync.Mutex
 
 func (engine *Engine) articleExtractContent(article *Article) error {
 	// Check we have enough data
@@ -58,13 +58,24 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 	}
 
 	// Check its in English
-	langMutex.Lock()
-	res, exists := engine.langId.DetectLanguageOf(considerText)
-	langMutex.Unlock()
 
-	if !exists || res != lingua.English {
+	mapLock.Lock()
+	defer mapLock.Unlock()
+	if engine.langDomainCacheNonEng[article.Domain] > 2 {
 		article.Stage = STAGE_FAILED
-		return fmt.Errorf("not in english %s", article.Url)
+		return fmt.Errorf("not in english (cached) %s", article.Url)
+	} else if engine.langDomainCacheEng[article.Domain] > 2 {
+	} else {
+
+		res, exists := engine.langId.DetectLanguageOf(considerText)
+
+		if !exists || res != lingua.English {
+			article.Stage = STAGE_FAILED
+			engine.langDomainCacheNonEng[article.Domain]++
+			return fmt.Errorf("not in english %s", article.Url)
+		} else {
+			engine.langDomainCacheEng[article.Domain]++
+		}
 	}
 
 	article.BodyRaw = &serialize.Content{Content: body}

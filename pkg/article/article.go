@@ -23,6 +23,9 @@ type Engine struct {
 	sd                      *statsd.Client
 	langId                  lingua.LanguageDetector
 
+	langDomainCacheEng    map[string]int
+	langDomainCacheNonEng map[string]int
+
 	sentenceEmbeddingModel *ai.SentenceEmbeddingModel
 	keywordExtractionModel *ai.KeywordExtractionModel
 	zeroShotModel          *ai.ZeroShotModel
@@ -107,6 +110,9 @@ func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool)
 		lingua.German,
 		lingua.Spanish,
 	}
+
+	engine.langDomainCacheEng = make(map[string]int)
+	engine.langDomainCacheNonEng = make(map[string]int)
 
 	engine.langId = lingua.NewLanguageDetectorBuilder().
 		FromLanguages(languages...).
