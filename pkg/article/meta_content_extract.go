@@ -67,7 +67,9 @@ func (engine *Engine) articleExtractContent(article *Article) error {
 	} else if engine.langDomainCacheEng[article.Domain] > 2 {
 	} else {
 
+		mapLock.Unlock()
 		res, exists := engine.langId.DetectLanguageOf(considerText)
+		mapLock.Lock()
 
 		if !exists || res != lingua.English {
 			article.Stage = STAGE_FAILED
