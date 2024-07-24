@@ -98,6 +98,11 @@ pub extern "C" fn filter(
 
     let src_len = output_vec.len();
 
+    // if src_len == 0 {
+    //     println!("{} len", src_len);
+    //     println!("{:?}", output);
+    // }
+
     unsafe {
         ptr::write(out_size, src_len as libc::size_t);
     }

@@ -4,17 +4,21 @@ import (
 	"bufio"
 	"fmt"
 	"io/fs"
-	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"golang.org/x/net/html"
 )
 
 func TestAdBlock(t *testing.T) {
+
+	numToRun := 20000
+	threads := runtime.NumCPU()
 
 	adblock, err := NewAdblockEngine()
 	if err != nil {
@@ -31,29 +35,48 @@ func TestAdBlock(t *testing.T) {
 			return nil
 		}
 
-		if strings.Contains(path, "GET-") && len(files) < 1000 {
+		if strings.Contains(path, "GET-") && len(files) < numToRun {
 			files = append(files, path)
 		}
 
 		return nil
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// files, err := filepath.Glob("/workspaces/100kb.golang/**/GET-*.txt")
 	// if err != nil {
 	// 	t.Fatal(err)
 	// }
 
-	for i := range files {
-		j := rand.Intn(i + 1)
-		files[i], files[j] = files[j], files[i]
-	}
+	// for i := range files {
+	// 	j := rand.Intn(i + 1)
+	// 	files[i], files[j] = files[j], files[i]
+	// }
 
-	fmt.Println(files[:100])
+	fmt.Println("starting...")
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < 100; i++ {
+	size := 0
+
+	ticker := time.NewTicker(150 * time.Millisecond)
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				runtime.GC()
+			}
+		}
+	}()
+
+	for i := 0; i < numToRun; i++ {
 		wg.Add(1)
+
 		// time.Sleep(5 * time.Millisecond)
 		go func(f string) {
 			defer wg.Done()
@@ -62,8 +85,21 @@ func TestAdBlock(t *testing.T) {
 				fmt.Println(err)
 			}
 		}(files[i])
+
+		if size%threads == 0 {
+			wg.Wait()
+
+		}
+		if size%20 == 0 {
+			fmt.Printf(".")
+		}
+
+		size++
 	}
+
 	wg.Wait()
+	ticker.Stop()
+	done <- true
 
 	defer adblock.Close()
 
@@ -97,6 +133,15 @@ func fakeParse(adblock *AdblockEngine, p string) error {
 	if err != nil {
 		return err
 	}
+
+	// rd := strings.NewReader(`garb`)
+
+	// n, err := html.Parse(rd)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// fmt.Println(p)
 
 	walkHtmlNodesAndIdentify(n, &parseAnalysis)
 

@@ -85,11 +85,6 @@ func (engine *AdblockEngine) Close() {
 }
 
 func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []string, baseUrl string) ([]string, []string, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
-		}
-	}()
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 
@@ -170,9 +165,15 @@ func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []strin
 		defer C.drop_bytesarray(cout)
 	}
 
+	if cout == nil || outSize == 0 {
+		return []string{}, []string{}, nil
+	}
+
 	var resp FilterResponse
 
 	protoBuf := unsafe.Slice((*byte)(cout), outSize)
+
+	// fmt.Println(protoBuf)
 
 	err = proto.Unmarshal(protoBuf, &resp)
 	if err != nil {
