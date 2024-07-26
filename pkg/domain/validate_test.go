@@ -16,7 +16,7 @@ func TestChrome(t *testing.T) {
 	}
 	defer chrome.Shutdown()
 
-	analysis, err := chrome.GetChromeAnalysis("https://www.danhill.is")
+	analysis, err := chrome.GetChromeAnalysis("https://caffeine.wiki")
 
 	if err != nil {
 		t.Log(err)

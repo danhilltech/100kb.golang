@@ -44,6 +44,7 @@ func (engine *Engine) RunNewFeedSearch(ctx context.Context, chunkSize int, worke
 	for a := 1; a <= len(urls); a++ {
 		select {
 		case <-ctx.Done():
+			txn.Commit()
 			return ctx.Err()
 		case feed := <-results:
 
@@ -202,6 +203,7 @@ func (engine *Engine) RunKagiList(ctx context.Context) error {
 	for scanner.Scan() {
 		select {
 		case <-ctx.Done():
+			txn.Commit()
 			return ctx.Err()
 		default:
 

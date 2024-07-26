@@ -4,14 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
-
-	"mvdan.cc/xurls/v2"
 )
 
 // 39,190,942
@@ -65,17 +61,6 @@ func (engine *Engine) getHNItem(id int) (*ToCrawl, error) {
 	err = json.Unmarshal(body, &item)
 	if err != nil {
 		return tmpItem, err
-	}
-
-	if item.Type == "comment" {
-		rxStrict := xurls.Strict()
-
-		txt := html.UnescapeString(item.Text)
-
-		urls := rxStrict.FindAllString(txt, 1)
-		if len(urls) >= 1 && strings.HasPrefix(urls[0], "https://") {
-			item.URL = urls[0]
-		}
 	}
 
 	if item.URL != "" {
@@ -149,17 +134,27 @@ func (engine *Engine) RunHNRefresh(ctx context.Context, chunkSize int, totalFetc
 
 	t := time.Now().UnixMilli()
 
+	txn, _ := engine.db.Begin()
+	defer txn.Rollback()
+
 	for a := 1; a <= len(ids); a++ {
 		select {
 		case <-ctx.Done():
+			txn.Commit()
 			return ctx.Err()
 		case item := <-results:
-			err = engine.InsertToCrawl(item)
+			err = engine.InsertToCrawl(txn, item)
 			if err != nil {
 				return err
 			}
 
 			if a > 0 && a%chunkSize == 0 {
+				err := txn.Commit()
+				if err != nil {
+					return err
+				}
+				txn, _ = engine.db.Begin()
+
 				diff := time.Now().UnixMilli() - t
 				qps := (float64(chunkSize) / float64(diff)) * 1000
 				t = time.Now().UnixMilli()
@@ -169,6 +164,7 @@ func (engine *Engine) RunHNRefresh(ctx context.Context, chunkSize int, totalFetc
 
 		}
 	}
+	txn.Commit()
 	fmt.Printf("\tdone %d\n", len(ids))
 
 	return nil

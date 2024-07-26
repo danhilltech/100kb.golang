@@ -70,7 +70,7 @@ func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) erro
 	jobs := make(chan *Domain, len(domains))
 	results := make(chan *Domain, len(domains))
 
-	workers := runtime.NumCPU() * 2
+	workers := runtime.NumCPU() - 2
 
 	for w := 1; w <= workers; w++ {
 		go engine.validateDomainWorker(jobs, results)
@@ -89,6 +89,7 @@ func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) erro
 	for a := 0; a < len(domains); a++ {
 		select {
 		case <-ctx.Done():
+			txn.Commit()
 			return ctx.Err()
 		case domain := <-results:
 

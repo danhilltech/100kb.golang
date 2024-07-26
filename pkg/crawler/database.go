@@ -21,8 +21,8 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	return nil
 }
 
-func (engine *Engine) InsertToCrawl(item *ToCrawl) error {
-	_, err := engine.dbInsertPreparedToCrawl.Exec(item.URL, utils.NullInt64(int64(item.HNID)), utils.NullString(item.By), item.Type, time.Now().Unix(), item.Time, item.Score, item.Domain)
+func (engine *Engine) InsertToCrawl(txn *sql.Tx, item *ToCrawl) error {
+	_, err := txn.Stmt(engine.dbInsertPreparedToCrawl).Exec(item.URL, utils.NullInt64(int64(item.HNID)), utils.NullString(item.By), item.Type, time.Now().Unix(), item.Time, item.Score, item.Domain)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}

@@ -45,6 +45,7 @@ func (engine *Engine) RunArticleMeta(ctx context.Context, chunkSize int) error {
 	for a := 0; a < len(articles); a++ {
 		select {
 		case <-ctx.Done():
+			txn.Commit()
 			return ctx.Err()
 		case article := <-results:
 

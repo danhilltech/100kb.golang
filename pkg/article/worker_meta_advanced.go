@@ -25,6 +25,7 @@ func (engine *Engine) RunArticleMetaPassII(ctx context.Context) error {
 	for _, article := range articles {
 		select {
 		case <-ctx.Done():
+			txn.Commit()
 			return ctx.Err()
 		default:
 

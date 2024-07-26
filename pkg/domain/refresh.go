@@ -40,7 +40,8 @@ func (engine *Engine) RunFeedRefresh(ctx context.Context, chunkSize int, workers
 	for a := 1; a <= len(feeds); a++ {
 		select {
 		case <-ctx.Done():
-			return nil
+			txn.Commit()
+			return ctx.Err()
 		case domain := <-results:
 
 			err = engine.Update(txn, domain)

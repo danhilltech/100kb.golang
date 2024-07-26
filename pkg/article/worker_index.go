@@ -37,6 +37,7 @@ func (engine *Engine) RunArticleIndex(ctx context.Context, chunkSize int, worker
 	for a := 0; a < len(articles); a++ {
 		select {
 		case <-ctx.Done():
+			txn.Commit()
 			return ctx.Err()
 		case article := <-results:
 
