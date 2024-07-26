@@ -43,3 +43,4 @@ libsvm/
 output-train
 output-train/*
 .chrome
+*.log

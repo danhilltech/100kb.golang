@@ -95,11 +95,11 @@ dockerterm:
 
 .PHONY: search
 search:
-	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=search -http-chunk-size=200 -hn-fetch-size=10000 ${DOCKER_RUN_ARGS}
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=search -http-chunk-size=200 -hn-fetch-size=1000000 ${DOCKER_RUN_ARGS}
 
 .PHONY: index
 index:
-	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=index -http-chunk-size=200 -hn-fetch-size=10000 ${DOCKER_RUN_ARGS}
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=index -http-chunk-size=200 ${DOCKER_RUN_ARGS}
 
 
 .PHONY: meta

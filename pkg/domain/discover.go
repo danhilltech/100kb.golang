@@ -84,7 +84,7 @@ func (engine *Engine) crawlURLForFeedWorker(jobs <-chan string, results chan<- s
 	for id := range jobs {
 		feed, err := engine.extractFeed(id)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(id, err)
 		}
 		results <- feed
 
