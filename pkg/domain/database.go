@@ -241,7 +241,7 @@ func (engine *Engine) getLatestArticleURLs() (map[string]string, error) {
 		
 		FROM articles
 		WHERE stage = ?
-	) as inn WHERE rn = 0;`, article.STAGE_COMPLETE)
+	) as inn WHERE rn = 1;`, article.STAGE_COMPLETE)
 	if err != nil {
 		return nil, err
 	}
