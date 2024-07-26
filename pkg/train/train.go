@@ -117,12 +117,15 @@ func Train(ctx context.Context, cacheDir string) error {
 	}
 	defer domainEngine.Close()
 
+	txn, _ := database.Begin()
+	defer txn.Rollback()
+
 	for _, g := range candidates {
 		u, err := url.Parse(g)
 		if err != nil {
 			return err
 		}
-		err = crawlEngine.InsertToCrawl(&crawler.ToCrawl{
+		err = crawlEngine.InsertToCrawl(txn, &crawler.ToCrawl{
 			URL:    g,
 			Domain: u.Hostname(),
 			Score:  10,
@@ -133,6 +136,7 @@ func Train(ctx context.Context, cacheDir string) error {
 		}
 		entries = append(entries, Entry{url: g, score: 0, domainStr: u.Hostname()})
 	}
+	txn.Commit()
 
 	if !existing {
 
