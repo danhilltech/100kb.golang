@@ -327,7 +327,7 @@ func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 			if err != nil {
 				return nil, err
 			}
-			return nil, fmt.Errorf("%s: %w", req.URL.String(), ErrTeapotFailed)
+			return nil, ErrTeapotFailed
 		}
 	case http.StatusTooManyRequests:
 		{
@@ -374,7 +374,7 @@ func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 
 	if !isGoodContentType {
 		resp.Body.Close()
-		return nil, fmt.Errorf("%w %s %d %s", ErrBadContentType, req.URL.String(), resp.StatusCode, resp.Header.Get("Content-Type"))
+		return nil, ErrBadContentType
 	}
 
 	size := resp.Header.Get("Content-Length")
@@ -383,12 +383,12 @@ func (c *Client) doGet(req *http.Request, attempt int) (*http.Response, error) {
 		sizeInt, err := strconv.ParseInt(size, 10, 64)
 		if err != nil {
 			resp.Body.Close()
-			return nil, fmt.Errorf("%w %s parseInt failed", ErrTooLarge, req.URL.String())
+			return nil, ErrTooLarge
 		}
-		if sizeInt > 500000 && isHTML(resp) { // 100 kb
+		if sizeInt > 10_000_000 && isHTML(resp) { // 100 kb
 			resp.Body.Close()
 
-			return nil, fmt.Errorf("%w %s", ErrTooLarge, req.URL.String())
+			return nil, ErrTooLarge
 		}
 	}
 
@@ -402,7 +402,7 @@ func (c *Client) startRequest(method string, url string) (*http.Response, error)
 	}
 
 	// Check it's a valid domain
-	for _, bad := range BANNED_URLS {
+	for _, bad := range BANNED_DOMAINS {
 		if strings.Contains(req.URL.Hostname(), bad) {
 			return nil, ErrBannedUrl
 		}

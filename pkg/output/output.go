@@ -75,6 +75,43 @@ func NewRenderEnding(outputDir string, articles []*article.Article, domains []*d
 	}, nil
 }
 
+func (engine *RenderEngine) Prepare() error {
+	domainScores := make(map[string]float64, len(engine.domains))
+
+	for _, a := range engine.articles {
+		for _, d := range engine.domains {
+			if d.Domain == a.Domain {
+				if d.Articles == nil {
+					d.Articles = []*article.Article{}
+				}
+				d.Articles = append(d.Articles, a)
+			}
+		}
+	}
+
+	// Prepare
+
+	names := engine.domains[0].GetFloatFeatureNames()
+
+	for _, d := range engine.domains {
+		fts := d.GetFloatFeatures()
+		score := engine.model.Predict([][]float64{fts}, names)
+		if len(d.Articles) == 0 {
+			d.LiveScore = 0
+		} else {
+			d.LiveScore = score[0]
+		}
+
+		domainScores[d.Domain] = d.LiveScore
+	}
+
+	for _, a := range engine.articles {
+		a.DomainScore = domainScores[a.Domain]
+	}
+
+	return nil
+}
+
 func (engine *RenderEngine) StaticFiles() error {
 	files, err := staticFS.ReadDir("views/static")
 	if err != nil {
@@ -110,52 +147,29 @@ func (engine *RenderEngine) StaticFiles() error {
 
 func (engine *RenderEngine) ArticleLists() error {
 
-	domainScores := make(map[string]float64, len(engine.domains))
+	var goodArticles []*article.Article
 
 	for _, a := range engine.articles {
-		for _, d := range engine.domains {
-			if d.Domain == a.Domain {
-				if d.Articles == nil {
-					d.Articles = []*article.Article{}
-				}
-				d.Articles = append(d.Articles, a)
-			}
+		if a.DomainScore > 0.5 {
+			goodArticles = append(goodArticles, a)
 		}
 	}
 
-	// Prepare
-	for _, d := range engine.domains {
-		fts := d.GetFloatFeatures()
-		score := engine.model.Predict([][]float64{fts})
-		if len(d.Articles) == 0 {
-			d.LiveScore = 0
-		} else {
-			d.LiveScore = score[0]
-		}
-
-		fmt.Println(d.Domain, d.LiveScore, fts)
-		domainScores[d.Domain] = d.LiveScore
-	}
-
-	for _, a := range engine.articles {
-		a.DomainScore = domainScores[a.Domain]
-	}
-
-	articleCount := len(engine.articles)
+	articleCount := len(goodArticles)
 
 	numPages := int(math.Ceil(float64(articleCount) / float64(pageSize)))
 	fmt.Printf("Articles:\t%d\n", articleCount)
 	fmt.Printf("Page size:\t%d\n", pageSize)
 	fmt.Printf("Pages:\t%d\n", numPages)
 
-	sort.Slice(engine.articles, func(i, j int) bool {
-		return engine.articles[i].PublishedAt > engine.articles[j].PublishedAt
+	sort.Slice(goodArticles, func(i, j int) bool {
+		return goodArticles[i].PublishedAt > goodArticles[j].PublishedAt
 	})
 
 	for page := 0; page < numPages-1; page++ {
 		start := page * pageSize
 		end := (page + 1) * pageSize
-		pageArticles := engine.articles[start:end]
+		pageArticles := goodArticles[start:end]
 
 		err := engine.articleListsPage(page, pageArticles)
 		if err != nil {

@@ -422,7 +422,7 @@ func (domain *Domain) GetFloatFeatureNames() []string {
 	names = append(names, "loadsAmazonAds")
 	names = append(names, "totalNetworkRequests")
 	names = append(names, "totalScriptRequests")
-	names = append(names, "tti")
+	// names = append(names, "tti")
 
 	return names
 }
@@ -517,7 +517,7 @@ func (domain *Domain) GetFloatFeatures() []float64 {
 
 	features = append(features, safeLog(float64(domain.TotalNetworkRequests)))
 	features = append(features, safeLog(float64(domain.TotalScriptRequests)))
-	features = append(features, safeLog(float64(domain.TTI)))
+	// features = append(features, float64(domain.TTI))
 
 	return features
 }

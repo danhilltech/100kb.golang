@@ -2,6 +2,7 @@ package domain
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"math/rand"
@@ -13,7 +14,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
+func (engine *Engine) RunNewFeedSearch(ctx context.Context, chunkSize int, workers int) error {
 
 	urls, err := engine.getURLsToCrawl()
 	if err != nil {
@@ -37,39 +38,43 @@ func (engine *Engine) RunNewFeedSearch(chunkSize int, workers int) error {
 	close(jobs)
 
 	txn, _ := engine.db.Begin()
+	defer txn.Rollback()
+
 	t := time.Now().UnixMilli()
 	for a := 1; a <= len(urls); a++ {
-		feed := <-results
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case feed := <-results:
 
-		if feed != "" {
-			u, err := url.Parse(feed)
+			if feed != "" {
+				u, err := url.Parse(feed)
 
-			if err == nil {
-				err = engine.Insert(txn, u.Hostname(), feed)
-				if err != nil {
-					fmt.Println(err)
+				if err == nil {
+					err = engine.Insert(txn, u.Hostname(), feed)
+					if err != nil {
+						fmt.Println(err)
+					}
 				}
 			}
-		}
 
-		if a > 0 && a%chunkSize == 0 {
-			err := txn.Commit()
-			if err != nil {
-				return err
+			if a > 0 && a%chunkSize == 0 {
+				err := txn.Commit()
+				if err != nil {
+					return err
+				}
+				txn, _ = engine.db.Begin()
+				diff := time.Now().UnixMilli() - t
+				qps := (float64(chunkSize) / float64(diff)) * 1000
+				t = time.Now().UnixMilli()
+				fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(urls), qps)
+
 			}
-			txn, _ = engine.db.Begin()
-			diff := time.Now().UnixMilli() - t
-			qps := (float64(chunkSize) / float64(diff)) * 1000
-			t = time.Now().UnixMilli()
-			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(urls), qps)
 
 		}
+	}
 
-	}
-	err = txn.Commit()
-	if err != nil {
-		return err
-	}
+	txn.Commit()
 	fmt.Printf("\tdone %d\n", len(urls))
 
 	return nil
@@ -175,7 +180,7 @@ func extractFeedURL(resp io.Reader) string {
 	}
 }
 
-func (engine *Engine) RunKagiList() error {
+func (engine *Engine) RunKagiList(ctx context.Context) error {
 
 	fmt.Println("Getting Kagi list...")
 
@@ -190,28 +195,32 @@ func (engine *Engine) RunKagiList() error {
 	d := 0
 
 	txn, _ := engine.db.Begin()
+	defer txn.Rollback()
 
 	scanner := bufio.NewScanner(resp.Body)
 
 	for scanner.Scan() {
-		feed := scanner.Text()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 
-		u, err := url.Parse(feed)
+			feed := scanner.Text()
 
-		if err == nil {
-			err = engine.Insert(txn, u.Hostname(), feed)
-			if err != nil {
-				fmt.Println(err)
+			u, err := url.Parse(feed)
+
+			if err == nil {
+				err = engine.Insert(txn, u.Hostname(), feed)
+				if err != nil {
+					fmt.Println(err)
+				}
 			}
+			d++
 		}
-		d++
 	}
 
-	err = txn.Commit()
-	if err != nil {
-		return err
-	}
 	fmt.Printf("\tdone %d\n", d)
+	txn.Commit()
 
 	return nil
 }

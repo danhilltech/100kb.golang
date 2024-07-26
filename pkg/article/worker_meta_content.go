@@ -1,6 +1,7 @@
 package article
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"time"
@@ -8,7 +9,7 @@ import (
 	"github.com/danhilltech/100kb.golang/pkg/parsing"
 )
 
-func (engine *Engine) RunArticleMeta(chunkSize int) error {
+func (engine *Engine) RunArticleMeta(ctx context.Context, chunkSize int) error {
 
 	articles, err := engine.getArticlesToContentExtract()
 	if err != nil {
@@ -24,6 +25,7 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 	printSize := 200
 
 	txn, _ := engine.db.Begin()
+	defer txn.Rollback()
 
 	jobs := make(chan *Article, len(articles))
 	results := make(chan *Article, len(articles))
@@ -41,35 +43,36 @@ func (engine *Engine) RunArticleMeta(chunkSize int) error {
 	close(jobs)
 
 	for a := 0; a < len(articles); a++ {
-		article := <-results
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case article := <-results:
 
-		err = engine.Update(txn, article)
-		if err != nil {
-			fmt.Println(article.Url, err)
-		}
-
-		if a > 0 && a%chunkSize == 0 {
-			err := txn.Commit()
+			err = engine.Update(txn, article)
 			if err != nil {
-				return err
+				fmt.Println(article.Url, err)
 			}
-			txn, _ = engine.db.Begin()
-		}
-		if a > 0 && a%printSize == 0 {
-			diff := time.Now().UnixMilli() - t
-			qps := (float64(done-lastA) / float64(diff)) * 1000
-			lastA = done
-			t = time.Now().UnixMilli()
-			fmt.Printf("\tdone %d/%d at %0.2f/s\n", done, len(articles), qps)
 
+			if a > 0 && a%chunkSize == 0 {
+				err := txn.Commit()
+				if err != nil {
+					return err
+				}
+				txn, _ = engine.db.Begin()
+			}
+			if a > 0 && a%printSize == 0 {
+				diff := time.Now().UnixMilli() - t
+				qps := (float64(done-lastA) / float64(diff)) * 1000
+				lastA = done
+				t = time.Now().UnixMilli()
+				fmt.Printf("\tdone %d/%d at %0.2f/s\n", done, len(articles), qps)
+
+			}
+			done++
 		}
-		done++
 	}
 
-	err = txn.Commit()
-	if err != nil {
-		return err
-	}
+	txn.Commit()
 	fmt.Printf("\tdone %d/%d\n", done, len(articles))
 
 	return nil
@@ -87,7 +90,7 @@ func (engine *Engine) articeMetaWorker(jobs <-chan *Article, results chan<- *Art
 
 	for id := range jobs {
 		err := engine.articleExtractContent(id, adblock)
-		if err != nil {
+		if err != nil && err != ErrNotInEnglish && err != ErrNoBodyFound {
 			fmt.Println(err)
 		}
 		results <- id

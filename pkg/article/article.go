@@ -16,6 +16,12 @@ const STAGE_INDEXED = 1
 const STAGE_VALID_CONTENT = 2
 const STAGE_COMPLETE = 10
 
+const REFRESH_AGO_SECONDS = 60 * 60 * 24 * 14
+const REFRESH_LIMIT = 50_000
+
+const CONTENT_EXTRACT_AGO_SECONDS = 60 * 60 * 24 * 28
+const CONTENT_EXTRACT_LIMIT = 100_000
+
 type Engine struct {
 	dbInsertPreparedArticle *sql.Stmt
 	dbUpdatePreparedArticle *sql.Stmt
@@ -34,6 +40,8 @@ type Engine struct {
 	http *retryhttp.Client
 
 	cacheArticles map[string][]*Article
+
+	cacheFailingDomains map[string]int
 }
 
 type Article struct {
@@ -120,6 +128,7 @@ func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool)
 		Build()
 
 	engine.cacheArticles = make(map[string][]*Article)
+	engine.cacheFailingDomains = make(map[string]int)
 
 	return &engine, nil
 }

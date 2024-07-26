@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"golang.org/x/net/context"
 )
 
 // var trackFile = "scoring/scored.csv"
@@ -17,7 +19,7 @@ type ScoreRequest struct {
 	Score  int    `json:"score"`
 }
 
-func (engine *RenderEngine) RunHttp(dir string) {
+func (engine *RenderEngine) RunHttp(ctx context.Context, dir string) error {
 
 	fmt.Println("Starting output http server...")
 
@@ -25,7 +27,7 @@ func (engine *RenderEngine) RunHttp(dir string) {
 	fs := http.FileServer(http.Dir(dir))
 	http.Handle("/", fs)
 
-	http.ListenAndServe(":8081", nil)
+	return http.ListenAndServe(":8081", nil)
 }
 
 func (engine *RenderEngine) handleScore(w http.ResponseWriter, r *http.Request) {

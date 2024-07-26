@@ -37,7 +37,7 @@ func LoadModel(fileName string) (*LogisticModel, error) {
 
 }
 
-func (l *LogisticModel) Predict(x [][]float64) []float64 {
+func (l *LogisticModel) Predict(x [][]float64, names []string) []float64 {
 	var y_pred []float64
 
 	for i := range x {
@@ -48,10 +48,45 @@ func (l *LogisticModel) Predict(x [][]float64) []float64 {
 		z += l.Bias
 		a := Sigmoid(z)
 
+		// Now bias it by our values
+
+		if getValByName(x[i], names, "fpr") < 0.01 {
+			a = a * 0.5
+		}
+		if getValByName(x[i], names, "fpr") > 0.025 {
+			a = a * 1.2
+		}
+
+		// if getValByName(x[i], names, "tti") > 10 {
+		// 	a = a * 0.2
+		// }
+		if getValByName(x[i], names, "totalScriptRequests") > 3 {
+			a = a * 0.2
+		}
+		if getValByName(x[i], names, "loadsGoogleAds") > 0 {
+			a = a * 0.1
+		}
+		if getValByName(x[i], names, "loadsGoogleTagManager") > 0 {
+			a = a * 0.5
+		}
+
+		if a > 1 {
+			a = 1.0
+		}
+
 		y_pred = append(y_pred, a)
 
 	}
 	return y_pred
+}
+
+func getValByName(vals []float64, names []string, target string) float64 {
+	for i, name := range names {
+		if name == target {
+			return vals[i]
+		}
+	}
+	return 0
 }
 
 func Sigmoid(z float64) float64 {

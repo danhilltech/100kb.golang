@@ -8,7 +8,6 @@ require (
 	github.com/mmcdole/gofeed v1.2.1
 	github.com/opencoff/golang-lru v0.6.0
 	github.com/peterbourgon/diskv/v3 v3.0.1
-	github.com/sjwhitworth/golearn v0.0.0-20221228163002-74ae077eafb2
 	github.com/viterin/vek v0.4.2
 	golang.org/x/net v0.19.0
 	golang.org/x/time v0.5.0

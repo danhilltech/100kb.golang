@@ -8,6 +8,12 @@ import (
 	"github.com/smira/go-statsd"
 )
 
+const REFRESH_AGO_SECONDS = 60 * 60 * 24 * 7
+const REFRESH_LIMIT = 5000
+
+const VALIDATE_AGO_SECONDS = 60 * 60 * 24 * 21
+const VALIDATE_LIMIT = 5000
+
 type Engine struct {
 	dbInsertPreparedFeed *sql.Stmt
 	dbUpdatePreparedFeed *sql.Stmt

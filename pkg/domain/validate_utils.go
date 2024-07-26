@@ -17,6 +17,12 @@ var namesList string
 //go:embed data/popular-domains.txt
 var popularDomainsList string
 
+var PopularDomainList []string
+
+func init() {
+	PopularDomainList = strings.Split(popularDomainsList, "\n")
+}
+
 func (engine *Engine) identifyURL(baseUrl string) (bool, bool, bool, bool, error) {
 
 	var urlHumanName, urlNews, urlBlog, popularDomain bool
@@ -29,16 +35,14 @@ func (engine *Engine) identifyURL(baseUrl string) (bool, bool, bool, bool, error
 	names := strings.Split(namesList, "\n")
 
 	for _, name := range names {
-		if strings.Contains(baseUrlP.Hostname(), strings.ToLower(name)) {
+		if len(name) > 0 && strings.Contains(baseUrlP.Hostname(), strings.ToLower(name)) {
 			urlHumanName = true
 			break
 		}
 	}
 
-	domains := strings.Split(popularDomainsList, "\n")
-
-	for _, domain := range domains {
-		if strings.HasSuffix(baseUrlP.Hostname(), domain) {
+	for _, domain := range PopularDomainList {
+		if len(domain) > 0 && strings.HasSuffix(baseUrlP.Hostname(), domain) {
 			popularDomain = true
 			break
 		}

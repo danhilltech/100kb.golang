@@ -4,14 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"math"
-	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
-	"time"
 
 	_ "net/http/pprof"
 
@@ -39,7 +36,6 @@ func main() {
 	httpChunkSize := flag.Int("http-chunk-size", 100, "number of http chunks")
 	hnFetchSize := flag.Int("hn-fetch-size", 100_000, "number of hn links to get")
 	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
-	debug := flag.Bool("debug", false, "run debugging tools")
 	mode := flag.String("mode", "index", "which process to run")
 	cacheDir := flag.String("cache-dir", ".cache", "where to cache html")
 	utilization := flag.Float64("util", 1.0, "pcnt of cores to use")
@@ -65,24 +61,58 @@ func main() {
 
 	fmt.Printf("Mode\t%s\n", *mode)
 
-	debugPrinterCtx, cancelDebugPrinter := context.WithCancel(context.Background())
-
 	statsdClient := statsd.NewClient("192.168.1.3:8125", statsd.MetricPrefix("100bk."))
 
-	if *debug {
-		// go tool pprof -top http://localhost:6060/debug/pprof/heap
-		fmt.Println("Starting debug pprof...")
-		go func() {
-			log.Println(http.ListenAndServe(":6060", nil))
-		}()
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 
-		go debugPrinter(debugPrinterCtx)
+	ctx, abort := context.WithCancel(context.Background())
+	go func() {
+		<-c
+		fmt.Println("Interupt\t\t🔥🔥🔥")
+		abort()
 
+	}()
+
+	err := runCoreLoop(
+		ctx,
+		*mode,
+		*cacheDir,
+		statsdClient,
+		*articleLoadML,
+		*httpChunkSize,
+		httpWorkers,
+		*hnFetchSize,
+		*metaChunkSize,
+	)
+
+	fmt.Println("Done\t\t🔥🔥🔥")
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
+}
+
+func runCoreLoop(
+	ctx context.Context,
+	mode string,
+	cacheDir string,
+	statsdClient *statsd.Client,
+	useML bool,
+	httpChunkSize int,
+	httpWorkers int,
+	hnFetchSize int,
+	metaChunkSize int,
+) error {
 	dbMode := "r"
 
-	switch *mode {
+	switch mode {
 	case MODE_INDEX:
 		dbMode = "rwc"
 	case MODE_SEARCH:
@@ -93,125 +123,101 @@ func main() {
 		dbMode = "rw"
 	case MODE_TRAIN:
 
-		err := train.TrainSVM(*cacheDir)
+		err := train.Train(ctx, cacheDir)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
-		return
+		return nil
 	default:
 		dbMode = "rw"
 	}
 
 	db, err := db.InitDB("/dbs/output", dbMode)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	defer db.StopDB()
 
 	dbVer, err := db.Version()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	fmt.Printf("sqlite3 version: \t%s\n", dbVer)
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		fmt.Println("Interupt\t\t🔥🔥🔥")
-		db.StopDB()
-
-		os.Exit(1)
-	}()
-
-	articleEngine, err := article.NewEngine(db.DB, statsdClient, *cacheDir, *articleLoadML)
+	articleEngine, err := article.NewEngine(db.DB, statsdClient, cacheDir, useML)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	defer articleEngine.Close()
 
 	crawlEngine, err := crawler.NewEngine(db.DB)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
-	feedEngine, err := domain.NewEngine(db.DB, articleEngine, statsdClient, *cacheDir)
+	feedEngine, err := domain.NewEngine(db.DB, articleEngine, statsdClient, cacheDir)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	defer feedEngine.Close()
 
 	fmt.Println("Engines loaded\t\t🚂🚂🚂")
 
 	// Now run tasks
-	switch *mode {
+	switch mode {
 	case MODE_INDEX:
 
 		// // 3. Get latest articles from our feeds
-		err = feedEngine.RunFeedRefresh(*httpChunkSize, httpWorkers)
+		err = feedEngine.RunFeedRefresh(ctx, httpChunkSize, httpWorkers)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		// 4. Crawl any new articles for content
-		err = articleEngine.RunArticleIndex(*httpChunkSize, httpWorkers)
+		err = articleEngine.RunArticleIndex(ctx, httpChunkSize, httpWorkers)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		db.Tidy()
 	case MODE_SEARCH:
 		// 1. Get latest hackernews content
-		err = crawlEngine.RunHNRefresh(*httpChunkSize, *hnFetchSize, httpWorkers)
+		err = crawlEngine.RunHNRefresh(ctx, httpChunkSize, hnFetchSize, httpWorkers)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		// // 2. Check HN stories for any new feeds
-		err = feedEngine.RunNewFeedSearch(*httpChunkSize, httpWorkers)
+		err = feedEngine.RunNewFeedSearch(ctx, httpChunkSize, httpWorkers)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		// // 2. Check HN stories for any new feeds
-		err = feedEngine.RunKagiList()
+		err = feedEngine.RunKagiList(ctx)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		db.Tidy()
 
 	case MODE_META:
 		// 5. Generate metadata for articles
-		err = articleEngine.RunArticleMeta(*metaChunkSize)
+		err = articleEngine.RunArticleMeta(ctx, metaChunkSize)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		// 6. Second pass metas
-		err = articleEngine.RunArticleMetaPassII(*metaChunkSize)
+		err = articleEngine.RunArticleMetaPassII(ctx)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		// 7. Additional domain validation
-		err = feedEngine.RunDomainValidate(*metaChunkSize)
+		err = feedEngine.RunDomainValidate(ctx, metaChunkSize)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		db.Tidy()
@@ -220,76 +226,44 @@ func main() {
 
 		articles, err := articleEngine.GetAllValid()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		domains, err := feedEngine.GetAll()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		model, err := scorer.LoadModel("models/model.json")
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		engine, err := output.NewRenderEnding("output", articles, domains, model, db.DB, articleEngine)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
+		}
+
+		err = engine.Prepare()
+		if err != nil {
+			return err
 		}
 
 		err = engine.ArticleLists()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
 		err = engine.StaticFiles()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 
-		engine.RunHttp("./output")
+		go engine.RunHttp(ctx, "./output")
+
+		<-ctx.Done()
 
 	}
 
-	if *debug {
-		cancelDebugPrinter()
-		<-c
-	}
-
-}
-
-func debugPrinter(ctx context.Context) {
-
-	i := 0
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			if i == 6 {
-				printMemUsage()
-				i = 0
-			}
-
-			time.Sleep(500 * time.Millisecond)
-			i++
-		}
-	}
-}
-
-func printMemUsage() {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	fmt.Printf("Alloc = %v MiB", m.Alloc/1024/1024)
-	fmt.Printf("\tTotalAlloc = %v MiB", m.TotalAlloc/1024/1024)
-	fmt.Printf("\tSys = %v MiB", m.Sys/1024/1024)
-	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+	return nil
 }

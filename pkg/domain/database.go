@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"strings"
+	"time"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	"github.com/danhilltech/100kb.golang/pkg/http"
@@ -178,7 +180,7 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 }
 
 func (engine *Engine) getDomainsToRefresh() ([]*Domain, error) {
-	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM domains WHERE lastFetchAt IS NULL;", DOMAIN_SELECT))
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM domains WHERE lastFetchAt IS NULL OR lastFetchAt < %d ORDER BY lastFetchAt ASC LIMIT %d;", DOMAIN_SELECT, time.Now().Unix()-REFRESH_AGO_SECONDS, REFRESH_LIMIT))
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +203,7 @@ func (engine *Engine) getDomainsToRefresh() ([]*Domain, error) {
 }
 
 func (engine *Engine) getDomainsToValidate() ([]*Domain, error) {
-	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM domains WHERE lastValidateAt IS NULL;", DOMAIN_SELECT))
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM domains WHERE lastValidateAt IS NULL OR lastValidateAt < %d ORDER BY lastValidateAt ASC LIMIT %d;", DOMAIN_SELECT, VALIDATE_AGO_SECONDS, VALIDATE_LIMIT))
 	if err != nil {
 		return nil, err
 	}
@@ -223,13 +225,48 @@ func (engine *Engine) getDomainsToValidate() ([]*Domain, error) {
 	return urls, nil
 }
 
-func (engine *Engine) getLatestArticleURL(d *Domain) (string, error) {
+func (engine *Engine) getLatestArticleURLs() (map[string]string, error) {
 
-	var url string
-	if err := engine.db.QueryRow("SELECT url FROM articles WHERE domain = ? AND stage = ? ORDER BY lastContentExtractAt DESC LIMIT 1;", d.Domain, article.STAGE_COMPLETE).Scan(&url); err != nil {
-		return "", err
+	// var url string
+	// if err := engine.db.QueryRow("SELECT url FROM articles WHERE domain = ? AND stage = ? ORDER BY lastContentExtractAt DESC LIMIT 1;", d.Domain, article.STAGE_COMPLETE).Scan(&url); err != nil {
+	// 	return "", err
+	// }
+	// return url, nil
+
+	res, err := engine.db.Query(`SELECT domain, url FROM (
+	SELECT
+		domain,
+		url, 
+		ROW_NUMBER() OVER (PARTITION BY domain ORDER BY publishedAt DESC) AS rn 
+		
+		FROM articles
+		WHERE stage = ?
+	) as inn WHERE rn = 0;`, article.STAGE_COMPLETE)
+	if err != nil {
+		return nil, err
 	}
-	return url, nil
+	defer res.Close()
+
+	out := make(map[string]string)
+
+	for res.Next() {
+		var domain, url string
+		err := res.Scan(
+			&domain,
+			&url,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		out[domain] = url
+
+	}
+	if err := res.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+
 }
 
 func (engine *Engine) GetAll() ([]*Domain, error) {
@@ -266,7 +303,7 @@ func (engine *Engine) getURLsToCrawl() ([]string, error) {
 		
 		FROM to_crawl h
 		LEFT JOIN domains d ON d.domain = h.domain
-		WHERE h.url IS NOT NULL AND d.domain IS NULL AND h.score >= 2
+		WHERE h.url IS NOT NULL AND d.domain IS NULL AND h.score >= 4
 	) raw 
 	
 	WHERE rn <= 2;`)
@@ -292,15 +329,21 @@ func (engine *Engine) getURLsToCrawl() ([]string, error) {
 			continue
 		}
 
-		// // TODO check domain isn't in the feeds already
-
 		domain := u.Hostname()
 
 		isBad := false
 		//TODO improve this
-		for _, bad := range http.BANNED_URLS {
-			if bad == domain {
+		for _, bad := range http.BANNED_DOMAINS {
+			if strings.HasSuffix(domain, bad) {
 				isBad = true
+			}
+		}
+
+		if !isBad {
+			for _, bad := range PopularDomainList {
+				if len(bad) > 0 && strings.HasSuffix(domain, bad) {
+					isBad = true
+				}
 			}
 		}
 

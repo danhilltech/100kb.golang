@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -100,7 +101,7 @@ func (engine *Engine) getHNWorker(jobs <-chan int, results chan<- *ToCrawl) {
 }
 
 // Gets the latest content from Hacker news
-func (engine *Engine) RunHNRefresh(chunkSize int, totalFetch int, workers int) error {
+func (engine *Engine) RunHNRefresh(ctx context.Context, chunkSize int, totalFetch int, workers int) error {
 
 	max, err := engine.getMaxId()
 	if err != nil {
@@ -149,21 +150,24 @@ func (engine *Engine) RunHNRefresh(chunkSize int, totalFetch int, workers int) e
 	t := time.Now().UnixMilli()
 
 	for a := 1; a <= len(ids); a++ {
-		item := <-results
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case item := <-results:
+			err = engine.InsertToCrawl(item)
+			if err != nil {
+				return err
+			}
 
-		err = engine.InsertToCrawl(item)
-		if err != nil {
-			return err
+			if a > 0 && a%chunkSize == 0 {
+				diff := time.Now().UnixMilli() - t
+				qps := (float64(chunkSize) / float64(diff)) * 1000
+				t = time.Now().UnixMilli()
+				fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(ids), qps)
+
+			}
+
 		}
-
-		if a > 0 && a%chunkSize == 0 {
-			diff := time.Now().UnixMilli() - t
-			qps := (float64(chunkSize) / float64(diff)) * 1000
-			t = time.Now().UnixMilli()
-			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(ids), qps)
-
-		}
-
 	}
 	fmt.Printf("\tdone %d\n", len(ids))
 

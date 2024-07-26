@@ -59,14 +59,9 @@ pkg/serialize/article.pb.go: pkg/serialize/article.proto
 pkg/parsing/adblock.pb.go: ${GO_PROTO_SRC}
 	@protoc -I=. --go_out=. ./lib/goadblock/src/adblock.proto
 
-pkg/svm/libsvm.so: $(GO_SVM_SRC)
-	@echo "👉 Building libsvm.so"
-	g++ -Wall -Wconversion -O3 -fPIC -c ./pkg/svm/svm.cpp
-	g++ -shared -Wl,-soname,libsvm.so svm.o -o ./pkg/svm/libsvm.so
-	@rm svm.o
 
 .PHONY: build
-build: lib/libgobert.so lib/libgoadblock.so pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go pkg/ai/zero_shot.pb.go pkg/svm/libsvm.so
+build: lib/libgobert.so lib/libgoadblock.so pkg/ai/keywords.pb.go pkg/ai/sentence_embedding.pb.go pkg/serialize/article.pb.go pkg/parsing/adblock.pb.go pkg/ai/zero_shot.pb.go
 	@echo "👉 Building go binary"
 	go build -ldflags="-r $(ROOT_DIR)lib" -tags '$(GO_BUILD_TAGS)'
 

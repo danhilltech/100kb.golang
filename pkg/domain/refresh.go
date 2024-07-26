@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,7 +12,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-func (engine *Engine) RunFeedRefresh(chunkSize int, workers int) error {
+func (engine *Engine) RunFeedRefresh(ctx context.Context, chunkSize int, workers int) error {
 	feeds, err := engine.getDomainsToRefresh()
 	if err != nil {
 		return err
@@ -34,44 +35,47 @@ func (engine *Engine) RunFeedRefresh(chunkSize int, workers int) error {
 	t := time.Now().UnixMilli()
 
 	txn, _ := engine.db.Begin()
+	defer txn.Rollback()
 
 	for a := 1; a <= len(feeds); a++ {
-		domain := <-results
+		select {
+		case <-ctx.Done():
+			return nil
+		case domain := <-results:
 
-		err = engine.Update(txn, domain)
-		if err != nil {
-			return err
-		}
-
-		for _, article := range domain.Articles {
-
-			err = engine.articleEngine.Insert(txn, article, domain.FeedURL, domain.Domain)
+			err = engine.Update(txn, domain)
 			if err != nil {
 				return err
 			}
 
-		}
+			for _, article := range domain.Articles {
 
-		if a > 0 && a%chunkSize == 0 {
+				err = engine.articleEngine.Insert(txn, article, domain.FeedURL, domain.Domain)
+				if err != nil {
+					return err
+				}
 
-			err := txn.Commit()
-			if err != nil {
-				return err
 			}
-			txn, _ = engine.db.Begin()
 
-			diff := time.Now().UnixMilli() - t
-			qps := (float64(chunkSize) / float64(diff)) * 1000
-			t = time.Now().UnixMilli()
-			fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(feeds), qps)
+			if a > 0 && a%chunkSize == 0 {
 
+				err := txn.Commit()
+				if err != nil {
+					return err
+				}
+				txn, _ = engine.db.Begin()
+
+				diff := time.Now().UnixMilli() - t
+				qps := (float64(chunkSize) / float64(diff)) * 1000
+				t = time.Now().UnixMilli()
+				fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(feeds), qps)
+
+			}
 		}
 
 	}
-	err = txn.Commit()
-	if err != nil {
-		return err
-	}
+
+	txn.Commit()
 	fmt.Printf("\tdone %d\n", len(feeds))
 
 	return nil

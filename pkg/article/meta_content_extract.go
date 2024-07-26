@@ -13,6 +13,9 @@ import (
 
 var mapLock sync.Mutex
 
+var ErrNotInEnglish = fmt.Errorf("not in english")
+var ErrNoBodyFound = fmt.Errorf("no body found")
+
 func (engine *Engine) articleExtractContent(article *Article, adblock *parsing.AdblockEngine) error {
 	// Check we have enough data
 	article.LastContentExtractAt = time.Now().Unix()
@@ -46,7 +49,7 @@ func (engine *Engine) articleExtractContent(article *Article, adblock *parsing.A
 
 	if len(body) == 0 {
 		article.Stage = STAGE_FAILED
-		return fmt.Errorf("no body found %s", article.Url)
+		return ErrNoBodyFound
 	}
 
 	var considerText string
@@ -64,7 +67,7 @@ func (engine *Engine) articleExtractContent(article *Article, adblock *parsing.A
 	defer mapLock.Unlock()
 	if engine.langDomainCacheNonEng[article.Domain] > 3 {
 		article.Stage = STAGE_FAILED
-		return fmt.Errorf("not in english (cached) %s", article.Url)
+		return ErrNotInEnglish
 	} else if engine.langDomainCacheEng[article.Domain] > 3 {
 	} else {
 
@@ -75,7 +78,7 @@ func (engine *Engine) articleExtractContent(article *Article, adblock *parsing.A
 		if !exists || res != lingua.English {
 			article.Stage = STAGE_FAILED
 			engine.langDomainCacheNonEng[article.Domain]++
-			return fmt.Errorf("not in english %s", article.Url)
+			return ErrNotInEnglish
 		} else {
 			engine.langDomainCacheEng[article.Domain]++
 		}

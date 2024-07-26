@@ -43,7 +43,7 @@ type ChromeAnalysis struct {
 	Screenshot []byte `json:"screenshot"`
 }
 
-func (engine *Engine) RunDomainValidate(chunkSize int) error {
+func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) error {
 
 	domains, err := engine.getDomainsToValidate()
 	if err != nil {
@@ -52,15 +52,18 @@ func (engine *Engine) RunDomainValidate(chunkSize int) error {
 
 	fmt.Printf("Validating %d domains\n", len(domains))
 
+	latestUrls, err := engine.getLatestArticleURLs()
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
 	for _, domain := range domains {
-		// Now load it in a chrome window
-		url, err := engine.getLatestArticleURL(domain)
-		if err != nil && err != sql.ErrNoRows {
-			return err
-		}
-		domain.LiveLatestArticleURL = url
+
+		domain.LiveLatestArticleURL = latestUrls[domain.Domain]
 
 	}
+
+	fmt.Printf("Starting workers\n")
 
 	printSize := 100
 
@@ -81,38 +84,41 @@ func (engine *Engine) RunDomainValidate(chunkSize int) error {
 	done := 0
 	t := time.Now().UnixMilli()
 	txn, _ := engine.db.Begin()
+	defer txn.Rollback()
+
 	for a := 0; a < len(domains); a++ {
-		domain := <-results
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case domain := <-results:
 
-		err = engine.Update(txn, domain)
-		if err != nil {
-			fmt.Println(domain.Domain, err)
-			continue
-		}
-
-		if a > 0 && a%chunkSize == 0 {
-
-			err := txn.Commit()
+			err = engine.Update(txn, domain)
 			if err != nil {
-				return err
+				fmt.Println(domain.Domain, err)
+				continue
 			}
-			txn, _ = engine.db.Begin()
-		}
 
-		if a > 0 && a%printSize == 0 {
-			diff := time.Now().UnixMilli() - t
-			qps := (float64(printSize) / float64(diff)) * 1000
-			t = time.Now().UnixMilli()
-			fmt.Printf("\tdone %d/%d at %0.2f/s\n", done, len(domains), qps)
+			if a > 0 && a%chunkSize == 0 {
 
+				err := txn.Commit()
+				if err != nil {
+					return err
+				}
+				txn, _ = engine.db.Begin()
+			}
+
+			if a > 0 && a%printSize == 0 {
+				diff := time.Now().UnixMilli() - t
+				qps := (float64(printSize) / float64(diff)) * 1000
+				t = time.Now().UnixMilli()
+				fmt.Printf("\tdone %d/%d at %0.2f/s\n", done, len(domains), qps)
+
+			}
+			done++
 		}
-		done++
 	}
 
-	err = txn.Commit()
-	if err != nil {
-		return err
-	}
+	txn.Commit()
 	fmt.Printf("\tdone %d/%d\n\n", done, len(domains))
 
 	return nil

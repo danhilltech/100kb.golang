@@ -4,72 +4,26 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/danhilltech/100kb.golang/pkg/domain"
 	"github.com/danhilltech/100kb.golang/pkg/scorer"
-	"github.com/sjwhitworth/golearn/base"
 )
 
-func trainLogistic(goodEntries []Entry, allDomains []*domain.Domain) (*scorer.LogisticModel, error) {
-
-	instances, attrSpecs, allAttrs, _, err := domainsToFeaturesFloat(goodEntries, allDomains, 1.0)
-	if err != nil {
-		return nil, err
-	}
+func trainLogistic(goodEntries []Entry) (*scorer.LogisticModel, error) {
 
 	fmt.Println("## Logistic")
 
-	var x_train [][]float64
-	var y_train []float64
+	// var x_train [][]float64
+	x_train := make([][]float64, len(goodEntries))
+	y_train := make([]float64, len(goodEntries))
 
-	instances.MapOverRows(attrSpecs, func(row [][]byte, srcRowNo int) (bool, error) {
-		// var prediction float64 = lr.disturbance
+	for i, e := range goodEntries {
+		y_train[i] = float64(e.score - 1)
 
-		trainRowBuf := make([]float64, len(allAttrs))
+		fts := e.domain.GetFloatFeatures()
 
-		byteVal := instances.Get(attrSpecs[0], srcRowNo)
+		x_train[i] = fts
+	}
 
-		str := attrSpecs[0].GetAttribute().GetStringFromSysVal(byteVal)
-
-		fltVal := float64(0)
-		if str == "good" {
-			fltVal = 1
-		}
-
-		for i := range allAttrs {
-			trainRowBuf[i] = base.UnpackBytesToFloat(row[i])
-		}
-
-		y_train = append(y_train, fltVal)
-
-		x_train = append(x_train, trainRowBuf[1:])
-		return true, nil
-	})
-
-	// testData.MapOverRows(attrSpecs, func(row [][]byte, srcRowNo int) (bool, error) {
-	// 	// var prediction float64 = lr.disturbance
-
-	// 	trainRowBuf := make([]float64, len(allAttrs))
-
-	// 	byteVal := testData.Get(attrSpecs[0], srcRowNo)
-
-	// 	str := attrSpecs[0].GetAttribute().GetStringFromSysVal(byteVal)
-
-	// 	fltVal := float64(0)
-	// 	if str == "good" {
-	// 		fltVal = 1
-	// 	}
-
-	// 	for i := range allAttrs {
-	// 		trainRowBuf[i] = base.UnpackBytesToFloat(row[i])
-	// 	}
-
-	// 	y_test = append(y_test, fltVal)
-
-	// 	x_test = append(x_test, trainRowBuf[1:])
-	// 	return true, nil
-	// })
-
-	// legacyRun(x_train, y_train, x_test, y_test, 5000, 0.01)
+	fmt.Println(y_train[0], x_train[0])
 
 	w, b, err := buildLogisticModel(x_train, y_train, 50000, 1e-4)
 	if err != nil {
@@ -78,19 +32,6 @@ func trainLogistic(goodEntries []Entry, allDomains []*domain.Domain) (*scorer.Lo
 
 	model := &scorer.LogisticModel{Weights: w, Bias: b}
 
-	// predictions, err := predictLogistic(testData, model)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// // var predictions base.FixedDataGrid
-
-	// // Prints precision/recall metrics
-	// confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Unable to get confusion matrix: %s", err.Error())
-	// }
-	// fmt.Println(evaluation.GetSummary(confusionMat))
 	return model, nil
 }
 
@@ -205,67 +146,6 @@ func buildLogisticModel(x_train [][]float64, y_train []float64, num_iterations i
 	w, b = Optimize(w, b, x_train, y_train, num_iterations, learning_rate)
 
 	return w, b, nil
-}
-
-func predictLogistic(what base.FixedDataGrid, l *scorer.LogisticModel) (base.FixedDataGrid, error) {
-
-	_, rows := what.Size()
-
-	classAttrs := what.AllClassAttributes()
-	// fmt.Println(classAttrs)
-	if len(classAttrs) != 1 {
-		return nil, fmt.Errorf("Only 1 class variable is permitted")
-	}
-	// classAttrSpecs := base.ResolveAttributes(what, classAttrs)
-
-	allAttrs := base.NonClassAttributes(what)
-	attrs := make([]base.Attribute, 0)
-	for _, a := range allAttrs {
-		if _, ok := a.(*base.FloatAttribute); ok {
-			attrs = append(attrs, a)
-		}
-	}
-
-	cols := len(attrs) + 1
-
-	if rows < cols {
-		return nil, fmt.Errorf("not enough data")
-	}
-
-	// cls := classAttrs[0]
-
-	ret := base.GeneratePredictionVector(what)
-	attrSpecs := base.ResolveAttributes(what, attrs)
-	// // clsSpec, err := ret.GetAttribute(cls)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	what.MapOverRows(attrSpecs, func(row [][]byte, srcRowNo int) (bool, error) {
-		// var prediction float64 = lr.disturbance
-
-		trainRowBuf := make([]float64, len(allAttrs))
-
-		for i := range allAttrs {
-			trainRowBuf[i] = base.UnpackBytesToFloat(row[i])
-		}
-
-		predict := l.Predict([][]float64{trainRowBuf})
-
-		// fmt.Println(trainRowBuf, predict)
-
-		// fmt.Println(trainRowBuf)
-		// ret.SetClass(clsSpec, i, base.PackFloatToBytes(prediction))
-		if predict[0] >= 0.5 {
-			base.SetClass(ret, srcRowNo, "good")
-		} else {
-			base.SetClass(ret, srcRowNo, "bad")
-		}
-		return true, nil
-	})
-
-	return ret, nil
-
 }
 
 func legacyRun(x_train [][]float64, y_train []float64, x_test [][]float64, y_test []float64, num_iterations int, learning_rate float64) {

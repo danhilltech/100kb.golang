@@ -14,6 +14,7 @@ docker run \
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	_ "embed"
 	"fmt"
@@ -45,9 +46,10 @@ var White = "\033[97m"
 var candidateList string
 
 type Entry struct {
-	url    string
-	score  int
-	domain string
+	url       string
+	score     int
+	domainStr string
+	domain    *domain.Domain
 }
 
 /*
@@ -62,7 +64,7 @@ docker run \
  graphiteapp/graphite-statsd
 */
 
-func TrainSVM(cacheDir string) error {
+func Train(ctx context.Context, cacheDir string) error {
 
 	candidates := strings.Split(candidateList, "\n")
 	// candidates := []string{"https://herbertlui.net/"}
@@ -129,7 +131,7 @@ func TrainSVM(cacheDir string) error {
 
 			return err
 		}
-		entries = append(entries, Entry{url: g, score: 0, domain: u.Hostname()})
+		entries = append(entries, Entry{url: g, score: 0, domainStr: u.Hostname()})
 	}
 
 	if !existing {
@@ -139,35 +141,35 @@ func TrainSVM(cacheDir string) error {
 		metaChunkSize := runtime.NumCPU()
 
 		// // 2. Check HN stories for any new feeds
-		err = domainEngine.RunNewFeedSearch(httpChunkSize, httpWorkers)
+		err = domainEngine.RunNewFeedSearch(ctx, httpChunkSize, httpWorkers)
 		if err != nil {
 			return err
 		}
 
 		// // 3. Get latest articles from our feeds
-		err = domainEngine.RunFeedRefresh(httpChunkSize, httpWorkers)
+		err = domainEngine.RunFeedRefresh(ctx, httpChunkSize, httpWorkers)
 		if err != nil {
-			return err
+			return fmt.Errorf("hi %w", err)
 		}
 
 		// 4. Crawl any new articles for content
-		err = articleEngine.RunArticleIndex(httpChunkSize, httpWorkers)
+		err = articleEngine.RunArticleIndex(ctx, httpChunkSize, httpWorkers)
 		if err != nil {
 			return err
 		}
 
-		err = articleEngine.RunArticleMeta(metaChunkSize)
+		err = articleEngine.RunArticleMeta(ctx, metaChunkSize)
 		if err != nil {
 			return err
 		}
 
 		// 6. Second pass metas
-		err = articleEngine.RunArticleMetaPassII(metaChunkSize)
+		err = articleEngine.RunArticleMetaPassII(ctx)
 		if err != nil {
 			return err
 		}
 
-		err = domainEngine.RunDomainValidate(metaChunkSize)
+		err = domainEngine.RunDomainValidate(ctx, metaChunkSize)
 		if err != nil {
 			return err
 		}
@@ -202,27 +204,25 @@ func TrainSVM(cacheDir string) error {
 
 	for _, train := range entries {
 
-		var domain *domain.Domain
-
 		for _, d := range allDomains {
-			if train.domain == d.Domain {
-				domain = d
+			if train.domainStr == d.Domain {
+				train.domain = d
 			}
 		}
 
-		if domain == nil {
+		if train.domain == nil {
 			// fmt.Printf("Can't find: %s\n", train.domain)
 			continue
 		}
 
-		if len(domain.GetLatestArticlesToScore()) < 3 {
+		if len(train.domain.GetLatestArticlesToScore()) < 3 {
 			continue
 		}
 
 		labels := readJSON("labels.json")
 
-		if labels[train.domain] > 0 {
-			train.score = labels[train.domain]
+		if labels[train.domainStr] > 0 {
+			train.score = labels[train.domainStr]
 
 			goodEntries = append(goodEntries, train)
 
@@ -230,32 +230,7 @@ func TrainSVM(cacheDir string) error {
 
 	}
 
-	err = trainKNN(goodEntries, allDomains)
-	if err != nil {
-		return err
-	}
-
-	// err = trainRF(goodEntries, allDomains)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// err = trainSVM(goodEntries, allDomains)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// err = trainBespoke(goodEntries, allDomains)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// err = trainPerceptron(goodEntries, allDomains)
-	// if err != nil {
-	// 	return err
-	// }
-
-	mdl, err := trainLogistic(goodEntries, allDomains)
+	mdl, err := trainLogistic(goodEntries)
 	if err != nil {
 		return err
 	}
@@ -276,6 +251,11 @@ func TrainSVM(cacheDir string) error {
 		return err
 	}
 
+	err = engine.Prepare()
+	if err != nil {
+		return err
+	}
+
 	err = engine.ArticleLists()
 	if err != nil {
 		return err
@@ -286,7 +266,9 @@ func TrainSVM(cacheDir string) error {
 		return err
 	}
 
-	engine.RunHttp("./output-train")
+	go engine.RunHttp(ctx, "./output-train")
+
+	<-ctx.Done()
 
 	return nil
 

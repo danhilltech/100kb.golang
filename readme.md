@@ -1,3 +1,4 @@
 ## TODO
-race in adblock filter
-handle repeatly failing domains (e.g. max fails with a cache)
+cron.sh
+output as good list and potential list
+tti numbers are weird + popular domains check and implement in scoring.

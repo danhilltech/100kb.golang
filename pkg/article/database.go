@@ -254,7 +254,7 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 func (engine *Engine) getArticlesToIndex() ([]*Article, error) {
 	fmt.Printf("Getting articles to index...\t")
 	defer fmt.Printf("✨\n")
-	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt IS NULL;", ARTICLE_SELECT))
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt IS NULL OR lastFetchAt < %d ORDER BY lastFetchAt ASC LIMIT %d;", ARTICLE_SELECT, REFRESH_AGO_SECONDS, REFRESH_LIMIT))
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func (engine *Engine) getArticlesToIndex() ([]*Article, error) {
 }
 
 func (engine *Engine) getArticlesToContentExtract() ([]*Article, error) {
-	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE stage=%d AND lastContentExtractAt IS NULL;", ARTICLE_SELECT, STAGE_INDEXED))
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE stage=%d AND lastContentExtractAt IS NULL OR lastContentExtractAt < %d ORDER BY lastContentExtractAt ASC LIMIT %d;", ARTICLE_SELECT, STAGE_INDEXED, CONTENT_EXTRACT_AGO_SECONDS, CONTENT_EXTRACT_LIMIT))
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +345,7 @@ func (engine *Engine) getArticlesByFeed(txn *sql.Tx, feed string, excludeUrl str
 }
 
 func (engine *Engine) GetAllValid() ([]*Article, error) {
-	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastMetaAt IS NOT NULL", ARTICLE_SELECT))
+	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE stage = %d", ARTICLE_SELECT, STAGE_COMPLETE))
 
 	if err != nil {
 		return nil, err
