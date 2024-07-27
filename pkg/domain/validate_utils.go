@@ -140,6 +140,7 @@ func waitFor(ctx context.Context, eventName string, a *ChromeAnalysis) error {
 
 	chromedp.ListenTarget(cctx, func(ev interface{}) {
 		switch e := ev.(type) {
+
 		case *page.EventLifecycleEvent:
 			{
 				if e.Name == "InteractiveTime" {

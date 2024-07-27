@@ -39,15 +39,7 @@ type Domain struct {
 	DomainIsPopular bool
 	DomainTLD       string
 
-	LoadsGoogleTagManager bool
-	LoadsGoogleAds        bool
-	LoadsGoogleAdServices bool
-	LoadsPubmatic         bool
-	LoadsTwitterAds       bool
-	LoadsAmazonAds        bool
-	TotalNetworkRequests  int64
-	TotalScriptRequests   int64
-	TTI                   int64
+	ChromeAnalysis *ChromeAnalysis
 
 	Platform string
 

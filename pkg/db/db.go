@@ -56,15 +56,7 @@ CREATE TABLE IF NOT EXISTS domains (
 	urlBlog INTEGER,
 	urlHumanName INTEGER,
 
-	loadsGoogleTagManager INTEGER,
-	loadsGoogleAds INTEGER,
-	loadsGoogleAdServices INTEGER,
-	loadsPubmatic INTEGER,
-	loadsTwitterAds INTEGER,
-	loadsAmazonAds INTEGER,
-	totalNetworkRequests INTEGER,
-	totalScriptRequests INTEGER,
-	tti INTEGER
+	chromeAnalysis TEXT
 );
 
 CREATE INDEX IF NOT EXISTS domains_feedUrl ON domains(feedUrl);

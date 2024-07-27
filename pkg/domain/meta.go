@@ -422,6 +422,11 @@ func (domain *Domain) GetFloatFeatureNames() []string {
 	names = append(names, "loadsAmazonAds")
 	names = append(names, "totalNetworkRequests")
 	names = append(names, "totalScriptRequests")
+	names = append(names, "totalCSSRequests")
+	names = append(names, "totalWeight")
+	names = append(names, "totalDocumentWeight")
+	names = append(names, "totalScriptWeight")
+	names = append(names, "totalCSSWeight")
 	// names = append(names, "tti")
 
 	return names
@@ -479,44 +484,49 @@ func (domain *Domain) GetFloatFeatures() []float64 {
 		features = append(features, 0)
 	}
 
-	if domain.LoadsGoogleTagManager {
+	if domain.ChromeAnalysis.LoadsGoogleTagManager() {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, 0)
 	}
 
-	if domain.LoadsGoogleAds {
+	if domain.ChromeAnalysis.LoadsGoogleAds() {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, 0)
 	}
 
-	if domain.LoadsGoogleAdServices {
+	if domain.ChromeAnalysis.LoadsGoogleAdServices() {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, 0)
 	}
 
-	if domain.LoadsPubmatic {
+	if domain.ChromeAnalysis.LoadsPubmatic() {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, 0)
 	}
 
-	if domain.LoadsTwitterAds {
+	if domain.ChromeAnalysis.LoadsTwitterAds() {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, 0)
 	}
 
-	if domain.LoadsAmazonAds {
+	if domain.ChromeAnalysis.LoadsAmazonAds() {
 		features = append(features, 1.0)
 	} else {
 		features = append(features, 0)
 	}
 
-	features = append(features, safeLog(float64(domain.TotalNetworkRequests)))
-	features = append(features, safeLog(float64(domain.TotalScriptRequests)))
+	features = append(features, safeLog(float64(domain.ChromeAnalysis.TotalNetworkRequests())))
+	features = append(features, safeLog(float64(domain.ChromeAnalysis.TotalScriptRequests())))
+	features = append(features, safeLog(float64(domain.ChromeAnalysis.TotalCSSRequests())))
+	features = append(features, safeLog(float64(domain.ChromeAnalysis.TotalWeight())))
+	features = append(features, safeLog(float64(domain.ChromeAnalysis.TotalDocumentWeight())))
+	features = append(features, safeLog(float64(domain.ChromeAnalysis.TotalScriptWeight())))
+	features = append(features, safeLog(float64(domain.ChromeAnalysis.TotalCSSWeight())))
 	// features = append(features, float64(domain.TTI))
 
 	return features

@@ -182,7 +182,7 @@ func runCoreLoop(
 		db.Tidy()
 	case MODE_SEARCH:
 		// 1. Get latest hackernews content
-		err = crawlEngine.RunHNRefresh(ctx, httpChunkSize, hnFetchSize, httpWorkers)
+		err = crawlEngine.RunHNRefresh(ctx, httpChunkSize*3, hnFetchSize, httpWorkers)
 		if err != nil {
 			return err
 		}

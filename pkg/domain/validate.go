@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/network"
@@ -23,24 +22,6 @@ type ChromeRunner struct {
 	CancelContext      context.CancelFunc
 
 	cacheDir string
-}
-
-type ChromeAnalysis struct {
-	LoadsGoogleTagManager bool `json:"loadsGoogleTagManager"`
-	LoadsGoogleAds        bool `json:"loadsGoogleAds"`
-	LoadsGoogleAdServices bool `json:"loadsGoogleAdServices"`
-	LoadsPubmatic         bool `json:"loadsPubmatic"`
-	LoadsTwitterAds       bool `json:"loadsTwitterAds"`
-	LoadsAmazonAds        bool `json:"loadsAmazonAds"`
-
-	TotalNetworkRequests int64 `json:"totalNetworkRequests"`
-	TotalScriptRequests  int64 `json:"totalScriptRequests"`
-
-	BeganAt int64 `json:"beganAt"`
-	TTI     int64 `json:"tti"`
-
-	FinalBody  string `json:"finalBody"`
-	Screenshot []byte `json:"screenshot"`
 }
 
 func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) error {
@@ -157,15 +138,7 @@ func (engine *Engine) validateDomain(domain *Domain) error {
 			return err
 		}
 
-		domain.LoadsGoogleAdServices = analysis.LoadsGoogleAdServices
-		domain.LoadsGoogleAds = analysis.LoadsGoogleAds
-		domain.LoadsGoogleTagManager = analysis.LoadsGoogleTagManager
-		domain.LoadsPubmatic = analysis.LoadsPubmatic
-		domain.LoadsTwitterAds = analysis.LoadsTwitterAds
-		domain.LoadsAmazonAds = analysis.LoadsAmazonAds
-		domain.TotalNetworkRequests = analysis.TotalNetworkRequests
-		domain.TotalScriptRequests = analysis.TotalScriptRequests
-		domain.TTI = analysis.TTI
+		domain.ChromeAnalysis = analysis
 
 	}
 
@@ -240,7 +213,7 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 	cacheFile := fmt.Sprintf("%s/dom/%d.json", chrome.cacheDir, key)
 
 	existing, err := os.ReadFile(cacheFile)
-	if err == nil && existing != nil {
+	if false && err == nil && existing != nil {
 
 		var existingParsed *ChromeAnalysis
 
@@ -256,9 +229,6 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 	ctx, cancel := chromedp.NewContext(chrome.Context)
 	defer cancel()
 
-	var body string
-	var screenshot []byte
-
 	start := time.Now().UnixMilli()
 
 	analysis := ChromeAnalysis{
@@ -266,37 +236,24 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 		TTI:     1000 * 60,
 	}
 
+	chromeRequests := map[network.RequestID]*ChromeRequest{}
+
 	chromedp.ListenTarget(ctx, func(ev interface{}) {
 		switch e := ev.(type) {
+		case *network.EventLoadingFinished:
+			{
+				fmt.Println(e)
 
+				chromeRequests[e.RequestID].Size = e.EncodedDataLength
+
+			}
 		case *network.EventRequestWillBeSent:
 			{
-				// fmt.Println(e.Request.URL)
-
-				if e.Type == "Script" {
-					analysis.TotalScriptRequests++
+				chromeRequests[e.RequestID] = &ChromeRequest{
+					Type: e.Type.String(),
+					URL:  e.Request.URL,
 				}
 
-				analysis.TotalNetworkRequests++
-
-				if strings.Contains(e.Request.URL, "googleadservices.com") {
-					analysis.LoadsGoogleAdServices = true
-				}
-				if strings.Contains(e.Request.URL, "googlesyndication.com") {
-					analysis.LoadsGoogleAds = true
-				}
-				if strings.Contains(e.Request.URL, "googletagmanager.com") {
-					analysis.LoadsGoogleTagManager = true
-				}
-				if strings.Contains(e.Request.URL, "pubmatic.com") {
-					analysis.LoadsPubmatic = true
-				}
-				if strings.Contains(e.Request.URL, "ads-twitter.com") {
-					analysis.LoadsTwitterAds = true
-				}
-				if strings.Contains(e.Request.URL, "amazon-adsystem.com") {
-					analysis.LoadsAmazonAds = true
-				}
 			}
 		}
 	})
@@ -319,8 +276,11 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 		},
 	)
 
-	analysis.Screenshot = screenshot
-	analysis.FinalBody = body
+	analysis.Requests = make([]*ChromeRequest, len(chromeRequests))
+
+	for _, req := range chromeRequests {
+		analysis.Requests = append(analysis.Requests, req)
+	}
 
 	os.Mkdir(fmt.Sprintf("%s/dom", chrome.cacheDir), os.ModePerm)
 

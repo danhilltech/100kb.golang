@@ -16,14 +16,13 @@ func TestChrome(t *testing.T) {
 	}
 	defer chrome.Shutdown()
 
-	analysis, err := chrome.GetChromeAnalysis("https://caffeine.wiki")
+	analysis, err := chrome.GetChromeAnalysis("https://danhill.is")
 
 	if err != nil {
 		t.Log(err)
 		t.Fail()
 
 	}
-	analysis.FinalBody = ""
 	t.Logf("%+v", analysis)
 
 }

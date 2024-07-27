@@ -2,6 +2,7 @@ package domain
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -25,15 +26,7 @@ urlHumanName,
 domainIsPopular,
 domainTLD,
 platform,
-loadsGoogleTagManager,
-loadsGoogleAds,
-loadsGoogleAdServices,
-loadsPubmatic,
-loadsTwitterAds,
-loadsAmazonAds,
-totalNetworkRequests,
-totalScriptRequests,
-tti
+chromeAnalysis
 `
 
 func (engine *Engine) initDB(db *sql.DB) error {
@@ -56,15 +49,7 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	domainIsPopular = ?,
 	domainTLD = ?,
 	platform = ?,
-	loadsGoogleTagManager = ?,
-	loadsGoogleAds = ?,
-	loadsGoogleAdServices = ?,
-	loadsPubmatic = ?,
-	loadsTwitterAds = ?,
-	loadsAmazonAds = ?,
-	totalNetworkRequests = ?,
-	totalScriptRequests = ?,
-	tti = ?
+	chromeAnalysis
 	
 	WHERE domain = ?;`)
 	if err != nil {
@@ -89,7 +74,13 @@ func (engine *Engine) Insert(txn *sql.Tx, domain string, feedurl string) error {
 // move adblock filter to validate domain
 
 func (engine *Engine) Update(txn *sql.Tx, feed *Domain) error {
-	_, err := txn.Stmt(engine.dbUpdatePreparedFeed).Exec(
+
+	chromeStr, err := json.Marshal(feed.ChromeAnalysis)
+	if err != nil {
+		return err
+	}
+
+	_, err = txn.Stmt(engine.dbUpdatePreparedFeed).Exec(
 		utils.NullInt64(feed.LastFetchAt),
 		utils.NullInt64(feed.LastValidateAt),
 		utils.NullString(feed.FeedTitle),
@@ -100,15 +91,7 @@ func (engine *Engine) Update(txn *sql.Tx, feed *Domain) error {
 		utils.NullBool(feed.DomainIsPopular),
 		utils.NullString(feed.DomainTLD),
 		utils.NullString(feed.Platform),
-		utils.NullBool(feed.LoadsGoogleTagManager),
-		utils.NullBool(feed.LoadsGoogleAds),
-		utils.NullBool(feed.LoadsGoogleAdServices),
-		utils.NullBool(feed.LoadsPubmatic),
-		utils.NullBool(feed.LoadsTwitterAds),
-		utils.NullBool(feed.LoadsAmazonAds),
-		utils.NullInt64(feed.TotalNetworkRequests),
-		utils.NullInt64(feed.TotalScriptRequests),
-		utils.NullInt64(feed.TTI),
+		chromeStr,
 		feed.Domain,
 	)
 	if err != nil && err != sql.ErrNoRows {
@@ -123,8 +106,9 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 	var lastFetchAt, lastValidateAt sql.NullInt64
 	var feedTitle, language sql.NullString
 
-	var urlNews, urlBlog, urlHumanName, domainIsPopular, loadsGoogleTagManager, loadsGoogleAds, loadsGoogleAdServices, loadsPubmatic, loadsTwitterAds, loadsAmazonAds, totalNetworkRequests, totalScriptRequests, tti sql.NullInt64
+	var urlNews, urlBlog, urlHumanName, domainIsPopular sql.NullInt64
 	var domainTLD, platform sql.NullString
+	var chromeAnalysisStr sql.NullString
 
 	err := res.Scan(
 		&domain,
@@ -139,42 +123,35 @@ func domainRowScan(res *sql.Rows) (*Domain, error) {
 		&domainIsPopular,
 		&domainTLD,
 		&platform,
-		&loadsGoogleTagManager,
-		&loadsGoogleAds,
-		&loadsGoogleAdServices,
-		&loadsPubmatic,
-		&loadsTwitterAds,
-		&loadsAmazonAds,
-		&totalNetworkRequests,
-		&totalScriptRequests,
-		&tti,
+		&chromeAnalysisStr,
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	var reqOut ChromeAnalysis
+	if chromeAnalysisStr.Valid {
+		err := json.Unmarshal([]byte(chromeAnalysisStr.String), &reqOut)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
 	d := &Domain{
-		Domain:                domain,
-		FeedURL:               feedUrl,
-		LastFetchAt:           lastFetchAt.Int64,
-		LastValidateAt:        lastValidateAt.Int64,
-		FeedTitle:             feedTitle.String,
-		Language:              language.String,
-		URLNews:               urlNews.Int64 > 0,
-		URLBlog:               urlBlog.Int64 > 0,
-		URLHumanName:          urlHumanName.Int64 > 0,
-		DomainIsPopular:       domainIsPopular.Int64 > 0,
-		DomainTLD:             domainTLD.String,
-		Platform:              platform.String,
-		LoadsGoogleTagManager: loadsGoogleTagManager.Int64 > 0,
-		LoadsGoogleAds:        loadsGoogleAds.Int64 > 0,
-		LoadsGoogleAdServices: loadsGoogleAdServices.Int64 > 0,
-		LoadsPubmatic:         loadsPubmatic.Int64 > 0,
-		LoadsTwitterAds:       loadsTwitterAds.Int64 > 0,
-		LoadsAmazonAds:        loadsAmazonAds.Int64 > 0,
-		TotalNetworkRequests:  totalNetworkRequests.Int64,
-		TotalScriptRequests:   totalScriptRequests.Int64,
-		TTI:                   tti.Int64,
+		Domain:          domain,
+		FeedURL:         feedUrl,
+		LastFetchAt:     lastFetchAt.Int64,
+		LastValidateAt:  lastValidateAt.Int64,
+		FeedTitle:       feedTitle.String,
+		Language:        language.String,
+		URLNews:         urlNews.Int64 > 0,
+		URLBlog:         urlBlog.Int64 > 0,
+		URLHumanName:    urlHumanName.Int64 > 0,
+		DomainIsPopular: domainIsPopular.Int64 > 0,
+		DomainTLD:       domainTLD.String,
+		Platform:        platform.String,
+		ChromeAnalysis:  &reqOut,
 	}
 	return d, nil
 }
