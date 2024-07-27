@@ -242,10 +242,11 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 		switch e := ev.(type) {
 		case *network.EventLoadingFinished:
 			{
-				fmt.Println(e)
-
-				chromeRequests[e.RequestID].Size = e.EncodedDataLength
-
+				if chromeRequests[e.RequestID] != nil {
+					chromeRequests[e.RequestID].Size = e.EncodedDataLength
+				} else {
+					fmt.Println("request missing", e.RequestID)
+				}
 			}
 		case *network.EventRequestWillBeSent:
 			{
