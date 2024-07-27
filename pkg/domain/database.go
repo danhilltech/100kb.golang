@@ -49,7 +49,7 @@ func (engine *Engine) initDB(db *sql.DB) error {
 	domainIsPopular = ?,
 	domainTLD = ?,
 	platform = ?,
-	chromeAnalysis
+	chromeAnalysis = ?
 	
 	WHERE domain = ?;`)
 	if err != nil {

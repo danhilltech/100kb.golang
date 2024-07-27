@@ -213,7 +213,7 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 	cacheFile := fmt.Sprintf("%s/dom/%d.json", chrome.cacheDir, key)
 
 	existing, err := os.ReadFile(cacheFile)
-	if false && err == nil && existing != nil {
+	if err == nil && existing != nil {
 
 		var existingParsed *ChromeAnalysis
 
