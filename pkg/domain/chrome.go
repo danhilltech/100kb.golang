@@ -16,7 +16,7 @@ type ChromeRequest struct {
 
 func (c *ChromeAnalysis) LoadsGoogleTagManager() bool {
 	for _, req := range c.Requests {
-		if strings.Contains(req.URL, "googletagmanager.") {
+		if req != nil && strings.Contains(req.URL, "googletagmanager.") {
 			return true
 		}
 	}
@@ -25,7 +25,7 @@ func (c *ChromeAnalysis) LoadsGoogleTagManager() bool {
 
 func (c *ChromeAnalysis) LoadsGoogleAds() bool {
 	for _, req := range c.Requests {
-		if strings.Contains(req.URL, "googlesyndication.") {
+		if req != nil && strings.Contains(req.URL, "googlesyndication.") {
 			return true
 		}
 	}
@@ -34,7 +34,7 @@ func (c *ChromeAnalysis) LoadsGoogleAds() bool {
 
 func (c *ChromeAnalysis) LoadsGoogleAdServices() bool {
 	for _, req := range c.Requests {
-		if strings.Contains(req.URL, "googleadservices.") {
+		if req != nil && strings.Contains(req.URL, "googleadservices.") {
 			return true
 		}
 	}
@@ -43,7 +43,7 @@ func (c *ChromeAnalysis) LoadsGoogleAdServices() bool {
 
 func (c *ChromeAnalysis) LoadsPubmatic() bool {
 	for _, req := range c.Requests {
-		if strings.Contains(req.URL, "pubmatic.") {
+		if req != nil && strings.Contains(req.URL, "pubmatic.") {
 			return true
 		}
 	}
@@ -52,7 +52,7 @@ func (c *ChromeAnalysis) LoadsPubmatic() bool {
 
 func (c *ChromeAnalysis) LoadsTwitterAds() bool {
 	for _, req := range c.Requests {
-		if strings.Contains(req.URL, "ads-twitter.") {
+		if req != nil && strings.Contains(req.URL, "ads-twitter.") {
 			return true
 		}
 	}
@@ -61,7 +61,7 @@ func (c *ChromeAnalysis) LoadsTwitterAds() bool {
 
 func (c *ChromeAnalysis) LoadsAmazonAds() bool {
 	for _, req := range c.Requests {
-		if strings.Contains(req.URL, "amazon-adsystem.") {
+		if req != nil && strings.Contains(req.URL, "amazon-adsystem.") {
 			return true
 		}
 	}
@@ -75,7 +75,7 @@ func (c *ChromeAnalysis) TotalNetworkRequests() int {
 func (c *ChromeAnalysis) TotalScriptRequests() int {
 	var out int
 	for _, req := range c.Requests {
-		if req.Type == "Script" {
+		if req != nil && req.Type == "Script" {
 			out++
 		}
 	}
@@ -85,7 +85,7 @@ func (c *ChromeAnalysis) TotalScriptRequests() int {
 func (c *ChromeAnalysis) TotalCSSRequests() int {
 	var out int
 	for _, req := range c.Requests {
-		if req.Type == "Stylesheet" {
+		if req != nil && req.Type == "Stylesheet" {
 			out++
 		}
 	}
@@ -103,7 +103,7 @@ func (c *ChromeAnalysis) TotalWeight() int {
 func (c *ChromeAnalysis) TotalScriptWeight() int {
 	var out int
 	for _, req := range c.Requests {
-		if req.Type == "Script" {
+		if req != nil && req.Type == "Script" {
 			out += int(req.Size)
 		}
 	}
@@ -113,7 +113,7 @@ func (c *ChromeAnalysis) TotalScriptWeight() int {
 func (c *ChromeAnalysis) TotalCSSWeight() int {
 	var out int
 	for _, req := range c.Requests {
-		if req.Type == "Stylesheet" {
+		if req != nil && req.Type == "Stylesheet" {
 			out += int(req.Size)
 		}
 	}
@@ -123,7 +123,7 @@ func (c *ChromeAnalysis) TotalCSSWeight() int {
 func (c *ChromeAnalysis) TotalDocumentWeight() int {
 	var out int
 	for _, req := range c.Requests {
-		if req.Type == "Document" {
+		if req != nil && req.Type == "Document" {
 			out += int(req.Size)
 		}
 	}

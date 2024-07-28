@@ -164,7 +164,7 @@ func startChrome(cacheDir string) (*ChromeRunner, error) {
 		chromedp.Flag("disable-setuid-sandbox", true),
 		chromedp.Flag("disable-translate", true),
 		chromedp.Flag("disable-extensions", true),
-		chromedp.Flag("disk-cache-size", 0),
+		chromedp.Flag("disk-cache-size", "0"),
 	)
 
 	_, err := os.Stat("/chrome/chrome")
@@ -180,7 +180,7 @@ func startChrome(cacheDir string) (*ChromeRunner, error) {
 
 	ctx, cancel := chromedp.NewContext(allocCtx, contextOpts...)
 
-	err := chromedp.Run(ctx)
+	err = chromedp.Run(ctx)
 	if err != nil {
 		return nil, err
 	}
