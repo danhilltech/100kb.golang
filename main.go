@@ -38,7 +38,7 @@ func main() {
 	metaChunkSize := flag.Int("meta-chunk-size", 50, "number of meta chunks")
 	mode := flag.String("mode", "index", "which process to run")
 	cacheDir := flag.String("cache-dir", ".cache", "where to cache html")
-	trainDir := flag.String("train-dir", ".cache", "where to cache html")
+	trainDir := flag.String("train-dir", "train", "where to cache html")
 	utilization := flag.Float64("util", 1.0, "pcnt of cores to use")
 	articleLoadML := flag.Bool("cuda", false, "use CUDA")
 

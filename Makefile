@@ -108,7 +108,7 @@ meta:
 
 .PHONY: train
 train:
-	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=train -trainDir=/train ${DOCKER_RUN_ARGS}
+	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=train -train-dir=/train ${DOCKER_RUN_ARGS}
 
 .PHONY: output
 output:
