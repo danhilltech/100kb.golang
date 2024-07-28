@@ -167,7 +167,7 @@ func startChrome(cacheDir string) (*ChromeRunner, error) {
 		chromedp.Flag("disk-cache-size", "0"),
 	)
 
-	_, err := os.Stat("/chrome/chrome")
+	_, err := os.Stat("/chrome/chrome-linux64/chrome")
 	if err == nil {
 		opts = append(opts, chromedp.ExecPath("/chrome/chrome"))
 	}

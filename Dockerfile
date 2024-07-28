@@ -28,7 +28,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES all
 RUN apt-get update \
     && apt-get install -y software-properties-common \
     && apt-get update -y --no-install-recommends \
-    && apt-get -y install --no-install-recommends bash git wget curl tzdata build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev cmake unzip zsh ca-certificates sudo apt-transport-https nano zip openssh-client apt-utils pkg-config gcc protobuf-compiler \
+    && apt-get -y install --no-install-recommends bash git wget curl tzdata build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev cmake unzip zsh ca-certificates sudo apt-transport-https nano zip openssh-client apt-utils pkg-config gcc protobuf-compiler libatk-bridge2.0-dev libatk1.0-0 libcups2 libdrm-dev libxkbcommon-dev libxcomposite-dev libxdamage-dev libxrandr-dev libgbm-dev libpango1.0-dev libasound2-dev \
     && apt-get autoremove -y
 
 # CHROME

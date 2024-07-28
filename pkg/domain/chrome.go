@@ -69,7 +69,13 @@ func (c *ChromeAnalysis) LoadsAmazonAds() bool {
 }
 
 func (c *ChromeAnalysis) TotalNetworkRequests() int {
-	return len(c.Requests)
+	var out int
+	for _, req := range c.Requests {
+		if req != nil {
+			out++
+		}
+	}
+	return out
 }
 
 func (c *ChromeAnalysis) TotalScriptRequests() int {
@@ -95,7 +101,9 @@ func (c *ChromeAnalysis) TotalCSSRequests() int {
 func (c *ChromeAnalysis) TotalWeight() int {
 	var out int
 	for _, req := range c.Requests {
-		out += int(req.Size)
+		if req != nil {
+			out += int(req.Size)
+		}
 	}
 	return out
 }
