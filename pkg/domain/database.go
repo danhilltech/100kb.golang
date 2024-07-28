@@ -319,6 +319,7 @@ func (engine *Engine) getURLsToCrawl() ([]string, error) {
 		if !isBad {
 			for _, bad := range PopularDomainList {
 				if len(bad) > 0 && strings.HasSuffix(domain, bad) {
+					fmt.Println("BAD", domain)
 					isBad = true
 				}
 			}

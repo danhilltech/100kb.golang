@@ -2,6 +2,7 @@ package article
 
 import (
 	"database/sql"
+	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/ai"
 	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
@@ -39,9 +40,11 @@ type Engine struct {
 
 	http *retryhttp.Client
 
-	cacheArticles map[string][]*Article
+	cacheArticlesMutex sync.RWMutex
+	cacheArticles      map[string][]*Article
 
-	cacheFailingDomains map[string]int
+	cacheFailingDomainsRWMutex sync.RWMutex
+	cacheFailingDomains        map[string]int
 }
 
 type Article struct {

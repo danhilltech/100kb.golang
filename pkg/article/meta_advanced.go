@@ -38,16 +38,21 @@ func (engine *Engine) articleMetaAdvanced(txn *sql.Tx, article *Article) error {
 
 	var feedArticles []*Article
 
+	engine.cacheArticlesMutex.RLock()
 	if engine.cacheArticles[article.Domain] != nil {
 		feedArticles = engine.cacheArticles[article.Domain]
+		engine.cacheArticlesMutex.RUnlock()
 	} else {
+		engine.cacheArticlesMutex.RUnlock()
 		var err error
 		feedArticles, err = engine.getArticlesByFeed(txn, article.FeedUrl, article.Url)
 		if err != nil {
 			return err
 
 		}
+		engine.cacheArticlesMutex.Lock()
 		engine.cacheArticles[article.Domain] = feedArticles
+		engine.cacheArticlesMutex.Unlock()
 	}
 
 	currentCanon := make(map[uint64]bool)

@@ -280,7 +280,9 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 	analysis.Requests = make([]*ChromeRequest, len(chromeRequests))
 
 	for _, req := range chromeRequests {
-		analysis.Requests = append(analysis.Requests, req)
+		if req != nil {
+			analysis.Requests = append(analysis.Requests, req)
+		}
 	}
 
 	os.Mkdir(fmt.Sprintf("%s/dom", chrome.cacheDir), os.ModePerm)
