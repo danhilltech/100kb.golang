@@ -107,7 +107,7 @@ meta:
 	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=meta ${DOCKER_RUN_ARGS}
 
 .PHONY: train
-meta:
+train:
 	docker run ${DOCKER_GPUS} ${DOCKER_CORE_ARGS} ${DOCKER_TAG} -mode=train -trainDir=/train ${DOCKER_RUN_ARGS}
 
 .PHONY: output
