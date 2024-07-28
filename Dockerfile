@@ -8,6 +8,7 @@ ARG USERNAME=builder
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 ARG LIBTORCH_URL=https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcu118.zip
+ARG CHROME_URL=https://storage.googleapis.com/chrome-for-testing-public/129.0.6622.0/linux64/chrome-linux64.zip
 
 ENV TORCH_HOME=/usr/local/lib/libtorch
 ENV LIBTORCH=/usr/local/lib/libtorch
@@ -26,12 +27,14 @@ ENV NVIDIA_DRIVER_CAPABILITIES all
 
 RUN apt-get update \
     && apt-get install -y software-properties-common \
-    && add-apt-repository ppa:savoury1/pipewire \
-    && add-apt-repository ppa:savoury1/chromium \
-    && apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get update -y --no-install-recommends \
-    && apt-get -y install --no-install-recommends bash git wget curl tzdata build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev cmake unzip zsh ca-certificates sudo apt-transport-https nano zip openssh-client apt-utils pkg-config gcc protobuf-compiler chromium-browser \
+    && apt-get -y install --no-install-recommends bash git wget curl tzdata build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev cmake unzip zsh ca-certificates sudo apt-transport-https nano zip openssh-client apt-utils pkg-config gcc protobuf-compiler \
     && apt-get autoremove -y
+
+# CHROME
+RUN curl -fsSL -o chrome.zip $CHROME_URL \
+    && unzip -q chrome.zip -d /chrome \
+    && rm chrome.zip
 
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
