@@ -169,7 +169,7 @@ func startChrome(cacheDir string) (*ChromeRunner, error) {
 
 	_, err := os.Stat("/chrome/chrome-linux64/chrome")
 	if err == nil {
-		opts = append(opts, chromedp.ExecPath("/chrome/chrome"))
+		opts = append(opts, chromedp.ExecPath("/chrome/chrome-linux64/chrome"))
 	}
 
 	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), opts...)
