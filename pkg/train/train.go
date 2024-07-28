@@ -64,7 +64,7 @@ docker run \
  graphiteapp/graphite-statsd
 */
 
-func Train(ctx context.Context, cacheDir string) error {
+func Train(ctx context.Context, cacheDir string, trainDir string) error {
 
 	candidates := strings.Split(candidateList, "\n")
 	// candidates := []string{"https://herbertlui.net/"}
@@ -73,7 +73,7 @@ func Train(ctx context.Context, cacheDir string) error {
 
 	existing := false
 
-	_, err := os.Stat("train.db")
+	_, err := os.Stat(fmt.Sprintf("%s/%s", trainDir, "train.db"))
 
 	if err == nil {
 		existing = true
@@ -153,7 +153,7 @@ func Train(ctx context.Context, cacheDir string) error {
 		// // 3. Get latest articles from our feeds
 		err = domainEngine.RunFeedRefresh(ctx, httpChunkSize, httpWorkers)
 		if err != nil {
-			return fmt.Errorf("hi %w", err)
+			return err
 		}
 
 		// 4. Crawl any new articles for content
@@ -223,7 +223,7 @@ func Train(ctx context.Context, cacheDir string) error {
 			continue
 		}
 
-		labels := readJSON("labels.json")
+		labels := readJSON(fmt.Sprintf("%s/%s", trainDir, "labels.json"))
 
 		if labels[train.domainStr] > 0 {
 			train.score = labels[train.domainStr]
@@ -239,7 +239,7 @@ func Train(ctx context.Context, cacheDir string) error {
 		return err
 	}
 
-	err = mdl.Save("model.json")
+	err = mdl.Save(fmt.Sprintf("%s/%s", trainDir, "model.json"))
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func Train(ctx context.Context, cacheDir string) error {
 		return err
 	}
 
-	engine, err := output.NewRenderEnding("output-train", articles, allDomains, mdl, database, articleEngine)
+	engine, err := output.NewRenderEnding(fmt.Sprintf("%s/%s", trainDir, "output-train"), articles, allDomains, mdl, database, articleEngine)
 	if err != nil {
 		return err
 	}
@@ -270,7 +270,7 @@ func Train(ctx context.Context, cacheDir string) error {
 		return err
 	}
 
-	go engine.RunHttp(ctx, "./output-train")
+	go engine.RunHttp(ctx, fmt.Sprintf("%s/%s", trainDir, "output-train"))
 
 	<-ctx.Done()
 

@@ -34,15 +34,17 @@ func (engine *Engine) identifyURL(baseUrl string) (bool, bool, bool, bool, error
 
 	names := strings.Split(namesList, "\n")
 
+	d := baseUrlP.Hostname()
+
 	for _, name := range names {
-		if len(name) > 0 && strings.Contains(baseUrlP.Hostname(), strings.ToLower(name)) {
+		if len(name) > 0 && strings.Contains(d, strings.ToLower(name)) {
 			urlHumanName = true
 			break
 		}
 	}
 
 	for _, domain := range PopularDomainList {
-		if len(domain) > 0 && strings.HasSuffix(baseUrlP.Hostname(), domain) {
+		if len(domain) > 0 && d == domain {
 			popularDomain = true
 			break
 		}

@@ -6,7 +6,6 @@ var BANNED_DOMAINS = []string{
 	"wikipedia.org",
 	"github.com",
 	"reddit.com",
-	"x.com",
 	"twitter.com",
 	"mailchi.mp",
 	"youtu.be",
@@ -19,4 +18,6 @@ var BANNED_DOMAINS = []string{
 	"web.archive.org",
 	"phys.org",
 	"www.tiktok.com",
+	"stackexchange.com",
+	"stackoverflow.com",
 }

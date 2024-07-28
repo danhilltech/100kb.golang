@@ -17,6 +17,7 @@ func (engine *Engine) articleIndex(article *Article) error {
 
 	engine.cacheFailingDomainsRWMutex.RLock()
 	if engine.cacheFailingDomains[article.Domain] > 5 {
+		engine.cacheFailingDomainsRWMutex.RUnlock()
 		return ErrTooManyFailingOnDomain
 	}
 	engine.cacheFailingDomainsRWMutex.RUnlock()
