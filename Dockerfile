@@ -8,7 +8,7 @@ ARG USERNAME=builder
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 ARG LIBTORCH_URL=https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcu118.zip
-ARG CHROME_URL=https://storage.googleapis.com/chrome-for-testing-public/128.0.6613.5/linux64/chrome-linux64.zip
+ARG CHROME_URL=https://storage.googleapis.com/chrome-for-testing-public/127.0.6533.72/linux64/chrome-linux64.zip
 
 ENV TORCH_HOME=/usr/local/lib/libtorch
 ENV LIBTORCH=/usr/local/lib/libtorch
