@@ -81,7 +81,7 @@ func Train(ctx context.Context, cacheDir string, trainDir string) error {
 
 	fmt.Printf("Existing: %t\n", existing)
 
-	database, err := sql.Open("sqlite3", "file:train.db?cache=shared&_journal_mode=WAL&_sync=FULL") // Open the created SQLite File
+	database, err := sql.Open("sqlite3", fmt.Sprintf("file:%s/train.db?cache=shared&_journal_mode=WAL&_sync=FULL", trainDir)) // Open the created SQLite File
 	if err != nil {
 
 		return err
