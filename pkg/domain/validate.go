@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/network"
@@ -283,10 +284,10 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 		},
 	)
 
-	analysis.Requests = make([]*ChromeRequest, len(chromeRequests))
+	analysis.Requests = []*ChromeRequest{}
 
 	for _, req := range chromeRequests {
-		if req != nil {
+		if req != nil && strings.HasPrefix(req.URL, "http") {
 			analysis.Requests = append(analysis.Requests, req)
 		}
 	}
