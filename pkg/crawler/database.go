@@ -10,7 +10,7 @@ import (
 
 func (engine *Engine) initDB(db *sql.DB) error {
 	var err error
-	engine.dbInsertPreparedToCrawl, err = db.Prepare("INSERT INTO to_crawl(url, hn_id, author, type, addedAt, postedAt, score, domain) VALUES(?, ?, ?, ?, ?, ?, ?, ?)  ON CONFLICT(hn_id) DO NOTHING")
+	engine.dbInsertPreparedToCrawl, err = db.Prepare("INSERT INTO to_crawl(url, hn_id, author, type, addedAt, postedAt, score, domain) VALUES(?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(hn_id) DO UPDATE SET score=excluded.score")
 	if err != nil {
 
 		return err
@@ -32,7 +32,7 @@ func (engine *Engine) InsertToCrawl(txn *sql.Tx, item *ToCrawl) error {
 func (engine *Engine) getExistingIDs() ([]int, error) {
 	fmt.Printf("Getting existing IDs\t")
 	defer fmt.Printf("❄️\n")
-	res, err := engine.db.Query("SELECT hn_id FROM to_crawl WHERE hn_id > 0")
+	res, err := engine.db.Query("SELECT hn_id FROM to_crawl WHERE hn_id > 0 AND postedAt < ?", time.Now().Unix()-60*6048)
 	if err != nil {
 		return nil, err
 	}

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -e
 now="$(date)"
 printf "Running at %s\n" "$now"
 

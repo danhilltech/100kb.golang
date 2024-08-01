@@ -38,6 +38,32 @@ func (engine *Engine) getMaxId() (int, error) {
 	return max, nil
 }
 
+func (engine *Engine) getTopStories() ([]int, error) {
+	resp, err := http.Get(fmt.Sprintf("%s/topstories.json", HN_BASE))
+	// handle the error if there is one
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var out []int
+
+	err = json.Unmarshal(body, &out)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func (engine *Engine) getHNItem(id int) (*ToCrawl, error) {
 	tmpItem := &ToCrawl{HNID: id}
 
@@ -117,6 +143,12 @@ func (engine *Engine) RunHNRefresh(ctx context.Context, chunkSize int, totalFetc
 			ids = append(ids, i)
 		}
 	}
+
+	topIds, err := engine.getTopStories()
+	if err != nil {
+		return err
+	}
+	ids = append(ids, topIds...)
 
 	fmt.Printf("Getting %d HN items\n", len(ids))
 

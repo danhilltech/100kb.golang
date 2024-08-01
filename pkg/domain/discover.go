@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andybalholm/cascadia"
 	"golang.org/x/net/html"
 )
 
@@ -217,6 +218,79 @@ func (engine *Engine) RunKagiList(ctx context.Context) error {
 					fmt.Println(err)
 				}
 			}
+			d++
+		}
+	}
+
+	fmt.Printf("\tdone %d\n", d)
+	txn.Commit()
+
+	return nil
+}
+
+func (engine *Engine) RunBearBlog(ctx context.Context) error {
+
+	fmt.Println("Getting BearBlog list...")
+
+	for i := 0; i < 10; i++ {
+		err := engine.runBearInner(ctx, i)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+
+}
+
+func (engine *Engine) runBearInner(ctx context.Context, page int) error {
+	resp, err := http.Get(fmt.Sprintf("https://bearblog.dev/discover/?page=%d", page))
+	// handle the error if there is one
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	d := 0
+
+	txn, _ := engine.db.Begin()
+	defer txn.Rollback()
+
+	z, err := html.Parse(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	sel, err := cascadia.Parse("span > a")
+	if err != nil {
+		return err
+	}
+
+	for _, a := range cascadia.QueryAll(z, sel) {
+		select {
+		case <-ctx.Done():
+			txn.Commit()
+			return ctx.Err()
+		default:
+
+			for _, at := range a.Attr {
+				if at.Key == "href" {
+
+					err = engine.Insert(txn, fmt.Sprintf("http:%s", at.Val), fmt.Sprintf("http:%s/feed", at.Val))
+					if err != nil {
+						fmt.Println(err)
+					}
+				}
+			}
+
+			// u, err := url.Parse(feed)
+
+			// if err == nil {
+			// 	err = engine.Insert(txn, u.Hostname(), feed)
+			// 	if err != nil {
+			// 		fmt.Println(err)
+			// 	}
+			// }
 			d++
 		}
 	}
