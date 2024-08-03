@@ -1,11 +1,14 @@
 package parsing
 
+import "log"
+
 type Engine struct {
+	log *log.Logger
 }
 
-func NewEngine() (*Engine, error) {
+func NewEngine(log *log.Logger) (*Engine, error) {
 
-	engine := Engine{}
+	engine := Engine{log: log}
 	return &engine, nil
 }
 

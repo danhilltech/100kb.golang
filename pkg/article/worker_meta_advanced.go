@@ -2,7 +2,6 @@ package article
 
 import (
 	"context"
-	"fmt"
 	"time"
 )
 
@@ -13,7 +12,7 @@ func (engine *Engine) RunArticleMetaPassII(ctx context.Context) error {
 		return err
 	}
 
-	fmt.Printf("Generating %d article advanced metas\n", len(articles))
+	engine.log.Printf("Generating %d article advanced metas\n", len(articles))
 
 	printSize := 100
 
@@ -31,13 +30,13 @@ func (engine *Engine) RunArticleMetaPassII(ctx context.Context) error {
 
 			err := engine.articleMetaAdvanced(txn, article)
 			if err != nil {
-				fmt.Println(err)
+				engine.log.Println(err)
 				continue
 			}
 
 			err = engine.Update(txn, article)
 			if err != nil {
-				fmt.Println(article.Url, err)
+				engine.log.Println(article.Url, err)
 				continue
 			}
 
@@ -50,7 +49,7 @@ func (engine *Engine) RunArticleMetaPassII(ctx context.Context) error {
 				diff := time.Now().UnixMilli() - t
 				qps := (float64(printSize) / float64(diff)) * 1000
 				t = time.Now().UnixMilli()
-				fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
+				engine.log.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
 
 			}
 			a++
@@ -58,7 +57,7 @@ func (engine *Engine) RunArticleMetaPassII(ctx context.Context) error {
 	}
 
 	txn.Commit()
-	fmt.Printf("\tdone %d/%d\n\n", a, len(articles))
+	engine.log.Printf("\tdone %d/%d\n\n", a, len(articles))
 
 	return nil
 }

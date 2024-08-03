@@ -252,8 +252,8 @@ func articleRowScan(res *sql.Rows) (*Article, error) {
 }
 
 func (engine *Engine) getArticlesToIndex() ([]*Article, error) {
-	fmt.Printf("Getting articles to index...\t")
-	defer fmt.Printf("✨\n")
+	engine.log.Printf("Getting articles to index...\t")
+	defer engine.log.Printf("✨\n")
 	res, err := engine.db.Query(fmt.Sprintf("SELECT %s FROM articles WHERE lastFetchAt IS NULL OR lastFetchAt < %d ORDER BY lastFetchAt ASC LIMIT %d;", ARTICLE_SELECT, REFRESH_AGO_SECONDS, REFRESH_LIMIT))
 	if err != nil {
 		return nil, err

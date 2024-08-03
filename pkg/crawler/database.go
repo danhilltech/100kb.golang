@@ -2,7 +2,6 @@ package crawler
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/danhilltech/100kb.golang/pkg/utils"
@@ -30,8 +29,8 @@ func (engine *Engine) InsertToCrawl(txn *sql.Tx, item *ToCrawl) error {
 }
 
 func (engine *Engine) getExistingIDs() ([]int, error) {
-	fmt.Printf("Getting existing IDs\t")
-	defer fmt.Printf("❄️\n")
+	engine.log.Printf("Getting existing IDs\t")
+	defer engine.log.Printf("❄️\n")
 	res, err := engine.db.Query("SELECT hn_id FROM to_crawl WHERE hn_id > 0 AND postedAt < ?", time.Now().Unix()-60*6048)
 	if err != nil {
 		return nil, err

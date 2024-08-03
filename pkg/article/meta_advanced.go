@@ -2,7 +2,6 @@ package article
 
 import (
 	"database/sql"
-	"fmt"
 	"hash/fnv"
 	"strings"
 	"time"
@@ -127,7 +126,7 @@ func (engine *Engine) articleMetaAdvanced(txn *sql.Tx, article *Article) error {
 		}
 		diff = time.Now().UnixMilli() - startTime
 		if diff > 500 {
-			fmt.Printf("SLOW sentence embedding %d %s\n", diff, article.Url)
+			engine.log.Printf("SLOW sentence embedding %d %s\n", diff, article.Url)
 		}
 
 		if len(vecs) > 0 {
@@ -145,7 +144,7 @@ func (engine *Engine) articleMetaAdvanced(txn *sql.Tx, article *Article) error {
 		// }
 		// diff = time.Now().UnixMilli() - startTime
 		// if diff > 500 {
-		// 	fmt.Printf("SLOW keyword extraction %d %s\n", diff, article.Url)
+		// 	engine.log.Printf("SLOW keyword extraction %d %s\n", diff, article.Url)
 		// }
 
 		// kwds := map[string][]float32{}
@@ -181,7 +180,7 @@ func (engine *Engine) articleMetaAdvanced(txn *sql.Tx, article *Article) error {
 		}
 		diff = time.Now().UnixMilli() - startTime
 		if diff > 500 {
-			fmt.Printf("SLOW zero shot %d %s\n%+v\n", diff, article.Url, summaryTexts)
+			engine.log.Printf("SLOW zero shot %d %s\n%+v\n", diff, article.Url, summaryTexts)
 		}
 
 		zeroshots := map[string][]float32{}

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
+	"log"
 	"net/url"
 	"os"
 	"runtime"
@@ -32,7 +33,7 @@ func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) erro
 		return err
 	}
 
-	fmt.Printf("Validating %d domains\n", len(domains))
+	engine.log.Printf("Validating %d domains\n", len(domains))
 
 	latestUrls, err := engine.getLatestArticleURLs()
 	if err != nil && err != sql.ErrNoRows {
@@ -45,7 +46,7 @@ func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) erro
 
 	}
 
-	fmt.Printf("Starting workers\n")
+	engine.log.Printf("Starting workers\n")
 
 	printSize := 100
 
@@ -77,7 +78,7 @@ func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) erro
 
 			err = engine.Update(txn, domain)
 			if err != nil {
-				fmt.Println(domain.Domain, err)
+				engine.log.Println(domain.Domain, err)
 				continue
 			}
 
@@ -94,7 +95,7 @@ func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) erro
 				diff := time.Now().UnixMilli() - t
 				qps := (float64(printSize) / float64(diff)) * 1000
 				t = time.Now().UnixMilli()
-				fmt.Printf("\tdone %d/%d at %0.2f/s\n", done, len(domains), qps)
+				engine.log.Printf("\tdone %d/%d at %0.2f/s\n", done, len(domains), qps)
 
 			}
 			done++
@@ -102,7 +103,7 @@ func (engine *Engine) RunDomainValidate(ctx context.Context, chunkSize int) erro
 	}
 
 	txn.Commit()
-	fmt.Printf("\tdone %d/%d\n\n", done, len(domains))
+	engine.log.Printf("\tdone %d/%d\n\n", done, len(domains))
 
 	return nil
 }
@@ -111,7 +112,7 @@ func (engine *Engine) validateDomainWorker(jobs <-chan *Domain, results chan<- *
 	for id := range jobs {
 		err := engine.validateDomain(id)
 		if err != nil {
-			fmt.Println(id.Domain, err)
+			engine.log.Println(id.Domain, err)
 		}
 		results <- id
 	}
@@ -134,7 +135,7 @@ func (engine *Engine) validateDomain(domain *Domain) error {
 	domain.DomainIsPopular = popularDomain
 
 	if domain.LiveLatestArticleURL != "" {
-		analysis, err := engine.chrome.GetChromeAnalysis(domain.LiveLatestArticleURL)
+		analysis, err := engine.chrome.GetChromeAnalysis(domain.LiveLatestArticleURL, engine.log)
 		if err != nil {
 			return err
 		}
@@ -204,7 +205,7 @@ func (chrome *ChromeRunner) Shutdown() error {
 	return nil
 }
 
-func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis, error) {
+func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string, log *log.Logger) (*ChromeAnalysis, error) {
 
 	keyHash := fnv.New64()
 
@@ -228,7 +229,7 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("chrome cache hit for %s\n", urlToGet)
+		log.Printf("chrome cache hit for %s\n", urlToGet)
 		return existingParsed, nil
 
 	}
@@ -252,7 +253,7 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 				if chromeRequests[e.RequestID] != nil {
 					chromeRequests[e.RequestID].Size = e.EncodedDataLength
 				} else {
-					fmt.Println("request missing", e.RequestID)
+					log.Println("request missing", e.RequestID)
 				}
 			}
 		case *network.EventRequestWillBeSent:
@@ -303,7 +304,7 @@ func (chrome *ChromeRunner) GetChromeAnalysis(urlToGet string) (*ChromeAnalysis,
 
 	end := time.Now().UnixMilli()
 
-	fmt.Printf("chrome for %s took %dms\n", urlToGet, end-start)
+	log.Printf("chrome for %s took %dms\n", urlToGet, end-start)
 
 	return &analysis, nil
 }

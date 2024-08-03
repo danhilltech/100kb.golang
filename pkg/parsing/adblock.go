@@ -9,6 +9,7 @@ import (
 	"embed"
 	_ "embed"
 	"fmt"
+	"log"
 	"net/url"
 	"runtime"
 	"strings"
@@ -22,12 +23,13 @@ type AdblockEngine struct {
 	engine *C.AdblockEngine
 	mutex  sync.Mutex
 	pinner runtime.Pinner
+	log    *log.Logger
 }
 
 //go:embed data/adblock/*.txt
 var adbLists embed.FS
 
-func NewAdblockEngine() (*AdblockEngine, error) {
+func NewAdblockEngine(log *log.Logger) (*AdblockEngine, error) {
 
 	req := RuleGroups{}
 
@@ -53,15 +55,15 @@ func NewAdblockEngine() (*AdblockEngine, error) {
 		req.Filters = append(req.Filters, &rs)
 	}
 
-	fmt.Printf("Adblock loading %d rules...\n", cnt)
-	defer fmt.Printf("Adblock loaded\n")
+	log.Printf("Adblock loading %d rules...\n", cnt)
+	defer log.Printf("Adblock loaded\n")
 
 	reqBytes, err := proto.Marshal(&req)
 	if err != nil {
 		return nil, err
 	}
 
-	engine := AdblockEngine{}
+	engine := AdblockEngine{log: log}
 	engine.pinner = runtime.Pinner{}
 
 	reqSize := uintptr(len(reqBytes))
@@ -173,7 +175,7 @@ func (engine *AdblockEngine) Filter(ids []string, classes []string, urls []strin
 
 	protoBuf := unsafe.Slice((*byte)(cout), outSize)
 
-	// fmt.Println(protoBuf)
+	// engine.log.Println(protoBuf)
 
 	err = proto.Unmarshal(protoBuf, &resp)
 	if err != nil {

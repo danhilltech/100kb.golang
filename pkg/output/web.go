@@ -21,7 +21,7 @@ type ScoreRequest struct {
 
 func (engine *RenderEngine) RunHttp(ctx context.Context, dir string) error {
 
-	fmt.Println("Starting output http server...")
+	engine.log.Println("Starting output http server...")
 
 	http.HandleFunc("/score", engine.handleScore)
 	fs := http.FileServer(http.Dir(dir))

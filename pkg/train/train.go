@@ -18,6 +18,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"runtime"
@@ -64,7 +65,7 @@ docker run \
  graphiteapp/graphite-statsd
 */
 
-func Train(ctx context.Context, cacheDir string, trainDir string) error {
+func Train(ctx context.Context, log *log.Logger, cacheDir string, trainDir string) error {
 
 	candidates := strings.Split(candidateList, "\n")
 	// candidates := []string{"https://herbertlui.net/"}
@@ -79,7 +80,7 @@ func Train(ctx context.Context, cacheDir string, trainDir string) error {
 		existing = true
 	}
 
-	fmt.Printf("Existing: %t\n", existing)
+	log.Printf("Existing: %t\n", existing)
 
 	database, err := sql.Open("sqlite3", fmt.Sprintf("file:%s/train.db?cache=shared&_journal_mode=WAL&_sync=FULL", trainDir)) // Open the created SQLite File
 	if err != nil {
@@ -98,20 +99,20 @@ func Train(ctx context.Context, cacheDir string, trainDir string) error {
 
 	// db.SetMaxOpenConns(1)
 
-	crawlEngine, err := crawler.NewEngine(database)
+	crawlEngine, err := crawler.NewEngine(log, database)
 	if err != nil {
 
 		return err
 	}
 
-	articleEngine, err := article.NewEngine(database, statsdClient, cacheDir, false)
+	articleEngine, err := article.NewEngine(log, database, statsdClient, cacheDir, false)
 	if err != nil {
 
 		return err
 	}
 	defer articleEngine.Close()
 
-	domainEngine, err := domain.NewEngine(database, articleEngine, statsdClient, cacheDir)
+	domainEngine, err := domain.NewEngine(log, database, articleEngine, statsdClient, cacheDir)
 	if err != nil {
 		return err
 	}
@@ -200,7 +201,7 @@ func Train(ctx context.Context, cacheDir string, trainDir string) error {
 
 	}
 	w.Flush()
-	fmt.Println(buf.String())
+	log.Println(buf.String())
 
 	var goodEntries []Entry
 
@@ -215,7 +216,7 @@ func Train(ctx context.Context, cacheDir string, trainDir string) error {
 		}
 
 		if train.domain == nil {
-			// fmt.Printf("Can't find: %s\n", train.domain)
+			// log.Printf("Can't find: %s\n", train.domain)
 			continue
 		}
 
@@ -250,7 +251,7 @@ func Train(ctx context.Context, cacheDir string, trainDir string) error {
 		return err
 	}
 
-	engine, err := output.NewRenderEnding(fmt.Sprintf("%s/%s", trainDir, "output-train"), articles, allDomains, mdl, database, articleEngine)
+	engine, err := output.NewRenderEngine(log, fmt.Sprintf("%s/%s", trainDir, "output-train"), articles, allDomains, mdl, database, articleEngine)
 	if err != nil {
 		return err
 	}

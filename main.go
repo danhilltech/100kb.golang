@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"os/signal"
@@ -79,8 +80,19 @@ func main() {
 
 	}()
 
-	err := runCoreLoop(
+	f, err := os.OpenFile("/var/log/100kb.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+
+	}
+	defer f.Close()
+
+	logger := log.New(f, "", log.LstdFlags|log.Lshortfile)
+
+	err = runCoreLoop(
 		ctx,
+		logger,
 		*mode,
 		*cacheDir,
 		*trainDir,
@@ -103,6 +115,7 @@ func main() {
 
 func runCoreLoop(
 	ctx context.Context,
+	logger *log.Logger,
 	mode string,
 	cacheDir string,
 	trainDir string,
@@ -126,7 +139,7 @@ func runCoreLoop(
 		dbMode = "rw"
 	case MODE_TRAIN:
 
-		err := train.Train(ctx, cacheDir, trainDir)
+		err := train.Train(ctx, logger, cacheDir, trainDir)
 		if err != nil {
 			return err
 		}
@@ -135,7 +148,7 @@ func runCoreLoop(
 		dbMode = "rw"
 	}
 
-	db, err := db.InitDB("/dbs/output", dbMode)
+	db, err := db.InitDB(logger, "/dbs/output", dbMode)
 	if err != nil {
 		return err
 	}
@@ -145,20 +158,20 @@ func runCoreLoop(
 	if err != nil {
 		return err
 	}
-	fmt.Printf("sqlite3 version: \t%s\n", dbVer)
+	logger.Printf("sqlite3 version: \t%s\n", dbVer)
 
-	articleEngine, err := article.NewEngine(db.DB, statsdClient, cacheDir, useML)
+	articleEngine, err := article.NewEngine(logger, db.DB, statsdClient, cacheDir, useML)
 	if err != nil {
 		return err
 	}
 	defer articleEngine.Close()
 
-	crawlEngine, err := crawler.NewEngine(db.DB)
+	crawlEngine, err := crawler.NewEngine(logger, db.DB)
 	if err != nil {
 		return err
 	}
 
-	feedEngine, err := domain.NewEngine(db.DB, articleEngine, statsdClient, cacheDir)
+	feedEngine, err := domain.NewEngine(logger, db.DB, articleEngine, statsdClient, cacheDir)
 	if err != nil {
 		return err
 	}
@@ -248,7 +261,7 @@ func runCoreLoop(
 			return err
 		}
 
-		engine, err := output.NewRenderEnding("output", articles, domains, model, db.DB, articleEngine)
+		engine, err := output.NewRenderEngine(logger, "output", articles, domains, model, db.DB, articleEngine)
 		if err != nil {
 			return err
 		}

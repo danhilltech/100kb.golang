@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"log"
 	"math"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ type RenderEngine struct {
 	outputDir     string
 	db            *sql.DB
 	articleEngine *article.Engine
+	log           *log.Logger
 
 	articles []*article.Article
 	domains  []*domain.Domain
@@ -43,7 +45,7 @@ var tmplFS embed.FS
 //go:embed views/static/*
 var staticFS embed.FS
 
-func NewRenderEnding(outputDir string, articles []*article.Article, domains []*domain.Domain, model *scorer.LogisticModel, db *sql.DB, articleEngine *article.Engine) (*RenderEngine, error) {
+func NewRenderEngine(log *log.Logger, outputDir string, articles []*article.Article, domains []*domain.Domain, model *scorer.LogisticModel, db *sql.DB, articleEngine *article.Engine) (*RenderEngine, error) {
 
 	templates := make(map[string]*template.Template)
 
@@ -72,6 +74,7 @@ func NewRenderEnding(outputDir string, articles []*article.Article, domains []*d
 		articleEngine: articleEngine,
 		model:         model,
 		db:            db,
+		log:           log,
 	}, nil
 }
 
@@ -158,9 +161,9 @@ func (engine *RenderEngine) ArticleLists() error {
 	articleCount := len(goodArticles)
 
 	numPages := int(math.Ceil(float64(articleCount) / float64(pageSize)))
-	fmt.Printf("Articles:\t%d\n", articleCount)
-	fmt.Printf("Page size:\t%d\n", pageSize)
-	fmt.Printf("Pages:\t%d\n", numPages)
+	engine.log.Printf("Articles:\t%d\n", articleCount)
+	engine.log.Printf("Page size:\t%d\n", pageSize)
+	engine.log.Printf("Pages:\t%d\n", numPages)
 
 	sort.Slice(goodArticles, func(i, j int) bool {
 		return goodArticles[i].PublishedAt > goodArticles[j].PublishedAt
@@ -203,7 +206,7 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 	err = engine.templates["articleList.html"].Execute(f, pageData)
 	if err != nil {
 		// return err
-		fmt.Println(err)
+		engine.log.Println(err)
 	}
 
 	return nil

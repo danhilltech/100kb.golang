@@ -18,7 +18,7 @@ func (engine *Engine) RunFeedRefresh(ctx context.Context, chunkSize int, workers
 		return err
 	}
 
-	fmt.Printf("Checking %d feeds for new links\n", len(feeds))
+	engine.log.Printf("Checking %d feeds for new links\n", len(feeds))
 
 	jobs := make(chan *Domain, len(feeds))
 	results := make(chan *Domain, len(feeds))
@@ -69,7 +69,7 @@ func (engine *Engine) RunFeedRefresh(ctx context.Context, chunkSize int, workers
 				diff := time.Now().UnixMilli() - t
 				qps := (float64(chunkSize) / float64(diff)) * 1000
 				t = time.Now().UnixMilli()
-				fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(feeds), qps)
+				engine.log.Printf("\tdone %d/%d at %0.2f/s\n", a, len(feeds), qps)
 
 			}
 		}
@@ -77,7 +77,7 @@ func (engine *Engine) RunFeedRefresh(ctx context.Context, chunkSize int, workers
 	}
 
 	txn.Commit()
-	fmt.Printf("\tdone %d\n", len(feeds))
+	engine.log.Printf("\tdone %d\n", len(feeds))
 
 	return nil
 }
@@ -176,7 +176,7 @@ func (engine *Engine) feedRefresh(feed *Domain) error {
 		cleanUrlString = strings.ReplaceAll(cleanUrlString, "http://", "https://")
 
 		if !strings.HasPrefix(cleanUrlString, "https://") || strings.Contains(cleanUrlString, "https:///") {
-			fmt.Println(cleanUrlString, feed.Domain, item.Link, feed.FeedURL)
+			engine.log.Println(cleanUrlString, feed.Domain, item.Link, feed.FeedURL)
 			continue
 		}
 
@@ -199,7 +199,7 @@ func (engine *Engine) feedRefreshWorker(jobs <-chan *Domain, results chan<- *Dom
 	for id := range jobs {
 		err := engine.feedRefresh(id)
 		if err != nil {
-			fmt.Println(id.Domain, err)
+			engine.log.Println(id.Domain, err)
 		}
 		results <- id
 	}

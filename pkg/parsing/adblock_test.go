@@ -20,7 +20,7 @@ func TestAdBlock(t *testing.T) {
 	numToRun := 20000
 	threads := runtime.NumCPU()
 
-	adblock, err := NewAdblockEngine()
+	adblock, err := NewAdblockEngine(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func fakeParse(adblock *AdblockEngine, p string) error {
 	// 	return err
 	// }
 
-	// fmt.Println(p)
+	// engine.log.Println(p)
 
 	walkHtmlNodesAndIdentify(n, &parseAnalysis)
 
@@ -150,6 +150,6 @@ func fakeParse(adblock *AdblockEngine, p string) error {
 	// parseAnalysis.Urls = append(parseAnalysis.Urls, "https://www.googletagmanager.com")
 	_, _, err = adblock.Filter(parseAnalysis.Ids, parseAnalysis.Classes, parseAnalysis.Urls, "https://www.danhill.is")
 
-	// fmt.Println(ids, classes)
+	// engine.log.Println(ids, classes)
 	return err
 }

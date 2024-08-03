@@ -18,7 +18,7 @@ func TestChrome(t *testing.T) {
 	}
 	defer chrome.Shutdown()
 
-	analysis, err := chrome.GetChromeAnalysis("https://danhill.is")
+	analysis, err := chrome.GetChromeAnalysis("https://danhill.is", nil)
 
 	if err != nil {
 		t.Log(err)
@@ -30,7 +30,7 @@ func TestChrome(t *testing.T) {
 }
 
 func TestHTTP(t *testing.T) {
-	c, err := http.NewClient("/workspaces/100kb.golang/.cache", nil)
+	c, err := http.NewClient(nil, "/workspaces/100kb.golang/.cache", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestHTTP(t *testing.T) {
 func TestBearBlog(t *testing.T) {
 	fmt.Println("Getting BearBlog list...")
 
-	c, err := http.NewClient("/workspaces/100kb.golang/.cache", nil)
+	c, err := http.NewClient(nil, "/workspaces/100kb.golang/.cache", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestBearBlog(t *testing.T) {
 		// if err == nil {
 		// 	err = engine.Insert(txn, u.Hostname(), feed)
 		// 	if err != nil {
-		// 		fmt.Println(err)
+		// 		engine.log.Println(err)
 		// 	}
 		// }
 		d++

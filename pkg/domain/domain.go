@@ -2,6 +2,7 @@ package domain
 
 import (
 	"database/sql"
+	"log"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	retryhttp "github.com/danhilltech/100kb.golang/pkg/http"
@@ -17,9 +18,11 @@ const VALIDATE_LIMIT = 5000
 type Engine struct {
 	dbInsertPreparedFeed *sql.Stmt
 	dbUpdatePreparedFeed *sql.Stmt
-	db                   *sql.DB
-	articleEngine        *article.Engine
-	httpCrawl            *retryhttp.Client
+
+	log           *log.Logger
+	db            *sql.DB
+	articleEngine *article.Engine
+	httpCrawl     *retryhttp.Client
 
 	chrome *ChromeRunner
 }
@@ -50,8 +53,8 @@ type Domain struct {
 	LiveLatestArticleURL string
 }
 
-func NewEngine(db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cacheDir string) (*Engine, error) {
-	engine := Engine{articleEngine: articleEngine}
+func NewEngine(log *log.Logger, db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cacheDir string) (*Engine, error) {
+	engine := Engine{articleEngine: articleEngine, log: log}
 
 	err := engine.initDB(db)
 	if err != nil {
@@ -63,7 +66,7 @@ func NewEngine(db *sql.DB, articleEngine *article.Engine, sd *statsd.Client, cac
 
 	// engine.http = hnClient
 
-	engine.httpCrawl, err = retryhttp.NewClient(cacheDir, sd)
+	engine.httpCrawl, err = retryhttp.NewClient(log, cacheDir, sd)
 	if err != nil {
 		return nil, err
 	}

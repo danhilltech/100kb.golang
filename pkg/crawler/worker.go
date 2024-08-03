@@ -105,7 +105,7 @@ func (engine *Engine) getHNWorker(jobs <-chan int, results chan<- *ToCrawl) {
 	for id := range jobs {
 		item, err := engine.getHNItem(id)
 		if err != nil {
-			fmt.Println(err)
+			engine.log.Println(err)
 		}
 		results <- item
 	}
@@ -150,7 +150,7 @@ func (engine *Engine) RunHNRefresh(ctx context.Context, chunkSize int, totalFetc
 	}
 	ids = append(ids, topIds...)
 
-	fmt.Printf("Getting %d HN items\n", len(ids))
+	engine.log.Printf("Getting %d HN items\n", len(ids))
 
 	jobs := make(chan int, len(ids))
 	results := make(chan *ToCrawl, len(ids))
@@ -190,14 +190,14 @@ func (engine *Engine) RunHNRefresh(ctx context.Context, chunkSize int, totalFetc
 				diff := time.Now().UnixMilli() - t
 				qps := (float64(chunkSize) / float64(diff)) * 1000
 				t = time.Now().UnixMilli()
-				fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(ids), qps)
+				engine.log.Printf("\tdone %d/%d at %0.2f/s\n", a, len(ids), qps)
 
 			}
 
 		}
 	}
 	txn.Commit()
-	fmt.Printf("\tdone %d\n", len(ids))
+	engine.log.Printf("\tdone %d\n", len(ids))
 
 	return nil
 }

@@ -2,6 +2,7 @@ package article
 
 import (
 	"database/sql"
+	"log"
 	"sync"
 
 	"github.com/danhilltech/100kb.golang/pkg/ai"
@@ -26,9 +27,11 @@ const CONTENT_EXTRACT_LIMIT = 100_000
 type Engine struct {
 	dbInsertPreparedArticle *sql.Stmt
 	dbUpdatePreparedArticle *sql.Stmt
-	db                      *sql.DB
-	sd                      *statsd.Client
-	langId                  lingua.LanguageDetector
+
+	log    *log.Logger
+	db     *sql.DB
+	sd     *statsd.Client
+	langId lingua.LanguageDetector
 
 	langDomainCacheEng    map[string]int
 	langDomainCacheNonEng map[string]int
@@ -77,7 +80,7 @@ type Article struct {
 	DomainScore float64
 }
 
-func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool) (*Engine, error) {
+func NewEngine(log *log.Logger, db *sql.DB, sd *statsd.Client, cachePath string, withModels bool) (*Engine, error) {
 	engine := Engine{}
 	var err error
 
@@ -86,7 +89,7 @@ func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool)
 		return nil, err
 	}
 
-	engine.http, err = retryhttp.NewClient(cachePath, sd)
+	engine.http, err = retryhttp.NewClient(engine.log, cachePath, sd)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +111,7 @@ func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool)
 		}
 	}
 
-	engine.parser, err = parsing.NewEngine()
+	engine.parser, err = parsing.NewEngine(engine.log)
 	if err != nil {
 		return nil, err
 	}
@@ -124,6 +127,7 @@ func NewEngine(db *sql.DB, sd *statsd.Client, cachePath string, withModels bool)
 
 	engine.langDomainCacheEng = make(map[string]int)
 	engine.langDomainCacheNonEng = make(map[string]int)
+	engine.log = log
 
 	engine.langId = lingua.NewLanguageDetectorBuilder().
 		FromLanguages(languages...).

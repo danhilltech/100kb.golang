@@ -2,7 +2,6 @@ package article
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -16,7 +15,7 @@ func (engine *Engine) RunArticleIndex(ctx context.Context, chunkSize int, worker
 
 	rand.Shuffle(len(articles), func(i, j int) { articles[i], articles[j] = articles[j], articles[i] })
 
-	fmt.Printf("Crawling %d new articles\n", len(articles))
+	engine.log.Printf("Crawling %d new articles\n", len(articles))
 
 	jobs := make(chan *Article, len(articles))
 	results := make(chan *Article, len(articles))
@@ -44,7 +43,7 @@ func (engine *Engine) RunArticleIndex(ctx context.Context, chunkSize int, worker
 			// save it
 			err = engine.Update(txn, article)
 			if err != nil {
-				fmt.Println(article.Url, err)
+				engine.log.Println(article.Url, err)
 				continue
 			}
 
@@ -57,14 +56,14 @@ func (engine *Engine) RunArticleIndex(ctx context.Context, chunkSize int, worker
 				diff := time.Now().UnixMilli() - t
 				qps := (float64(chunkSize) / float64(diff)) * 1000
 				t = time.Now().UnixMilli()
-				fmt.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
+				engine.log.Printf("\tdone %d/%d at %0.2f/s\n", a, len(articles), qps)
 
 			}
 		}
 	}
 
 	txn.Commit()
-	fmt.Printf("\tdone %d\n", len(articles))
+	engine.log.Printf("\tdone %d\n", len(articles))
 
 	return nil
 }
@@ -73,7 +72,7 @@ func (engine *Engine) articleIndexWorker(jobs <-chan *Article, results chan<- *A
 	for id := range jobs {
 		err := engine.articleIndex(id)
 		if err != nil {
-			fmt.Println(id.Url, err)
+			engine.log.Println(id.Url, err)
 		}
 		results <- id
 	}

@@ -2,7 +2,6 @@ package article
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"time"
 
@@ -16,7 +15,7 @@ func (engine *Engine) RunArticleMeta(ctx context.Context, chunkSize int) error {
 		return err
 	}
 
-	fmt.Printf("Generating %d article metas\n", len(articles))
+	engine.log.Printf("Generating %d article metas\n", len(articles))
 
 	done := 0
 	lastA := 0
@@ -51,7 +50,7 @@ func (engine *Engine) RunArticleMeta(ctx context.Context, chunkSize int) error {
 
 			err = engine.Update(txn, article)
 			if err != nil {
-				fmt.Println(article.Url, err)
+				engine.log.Println(article.Url, err)
 			}
 
 			if a > 0 && a%chunkSize == 0 {
@@ -66,7 +65,7 @@ func (engine *Engine) RunArticleMeta(ctx context.Context, chunkSize int) error {
 				qps := (float64(done-lastA) / float64(diff)) * 1000
 				lastA = done
 				t = time.Now().UnixMilli()
-				fmt.Printf("\tdone %d/%d at %0.2f/s\n", done, len(articles), qps)
+				engine.log.Printf("\tdone %d/%d at %0.2f/s\n", done, len(articles), qps)
 
 			}
 			done++
@@ -74,7 +73,7 @@ func (engine *Engine) RunArticleMeta(ctx context.Context, chunkSize int) error {
 	}
 
 	txn.Commit()
-	fmt.Printf("\tdone %d/%d\n", done, len(articles))
+	engine.log.Printf("\tdone %d/%d\n", done, len(articles))
 
 	return nil
 
@@ -82,9 +81,9 @@ func (engine *Engine) RunArticleMeta(ctx context.Context, chunkSize int) error {
 
 func (engine *Engine) articeMetaWorker(jobs <-chan *Article, results chan<- *Article) {
 
-	adblock, err := parsing.NewAdblockEngine()
+	adblock, err := parsing.NewAdblockEngine(engine.log)
 	if err != nil {
-		fmt.Println(err)
+		engine.log.Println(err)
 		return
 	}
 	defer adblock.Close()
@@ -92,7 +91,7 @@ func (engine *Engine) articeMetaWorker(jobs <-chan *Article, results chan<- *Art
 	for id := range jobs {
 		err := engine.articleExtractContent(id, adblock)
 		if err != nil && err != ErrNotInEnglish && err != ErrNoBodyFound {
-			fmt.Println(err)
+			engine.log.Println(err)
 		}
 		results <- id
 	}

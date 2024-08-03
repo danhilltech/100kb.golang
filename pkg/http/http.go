@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -27,6 +28,7 @@ type Client struct {
 type retryableTransport struct {
 	transport http.RoundTripper
 
+	log     *log.Logger
 	cache   *diskv.Diskv
 	limiter *Limiter
 	sd      *statsd.Client
@@ -185,7 +187,7 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	// Send the request
 	resp, err := t.transport.RoundTrip(req)
 	if err != nil {
-		fmt.Println(err)
+		t.log.Println(err)
 		failedResponse := &http.Response{
 			Status:     "FAILED",
 			StatusCode: http.StatusTeapot,
@@ -250,7 +252,7 @@ func dialTimeout(network, addr string) (net.Conn, error) {
 	return net.DialTimeout(network, addr, 3000*time.Millisecond)
 }
 
-func NewClient(cacheDir string, sd *statsd.Client) (*Client, error) {
+func NewClient(log *log.Logger, cacheDir string, sd *statsd.Client) (*Client, error) {
 
 	limiter, err := NewRateLimiter(50, 2, 50_000)
 	if err != nil {
@@ -294,6 +296,7 @@ func NewClient(cacheDir string, sd *statsd.Client) (*Client, error) {
 		cache:   cache,
 		limiter: limiter,
 		sd:      sd,
+		log:     log,
 	}
 
 	httpC := http.Client{

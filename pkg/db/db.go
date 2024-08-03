@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -103,9 +104,9 @@ ALTER TABLE articles ADD COLUMN stage INTEGER;
 
 */
 
-func InitDB(name string, mode string) (*Database, error) {
-	fmt.Printf("creating database with mode %s\t", mode)
-	defer fmt.Printf("❄️\n")
+func InitDB(log *log.Logger, name string, mode string) (*Database, error) {
+	log.Printf("creating database with mode %s\t", mode)
+	defer log.Printf("❄️\n")
 
 	// file, err := os.Create("/dbs/output.db") // Create SQLite file
 	// if err != nil {
