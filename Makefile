@@ -6,7 +6,7 @@ HAS_CUDA = ${shell command -v nvidia-smi}
 DOCKER_TAG = danhilltech/100kb
 DOCKER_CORE_ARGS = --rm --cap-add=SYS_ADMIN --dns=1.1.1.1 --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models --mount type=bind,source=./output,target=/app/output --mount type=bind,source=./train,target=/train --mount type=bind,source=./logs,target=/var/log -p 9081:8081
 DOCKER_RUN_ARGS = -cache-dir=/cache
-DOCKER_GPUS = ${shell if command -v nvidia-smi 2>&1 /dev/null; then echo "--gpus all"; fi}
+DOCKER_GPUS = ${shell if command -v nvidia-smi >& /dev/null; then echo "--gpus all"; fi}
 
 GO_BUILD_TAGS :=
 CUDA :=

@@ -81,7 +81,7 @@ type Article struct {
 }
 
 func NewEngine(log *log.Logger, db *sql.DB, sd *statsd.Client, cachePath string, withModels bool) (*Engine, error) {
-	engine := Engine{}
+	engine := Engine{log: log}
 	var err error
 
 	err = engine.initDB(db)
@@ -127,7 +127,6 @@ func NewEngine(log *log.Logger, db *sql.DB, sd *statsd.Client, cachePath string,
 
 	engine.langDomainCacheEng = make(map[string]int)
 	engine.langDomainCacheNonEng = make(map[string]int)
-	engine.log = log
 
 	engine.langId = lingua.NewLanguageDetectorBuilder().
 		FromLanguages(languages...).
