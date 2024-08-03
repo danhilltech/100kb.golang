@@ -44,4 +44,4 @@ output-train
 output-train/*
 .chrome
 *.log
-logs/*
+logs/*.log
