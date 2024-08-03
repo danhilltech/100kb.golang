@@ -281,9 +281,9 @@ func runCoreLoop(
 			return err
 		}
 
-		go engine.RunHttp(ctx, "./output")
+		// go engine.RunHttp(ctx, "./output")
 
-		<-ctx.Done()
+		// <-ctx.Done()
 
 	}
 
