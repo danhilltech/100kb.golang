@@ -11,13 +11,10 @@
 
 <ul>
     {{ range .Data }}
-    <li class="{{.GetDomainClassName}}"><a href="{{.GetURL}}" target="_blank">{{ .GetTitle }}</a> <br />
+    <li class="{{.GetDomainClassName}}" data-score="{{.GetDomainScore}}">
+        <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a><br />
         {{.GetDomain}}
-        <a href="#" onclick="event.preventDefault(); postData('{{.GetDomain}}', 2)">👍</a>
-        <a href="#" onclick="event.preventDefault(); postData('{{.GetDomain}}', 1)"> 👎</a>
         <br />
-        {{.GetDomainScore}} <br />
-
         {{.GetPublishedAt}}
     </li>
     {{ end }}

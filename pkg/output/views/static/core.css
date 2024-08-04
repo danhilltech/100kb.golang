@@ -180,13 +180,17 @@ nav {
 ul {
     margin-top: 2em;
     margin-bottom: 2em;
+
+    list-style: none;
+    margin-left: 0;
+    padding-left: 0;
 }
 
 /*
 * Scores
 */
 
-.score-excellent::before {
+/* .score-excellent::before {
     content: '🔥';
 }
 .score-good::before {
@@ -195,4 +199,4 @@ ul {
 
 .score-bad, .score-poor {
     opacity: 0.5;
-}
+} */
