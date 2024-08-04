@@ -2,6 +2,7 @@ package article
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -85,8 +86,8 @@ func (engine *Engine) articleExtractContent(article *Article, adblock *parsing.A
 	}
 
 	article.BodyRaw = &serialize.Content{Content: body}
-	article.Title = title
-	article.Description = description
+	article.Title = strings.TrimSpace(title)
+	article.Description = strings.TrimSpace(description)
 
 	article.Stage = STAGE_VALID_CONTENT
 

@@ -276,7 +276,7 @@ func (engine *Engine) runBearInner(ctx context.Context, page int) error {
 			for _, at := range a.Attr {
 				if at.Key == "href" {
 
-					err = engine.Insert(txn, fmt.Sprintf("http:%s", at.Val), fmt.Sprintf("http:%s/feed", at.Val))
+					err = engine.Insert(txn, strings.ReplaceAll(at.Val, "//", ""), fmt.Sprintf("http:%s/feed", at.Val))
 					if err != nil {
 						engine.log.Println(err)
 					}

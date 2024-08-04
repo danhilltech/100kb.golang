@@ -38,6 +38,7 @@ models/*
 
 libsvm/
 .DS_Store
+**/.DS_Store
 
 !pkg/output
 output-train

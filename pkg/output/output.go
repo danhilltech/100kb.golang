@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"text/template"
+	"time"
 
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	"github.com/danhilltech/100kb.golang/pkg/domain"
@@ -152,8 +153,10 @@ func (engine *RenderEngine) ArticleLists() error {
 
 	var goodArticles []*article.Article
 
+	now := time.Now().Unix()
+
 	for _, a := range engine.articles {
-		if a.DomainScore > 0.5 {
+		if a.DomainScore > 0.5 && a.PublishedAt < now {
 			goodArticles = append(goodArticles, a)
 		}
 	}
