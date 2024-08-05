@@ -10,13 +10,19 @@
 </nav>
 
 <ul>
+    {{$prev_date:=""}}
     {{ range .Data }}
+    {{ if ne $prev_date .GetPublishedAt }}
+    <li>
+        <h2>{{.GetPublishedAt}}</h2>
+    </li>
+    {{ end }}
+
     <li class="{{.GetDomainClassName}}" data-score="{{.GetDomainScore}}">
         <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a> &bull;
         <span class="domain">{{.GetDomain}}</span>
-        <br />
-        {{.GetPublishedAt}}
     </li>
+    {{$prev_year = .GetPublishedAt}}
     {{ end }}
 </ul>
 

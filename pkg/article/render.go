@@ -57,7 +57,7 @@ func (article *Article) GetKeywords() string {
 func (article *Article) GetPublishedAt() string {
 	d := time.Unix(article.PublishedAt, 0)
 
-	return d.Format("2006-02-01")
+	return d.Format("2006-01-02")
 }
 
 func (article *Article) GetHTML() template.HTML {

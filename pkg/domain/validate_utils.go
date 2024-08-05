@@ -50,7 +50,11 @@ func (engine *Engine) identifyURL(baseUrl string) (bool, bool, bool, bool, error
 		}
 	}
 
-	urlNews = strings.Contains(strings.ToLower(baseUrlP.Hostname()), "news") || strings.Contains(strings.ToLower(baseUrlP.Hostname()), "daily") || strings.Contains(strings.ToLower(baseUrlP.Hostname()), "standard")
+	urlNews = strings.Contains(strings.ToLower(baseUrlP.Hostname()), "news") ||
+		strings.Contains(strings.ToLower(baseUrlP.Hostname()), "daily") ||
+		strings.Contains(strings.ToLower(baseUrlP.Hostname()), "standard") ||
+		strings.Contains(strings.ToLower(baseUrlP.Hostname()), "forum") ||
+		strings.Contains(strings.ToLower(baseUrlP.Path), "viewtopic.php")
 
 	urlBlog = strings.Contains(strings.ToLower(baseUrlP.Hostname()), "blog") || strings.Contains(strings.ToLower(baseUrlP.Path), "blog")
 

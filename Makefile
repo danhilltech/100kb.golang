@@ -5,7 +5,7 @@ REV := $(shell git rev-parse HEAD)
 HAS_CUDA = ${shell command -v nvidia-smi}
 DOCKER_TAG = danhilltech/100kb
 DOCKER_CORE_ARGS = --rm --cap-add=SYS_ADMIN --dns=1.1.1.1 --mount type=bind,source=./dbs,target=/dbs --mount type=bind,source=./.cache,target=/cache  --mount type=bind,source=./models,target=/app/models --mount type=bind,source=./output,target=/app/output --mount type=bind,source=./train,target=/train --mount type=bind,source=./logs,target=/var/log -p 9081:8081
-DOCKER_RUN_ARGS = -cache-dir=/cache
+DOCKER_RUN_ARGS = -cache-dir=/cache -cuda=true
 # DOCKER_GPUS = ${shell if command -v nvidia-smi >& /dev/null; then echo "--gpus all"; fi}
 GPUS?=all
 ifeq ($(GPUS),none)
