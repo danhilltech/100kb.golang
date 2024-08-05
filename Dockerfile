@@ -90,7 +90,7 @@ RUN --mount=type=cache,id=rustcache,target=/usr/local/cargo/registry,uid=1000,gi
     --mount=type=cache,id=gomod,target=/go/pkg/mod,uid=1000,gid=1000 \
     --mount=type=cache,id=gobuild,target=/home/builder/.cache/go-build,uid=1000,gid=1000 \
     --mount=type=cache,id=gobuildtmp,target=/tmp/go-build,uid=1000,gid=1000 \
-    make build
+    make build HAS_CUDA=true
 
 # # # Run the executable
 ENTRYPOINT ["./100kb.golang"]
