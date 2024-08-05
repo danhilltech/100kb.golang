@@ -10,7 +10,7 @@
 </nav>
 
 <ul>
-    {{$prev_date:=""}}
+    {{ $prev_date:="" }}
     {{ range .Data }}
     {{ if ne $prev_date .GetPublishedAt }}
     <li>
@@ -22,7 +22,7 @@
         <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a> &bull;
         <span class="domain">{{.GetDomain}}</span>
     </li>
-    {{$prev_year = .GetPublishedAt}}
+    {{$prev_date = .GetPublishedAt}}
     {{ end }}
 </ul>
 
