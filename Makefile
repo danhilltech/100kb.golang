@@ -32,6 +32,7 @@ debug:
 	@echo "Build Tags: ${GO_BUILD_TAGS}"
 	@echo "Docker GPUs: ${DOCKER_GPUS}"
 	@echo "Has Cuda: ${HAS_CUDA}"
+	@echo "Has Cuda: ${LIBTORCH_URL}"
 ifdef CUDA
 	@echo "Will build for cuda"
 endif
