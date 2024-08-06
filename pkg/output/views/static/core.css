@@ -104,7 +104,7 @@ body {
     /* font-family: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif; */
     /* font-weight: 300; */
 
-    background-color: #efefef;
+    background-color: #fff;
     color: #201f1f;
     font-size: 1rem;
     line-height: 1.5;
@@ -176,7 +176,7 @@ main {
 }
 
 nav {
-    background-color: #5c5d63;
+    background-color: #231F20;
     width: 100%;
     padding: 12px;
     display: flex;
@@ -195,9 +195,23 @@ li {
     margin-bottom: 0.6em;
 }
 
+li a {
+    color: #BB4430;
+}
+
+nav a {
+    color: #EFE6DD;
+}
+
 li a,
 nav a {
     text-decoration: none;
+    text-underline-offset: 2px;
+}
+
+li a:hover,
+nav a:hover {
+    text-decoration: underline;
 }
 
 @media only screen and (max-width: 900px) {
@@ -207,15 +221,16 @@ nav a {
 }
 
 .domain {
-    color: #999;
+    color: #748386;
 }
 
-/* h1,
+h1,
 h2,
 h3,
 h4 {
-    font-family: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", P052, serif;
-} */
+    font-weight: 400;
+    ;
+}
 
 /*
 * Scores
