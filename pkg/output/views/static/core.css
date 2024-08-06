@@ -101,7 +101,9 @@ body {
     /* font-family: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
         "Nimbus Sans L", Roboto, "Noto Sans", "Segoe UI", Arial, Helvetica,
         "Helvetica Neue", sans-serif; */
-    font-family: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", P052, serif;
+    font-family: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif;
+    font-weight: 300;
+
     background-color: #efefef;
     color: #201f1f;
     font-size: 1rem;
@@ -174,12 +176,14 @@ main {
 }
 
 nav {
-    background-color: #747A91;
+    background-color: #5c5d63;
     width: 100%;
-    padding: 6px;
+    padding: 12px;
     display: flex;
     justify-content: space-between;
     color: #fff;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 ul {
@@ -208,6 +212,13 @@ nav a {
 
 .domain {
     color: #999;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", P052, serif;
 }
 
 /*

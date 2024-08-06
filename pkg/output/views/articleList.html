@@ -13,25 +13,25 @@
     <span>Page {{.Page}}</span>
     <a href="/page/{{.NextPage}}.html">Next</a>
 </nav>
+<main>
+    <ul>
+        {{ $prev_date:="" }}
+        {{ range .Data }}
+        {{ if ne $prev_date .GetPublishedAt }}
+        <li>
+            <h3>{{.GetPublishedAt}}</h3>
+        </li>
+        {{ end }}
 
-<ul>
-    {{ $prev_date:="" }}
-    {{ range .Data }}
-    {{ if ne $prev_date .GetPublishedAt }}
-    <li>
-        <h3>{{.GetPublishedAt}}</h3>
-    </li>
-    {{ end }}
-
-    <li class="{{.GetDomainClassName}}" data-score="{{.GetDomainScore}}">
-        <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a> &bull;
-        <span class="domain">{{.GetDomain}}</span>
-    </li>
-    {{$prev_date = .GetPublishedAt}}
-    {{ end }}
-</ul>
-<footer>
-    Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
-</footer>
-
+        <li class="{{.GetDomainClassName}}" data-score="{{.GetDomainScore}}">
+            <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a> &bull;
+            <span class="domain">{{.GetDomain}}</span>
+        </li>
+        {{$prev_date = .GetPublishedAt}}
+        {{ end }}
+    </ul>
+    <footer>
+        Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
+    </footer>
+</main>
 {{end}}
