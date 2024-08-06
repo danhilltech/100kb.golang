@@ -5,7 +5,7 @@
 
 {{define "content"}}
 <nav>
-    {{ if gt .PrevPage 0 }}
+    {{ if ge .PrevPage 0 }}
     <a href="/page/{{.PrevPage}}.html">Previous</a>
     {{ else }}
     <span></span>
@@ -19,7 +19,7 @@
     {{ range .Data }}
     {{ if ne $prev_date .GetPublishedAt }}
     <li>
-        <h2>{{.GetPublishedAt}}</h2>
+        <h3>{{.GetPublishedAt}}</h3>
     </li>
     {{ end }}
 

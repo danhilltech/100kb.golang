@@ -98,9 +98,10 @@ html {
 
 /* Make the body a nice central block */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
+    /* font-family: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
         "Nimbus Sans L", Roboto, "Noto Sans", "Segoe UI", Arial, Helvetica,
-        "Helvetica Neue", sans-serif;
+        "Helvetica Neue", sans-serif; */
+    font-family: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", P052, serif;
     background-color: #efefef;
     color: #201f1f;
     font-size: 1rem;
@@ -173,7 +174,7 @@ main {
 }
 
 nav {
-    background-color: #7A89C2;
+    background-color: #747A91;
     width: 100%;
     padding: 6px;
     display: flex;
