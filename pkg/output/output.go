@@ -36,9 +36,14 @@ type ArticleListData struct {
 	Page     int
 	PrevPage int
 	NextPage int
+
+	TotalArticles int
+	TotalDomains  int
+
+	GenDate string
 }
 
-var pageSize = 100
+var pageSize = 25
 
 //go:embed views/*.html views/layouts/*.html
 var tmplFS embed.FS
@@ -172,12 +177,14 @@ func (engine *RenderEngine) ArticleLists() error {
 		return goodArticles[i].PublishedAt > goodArticles[j].PublishedAt
 	})
 
+	totalDomains := len(engine.domains)
+
 	for page := 0; page < numPages-1; page++ {
 		start := page * pageSize
 		end := (page + 1) * pageSize
 		pageArticles := goodArticles[start:end]
 
-		err := engine.articleListsPage(page, pageArticles)
+		err := engine.articleListsPage(page, pageArticles, articleCount, totalDomains)
 		if err != nil {
 			return err
 		}
@@ -186,7 +193,7 @@ func (engine *RenderEngine) ArticleLists() error {
 	return nil
 }
 
-func (engine *RenderEngine) articleListsPage(page int, articles []*article.Article) error {
+func (engine *RenderEngine) articleListsPage(page int, articles []*article.Article, totalArticles int, totalDomains int) error {
 	err := os.MkdirAll(filepath.Join(engine.outputDir, "page"), os.ModePerm)
 	if err != nil {
 		return err
@@ -199,11 +206,14 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 	defer f.Close()
 
 	pageData := ArticleListData{
-		Title:    fmt.Sprintf("Page %d", page),
-		Data:     articles,
-		Page:     page,
-		NextPage: page + 1,
-		PrevPage: page - 1,
+		Title:         fmt.Sprintf("Page %d", page),
+		Data:          articles,
+		Page:          page,
+		NextPage:      page + 1,
+		PrevPage:      page - 1,
+		TotalArticles: totalArticles,
+		TotalDomains:  totalDomains,
+		GenDate:       time.Now().Format(time.RFC1123),
 	}
 
 	err = engine.templates["articleList.html"].Execute(f, pageData)

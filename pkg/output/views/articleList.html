@@ -5,8 +5,12 @@
 
 {{define "content"}}
 <nav>
+    {{ if gt PrevPage 0 }}
     <a href="/page/{{.PrevPage}}.html">Previous</a>
-    <span>{{.Page}}</span>
+    {{ else }}
+    <span></span>
+    {{ end }}
+    <span>Page {{.Page}}</span>
     <a href="/page/{{.NextPage}}.html">Next</a>
 </nav>
 
@@ -26,11 +30,8 @@
     {{$prev_date = .GetPublishedAt}}
     {{ end }}
 </ul>
-
-<nav>
-    <a href="/page/{{.PrevPage}}.html">Previous</a>
-    <span>{{.Page}}</span>
-    <a href="/page/{{.NextPage}}.html">Next</a>
-</nav>
+<footer>
+    Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
+</footer>
 
 {{end}}

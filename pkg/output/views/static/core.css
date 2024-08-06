@@ -173,8 +173,12 @@ main {
 }
 
 nav {
-    background-color: aliceblue;
+    background-color: #7A89C2;
     width: 100%;
+    padding: 6px;
+    display: flex;
+    justify-content: space-between;
+    color: #fff;
 }
 
 ul {
@@ -190,7 +194,8 @@ li {
     margin-bottom: 0.6em;
 }
 
-li a {
+li a,
+nav a {
     text-decoration: none;
 }
 
