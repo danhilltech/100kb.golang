@@ -14,13 +14,13 @@
     <a href="/page/{{.NextPage}}.html">Next</a>
 </nav>
 <main>
-    <ul>
-        {{ $prev_date:="" }}
-        {{ range .Data }}
-        {{ if ne $prev_date .GetPublishedAt }}
-        <li>
-            <h3>{{.GetPublishedAt}}</h3>
-        </li>
+
+    {{ $prev_date:="" }}
+    {{ range .Data }}
+    {{ if ne $prev_date .GetPublishedAt }}
+    {{ if eq $prev_date "" }}</ol>{{end}}
+    <h3>{{.GetPublishedAt}}</h3>
+    <ol>
         {{ end }}
 
         <li class="{{.GetDomainClassName}}" data-score="{{.GetDomainScore}}">
@@ -29,9 +29,9 @@
         </li>
         {{$prev_date = .GetPublishedAt}}
         {{ end }}
-    </ul>
-    <footer>
-        Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
-    </footer>
+
+        <footer>
+            Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
+        </footer>
 </main>
 {{end}}

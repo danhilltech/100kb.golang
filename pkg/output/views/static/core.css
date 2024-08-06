@@ -98,11 +98,11 @@ html {
 
 /* Make the body a nice central block */
 body {
-    /* font-family: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
+    font-family: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
         "Nimbus Sans L", Roboto, "Noto Sans", "Segoe UI", Arial, Helvetica,
-        "Helvetica Neue", sans-serif; */
-    font-family: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif;
-    font-weight: 300;
+        "Helvetica Neue", sans-serif;
+    /* font-family: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif; */
+    /* font-weight: 300; */
 
     background-color: #efefef;
     color: #201f1f;
@@ -186,13 +186,9 @@ nav {
     margin: 0 auto;
 }
 
-ul {
-    margin-top: 2em;
-    margin-bottom: 2em;
-
-    list-style: none;
+ol {
     margin-left: 0;
-    padding-left: 0;
+    padding-left: 20px;
 }
 
 li {
@@ -214,12 +210,12 @@ nav a {
     color: #999;
 }
 
-h1,
+/* h1,
 h2,
 h3,
 h4 {
     font-family: "Iowan Old Style", "Palatino Linotype", "URW Palladio L", P052, serif;
-}
+} */
 
 /*
 * Scores
