@@ -6,12 +6,13 @@
 {{define "content"}}
 <nav>
     {{ if ge .PrevPage 0 }}
-    <a href="/page/{{.PrevPage}}.html">&laquo; Previous</a>
+    <a href="/page/{{.PrevPage}}">&laquo; Previous</a>
     {{ else }}
     <span></span>
     {{ end }}
     <span>Page {{.Page}}</span>
-    <a href="/page/{{.NextPage}}.html">Next &raquo;</a>
+    <a href="/about.html">About</a>
+    <a href="/page/{{.NextPage}}">Next &raquo;</a>
 </nav>
 <main>
 
@@ -30,8 +31,9 @@
         {{$prev_date = .GetPublishedAt}}
         {{ end }}
 
-        <footer>
-            Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
-        </footer>
+    </ol>
+    <footer>
+        Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
+    </footer>
 </main>
 {{end}}

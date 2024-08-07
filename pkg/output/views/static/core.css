@@ -61,7 +61,7 @@ h4 {
 /* A elements that don't have a class get default styles */
 a:not([class]) {
     text-decoration-skip-ink: auto;
-    color: currentColor;
+
 }
 
 /* Make images easier to work with */
@@ -176,14 +176,23 @@ main {
 }
 
 nav {
-    background-color: #231F20;
     width: 100%;
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    color: #fff;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     max-width: 900px;
     margin: 0 auto;
+}
+
+nav>* {
+    text-align: center;
+}
+
+nav>*:first-child {
+    text-align: left;
+}
+
+nav>*:last-child {
+    text-align: left;
 }
 
 ol {
@@ -215,7 +224,9 @@ nav a:hover {
 }
 
 @media only screen and (max-width: 900px) {
-    main {
+
+    main,
+    nav {
         margin: 0 12px;
     }
 }
@@ -229,7 +240,12 @@ h2,
 h3,
 h4 {
     font-weight: 400;
-    ;
+
+}
+
+footer {
+    margin-top: 2em;
+    color: #748386;
 }
 
 /*
