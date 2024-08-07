@@ -189,6 +189,7 @@ nav>* {
 
 nav>*:first-child {
     text-align: left;
+    color: #748386;
 }
 
 nav>*:last-child {
@@ -196,7 +197,7 @@ nav>*:last-child {
 }
 
 ul {
-    margin-left: 0;
+    padding-left: 0;
     list-style: none;
 }
 
