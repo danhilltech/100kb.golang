@@ -195,13 +195,18 @@ nav>*:last-child {
     text-align: right;
 }
 
-ol {
+ul {
     margin-left: 0;
-    padding-left: 30px;
+    list-style: none;
 }
 
 li {
     margin-bottom: 0.6em;
+    display: flex;
+}
+
+li>*:first-child {
+    flex: 0 0 40px;
 }
 
 li a {
