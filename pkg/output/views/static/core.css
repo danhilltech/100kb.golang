@@ -193,7 +193,7 @@ nav>*:first-child {
 }
 
 nav>*:last-child {
-    text-align: left;
+    text-align: right;
 }
 
 ol {
@@ -206,17 +206,17 @@ li {
 }
 
 li a {
-    color: #33CA7F;
+    color: #BB4430;
 }
 
 nav a {
-    color: #EFE6DD;
+    color: #33CA7F;
 }
 
 li a,
 nav a {
     text-decoration: none;
-    text-underline-offset: 4px;
+    text-underline-offset: 3px;
 }
 
 li a:hover,
@@ -229,6 +229,10 @@ nav a:hover {
     main,
     nav {
         margin: 0 12px;
+    }
+
+    nav {
+        width: calc(100% - 24px);
     }
 }
 
@@ -247,7 +251,7 @@ h4 {
 footer {
     margin-top: 2em;
     color: #748386;
-    margin-bottom: 2em;
+    padding-bottom: 2em;
 }
 
 /*
