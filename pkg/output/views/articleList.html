@@ -17,12 +17,10 @@
     <a href="/page/{{.NextPage}}">Next &raquo;</a>
 </nav>
 <main>
-
-    {{ $pos:=0 }}
     {{ $prev_date:="" }}
     {{ range .Data }}
     {{ if ne $prev_date .GetPublishedAt }}
-    {{ $pos = 0 }}
+
     {{ if ne $prev_date "" }}</ul>{{end}}
     <h3>{{.GetPublishedAt}}</h3>
     <ul>
@@ -30,7 +28,7 @@
 
         <li class="{{.GetDomainClassName}}" data-score="{{.GetDomainScore}}">
             <div>
-                # {{$pos}}
+                # {{ .GetPos}}
             </div>
             <div>
                 <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a> &bull;
@@ -38,7 +36,6 @@
             </div>
         </li>
         {{$prev_date = .GetPublishedAt}}
-        {{ $pos = $pos + 1 }}
         {{ end }}
 
     </ul>

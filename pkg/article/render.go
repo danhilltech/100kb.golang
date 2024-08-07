@@ -60,6 +60,10 @@ func (article *Article) GetPublishedAt() string {
 	return d.Format("2006-01-02")
 }
 
+func (article *Article) GetPos() string {
+	return "1"
+}
+
 func (article *Article) GetHTML() template.HTML {
 	w := strings.Builder{}
 
