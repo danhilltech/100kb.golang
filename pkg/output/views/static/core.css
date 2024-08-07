@@ -178,9 +178,10 @@ main {
 nav {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     max-width: 900px;
     margin: 0 auto;
+    padding-top: 1em;
 }
 
 nav>* {
@@ -197,7 +198,7 @@ nav>*:last-child {
 
 ol {
     margin-left: 0;
-    padding-left: 20px;
+    padding-left: 30px;
 }
 
 li {
@@ -205,7 +206,7 @@ li {
 }
 
 li a {
-    color: #BB4430;
+    color: #33CA7F;
 }
 
 nav a {
@@ -215,7 +216,7 @@ nav a {
 li a,
 nav a {
     text-decoration: none;
-    text-underline-offset: 2px;
+    text-underline-offset: 4px;
 }
 
 li a:hover,
@@ -246,6 +247,7 @@ h4 {
 footer {
     margin-top: 2em;
     color: #748386;
+    margin-bottom: 2em;
 }
 
 /*

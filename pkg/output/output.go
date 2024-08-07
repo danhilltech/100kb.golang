@@ -190,6 +190,11 @@ func (engine *RenderEngine) ArticleLists() error {
 		}
 	}
 
+	err := engine.aboutPage(0, goodArticles, articleCount, totalDomains)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -206,7 +211,7 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 	defer f.Close()
 
 	pageData := ArticleListData{
-		Title:         fmt.Sprintf("Page %d", page),
+		Title:         fmt.Sprintf("Page %d ~ 100kb", page),
 		Data:          articles,
 		Page:          page,
 		NextPage:      page + 1,
@@ -217,6 +222,34 @@ func (engine *RenderEngine) articleListsPage(page int, articles []*article.Artic
 	}
 
 	err = engine.templates["articleList.html"].Execute(f, pageData)
+	if err != nil {
+		// return err
+		engine.log.Println(err)
+	}
+
+	return nil
+}
+
+func (engine *RenderEngine) aboutPage(page int, articles []*article.Article, totalArticles int, totalDomains int) error {
+
+	f, err := os.Create(engine.getFilePath("about.html"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	pageData := ArticleListData{
+		Title:         "About",
+		Data:          articles,
+		Page:          page,
+		NextPage:      page + 1,
+		PrevPage:      page - 1,
+		TotalArticles: totalArticles,
+		TotalDomains:  totalDomains,
+		GenDate:       time.Now().Format(time.RFC1123),
+	}
+
+	err = engine.templates["about.html"].Execute(f, pageData)
 	if err != nil {
 		// return err
 		engine.log.Println(err)

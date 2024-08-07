@@ -10,8 +10,10 @@
     {{ else }}
     <span></span>
     {{ end }}
-    <span>Page {{.Page}}</span>
-    <a href="/about.html">About</a>
+    <div>
+        <span>Page {{.Page}}</span> |
+        <a href="/about.html">About</a>
+    </div>
     <a href="/page/{{.NextPage}}">Next &raquo;</a>
 </nav>
 <main>
