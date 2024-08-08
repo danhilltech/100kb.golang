@@ -77,6 +77,19 @@ func (article *Article) GetTags() []string {
 	return tags
 }
 
+func (article *Article) GetZeroShot() []string {
+	tags := []string{}
+
+	if article.Classifications == nil || len(article.Classifications.Keywords) == 0 {
+		return tags
+	}
+
+	for _, t := range article.Classifications.Keywords {
+		tags = append(tags, fmt.Sprintf("%s (%0.3f)", t.Text, t.Score))
+	}
+	return tags
+}
+
 func (article *Article) GetHTML() template.HTML {
 	w := strings.Builder{}
 

@@ -184,12 +184,13 @@ func (engine *RenderEngine) ArticleLists() error {
 
 		a.DayPosition = pos
 
+		pos++
+
 		if k != d.Format("2006-01-02") {
 			pos = 1
 			k = d.Format("2006-01-02")
 		}
 
-		pos++
 	}
 
 	totalDomains := len(engine.domains)

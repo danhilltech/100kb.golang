@@ -137,41 +137,41 @@ func (engine *Engine) articleMetaAdvanced(txn *sql.Tx, article *Article) error {
 			}
 		}
 
-		// startTime = time.Now().UnixMilli()
-		// ess, err := engine.keywordExtractionModel.Extract(summaryTexts)
-		// if err != nil {
-		// 	return err
-		// }
-		// diff = time.Now().UnixMilli() - startTime
-		// if diff > 500 {
-		// 	engine.log.Printf("SLOW keyword extraction %d %s\n", diff, article.Url)
-		// }
+		startTime = time.Now().UnixMilli()
+		ess, err := engine.keywordExtractionModel.Extract(summaryTexts)
+		if err != nil {
+			return err
+		}
+		diff = time.Now().UnixMilli() - startTime
+		if diff > 500 {
+			engine.log.Printf("SLOW keyword extraction %d %s\n", diff, article.Url)
+		}
 
-		// kwds := map[string][]float32{}
+		kwds := map[string][]float32{}
 
-		// if len(ess) > 0 {
-		// 	for _, es := range ess {
-		// 		for _, k := range es.Keywords {
-		// 			if kwds[string(k.Text)] == nil {
-		// 				kwds[string(k.Text)] = []float32{}
-		// 			}
-		// 			kwds[string(k.Text)] = append(kwds[string(k.Text)], k.Score)
+		if len(ess) > 0 {
+			for _, es := range ess {
+				for _, k := range es.Keywords {
+					if kwds[string(k.Text)] == nil {
+						kwds[string(k.Text)] = []float32{}
+					}
+					kwds[string(k.Text)] = append(kwds[string(k.Text)], k.Score)
 
-		// 		}
-		// 	}
+				}
+			}
 
-		// 	for k, ss := range kwds {
+			for k, ss := range kwds {
 
-		// 		score := float32(0.0)
-		// 		for _, s := range ss {
-		// 			score += s
-		// 		}
-		// 		score = score / float32(len(ss))
+				score := float32(0.0)
+				for _, s := range ss {
+					score += s
+				}
+				score = score / float32(len(ss))
 
-		// 		article.ExtractedKeywords.Keywords = append(article.ExtractedKeywords.Keywords, &serialize.Keyword{Text: k, Score: score})
-		// 	}
+				article.ExtractedKeywords.Keywords = append(article.ExtractedKeywords.Keywords, &serialize.Keyword{Text: k, Score: score})
+			}
 
-		// }
+		}
 
 		startTime = time.Now().UnixMilli()
 		zcs, err := engine.zeroShotModel.Predict(summaryTexts, zeroShotLabels)
