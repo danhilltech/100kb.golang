@@ -78,6 +78,7 @@ type Article struct {
 
 	// Used in live/output
 	DomainScore float64
+	DayPosition int
 }
 
 func NewEngine(log *log.Logger, db *sql.DB, sd *statsd.Client, cachePath string, withModels bool) (*Engine, error) {

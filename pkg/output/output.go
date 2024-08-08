@@ -177,6 +177,21 @@ func (engine *RenderEngine) ArticleLists() error {
 		return goodArticles[i].PublishedAt > goodArticles[j].PublishedAt
 	})
 
+	k := ""
+	pos := 1
+	for _, a := range goodArticles {
+		d := time.Unix(a.PublishedAt, 0)
+
+		a.DayPosition = pos
+
+		if k != d.Format("2006-01-02") {
+			pos = 1
+			k = d.Format("2006-01-02")
+		}
+
+		pos++
+	}
+
 	totalDomains := len(engine.domains)
 
 	for page := 0; page < numPages-1; page++ {

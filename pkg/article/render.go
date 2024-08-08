@@ -61,7 +61,20 @@ func (article *Article) GetPublishedAt() string {
 }
 
 func (article *Article) GetPos() string {
-	return "1"
+	return fmt.Sprintf("%d", article.DayPosition)
+}
+
+func (article *Article) GetTags() []string {
+	tags := []string{}
+
+	if article.ExtractedKeywords == nil || len(article.ExtractedKeywords.Keywords) == 0 {
+		return tags
+	}
+
+	for _, t := range article.ExtractedKeywords.Keywords {
+		tags = append(tags, fmt.Sprintf("%s (%0.3f)", t.Text, t.Score))
+	}
+	return tags
 }
 
 func (article *Article) GetHTML() template.HTML {
