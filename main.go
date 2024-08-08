@@ -62,6 +62,7 @@ func main() {
 	fmt.Printf("  metaWorkers:\t\t%d\n", metaWorkers)
 
 	fmt.Printf("Mode\t%s\n", *mode)
+	fmt.Printf("Cuda\t%t\n", *articleLoadML)
 
 	statsdClient := statsd.NewClient("192.168.1.3:8125", statsd.MetricPrefix("100bk."))
 
