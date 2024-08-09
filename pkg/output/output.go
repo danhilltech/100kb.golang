@@ -177,19 +177,18 @@ func (engine *RenderEngine) ArticleLists() error {
 		return goodArticles[i].PublishedAt > goodArticles[j].PublishedAt
 	})
 
-	d := time.Unix(goodArticles[0].PublishedAt, 0)
-	k := d.Format("2006-01-02")
+	k := ""
 	pos := 1
 
 	for _, a := range goodArticles {
 		d := time.Unix(a.PublishedAt, 0)
 
-		a.DayPosition = pos
-
 		if k != d.Format("2006-01-02") {
-			pos = 0
+			pos = 1
 			k = d.Format("2006-01-02")
 		}
+
+		a.DayPosition = pos
 
 		pos++
 
