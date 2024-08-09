@@ -186,8 +186,6 @@ func (engine *RenderEngine) ArticleLists() error {
 
 		a.DayPosition = pos
 
-		engine.log.Println(d.Format("2006-01-02"))
-
 		if k != d.Format("2006-01-02") {
 			pos = 0
 			k = d.Format("2006-01-02")

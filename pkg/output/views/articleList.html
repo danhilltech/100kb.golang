@@ -34,7 +34,7 @@
                 <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a> &bull;
                 <span class="domain">{{.GetDomain}}</span>
 
-                {{ if gt len .GetZeroShot 0}}
+                {{ if gt (len .GetZeroShot) 0}}
                 <br />
 
                 <span class="tags">
