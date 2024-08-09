@@ -210,13 +210,11 @@ li>*:first-child {
     flex: 0 0 40px;
 }
 
-li a {
+li a,
+nav a {
     color: #BB4430;
 }
 
-nav a {
-    color: #33CA7F;
-}
 
 li a,
 nav a {

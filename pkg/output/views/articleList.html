@@ -33,10 +33,17 @@
             <div>
                 <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a> &bull;
                 <span class="domain">{{.GetDomain}}</span>
+
+                {{ if gt len .GetZeroShot 0}}
                 <br />
-                <span class="tags">{{.GetTags}}</span>
-                <br />
-                <span class="tags">{{.GetZeroShot}}</span>
+
+                <span class="tags">
+                    {{ range .GetZeroShot }}
+                    <a href="/{{.}}">{{.}}</a>
+                    {{ end }}
+                </span>
+
+                {{ end }}
             </div>
         </li>
         {{$prev_date = .GetPublishedAt}}
