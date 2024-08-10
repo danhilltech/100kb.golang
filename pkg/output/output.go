@@ -300,10 +300,6 @@ func buildPageFilePath(tag string, page int) string {
 		fullTag = fmt.Sprintf("/%s", tag)
 	}
 
-	if page <= 0 {
-		return "/"
-	}
-
 	pageSegment := "/"
 	if page > 0 {
 		pageSegment = "/page"
@@ -333,7 +329,7 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 
 	f, err := os.Create(engine.getFilePath(filePath))
 	if err != nil {
-		return fmt.Errorf("%s %w", engine.getFilePath(filePath), err)
+		return fmt.Errorf("create %s %w", engine.getFilePath(filePath), err)
 	}
 	defer f.Close()
 
