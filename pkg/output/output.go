@@ -18,6 +18,20 @@ import (
 	"github.com/danhilltech/100kb.golang/pkg/scorer"
 )
 
+var categories = []string{
+	"technology",
+	"life",
+	"family",
+	"science",
+	"politics",
+	"news",
+	"programming",
+	"food",
+	"investing",
+	"management",
+	"nature",
+}
+
 type RenderEngine struct {
 	templates     map[string]*template.Template
 	outputDir     string
@@ -167,20 +181,62 @@ func (engine *RenderEngine) ArticleLists() error {
 	}
 
 	articleCount := len(goodArticles)
+	totalDomains := len(engine.domains)
 
-	numPages := int(math.Ceil(float64(articleCount) / float64(pageSize)))
 	engine.log.Printf("Articles:\t%d\n", articleCount)
 	engine.log.Printf("Page size:\t%d\n", pageSize)
-	engine.log.Printf("Pages:\t%d\n", numPages)
 
 	sort.Slice(goodArticles, func(i, j int) bool {
 		return goodArticles[i].PublishedAt > goodArticles[j].PublishedAt
 	})
 
+	err := engine.buildCategory(goodArticles, "", articleCount, totalDomains)
+	if err != nil {
+		return err
+	}
+
+	for _, cat := range categories {
+
+		catArticles := []*article.Article{}
+
+		for _, a := range goodArticles {
+			tgs := a.GetZeroShot()
+			for _, t := range tgs {
+				if t == cat {
+					catArticles = append(catArticles, a)
+				}
+			}
+		}
+
+		sort.Slice(catArticles, func(i, j int) bool {
+			return catArticles[i].PublishedAt > catArticles[j].PublishedAt
+		})
+
+		catArticleCount := len(catArticles)
+
+		err := engine.buildCategory(catArticles, cat, catArticleCount, totalDomains)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = engine.aboutPage(0, goodArticles, articleCount, totalDomains)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (engine *RenderEngine) buildCategory(articles []*article.Article, tag string, articleCount, totalDomains int) error {
+
+	numPages := int(math.Ceil(float64(len(articles)) / float64(pageSize)))
+
+	engine.log.Printf("Tag: %s Pages:\t%d\n", tag, numPages)
 	k := ""
 	pos := 1
 
-	for _, a := range goodArticles {
+	for _, a := range articles {
 		d := time.Unix(a.PublishedAt, 0)
 
 		if k != d.Format("2006-01-02") {
@@ -194,41 +250,49 @@ func (engine *RenderEngine) ArticleLists() error {
 
 	}
 
-	totalDomains := len(engine.domains)
-
 	for page := 0; page < numPages-1; page++ {
 		start := page * pageSize
 		end := (page + 1) * pageSize
-		pageArticles := goodArticles[start:end]
+		pageArticles := articles[start:end]
 
-		err := engine.articleListsPage(page, pageArticles, articleCount, totalDomains)
+		err := engine.articleListsPage(page, tag, pageArticles, articleCount, totalDomains)
 		if err != nil {
 			return err
 		}
 	}
-
-	err := engine.aboutPage(0, goodArticles, articleCount, totalDomains)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (engine *RenderEngine) articleListsPage(page int, articles []*article.Article, totalArticles int, totalDomains int) error {
-	err := os.MkdirAll(filepath.Join(engine.outputDir, "page"), os.ModePerm)
+func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*article.Article, totalArticles int, totalDomains int) error {
+
+	fullTag := ""
+	if tag != "" {
+		fullTag = fmt.Sprintf("%s/", tag)
+	}
+
+	fullPage := fmt.Sprintf("%d.html", page)
+	if page == 0 {
+		fullPage = "index.html"
+	}
+
+	err := os.MkdirAll(filepath.Join(engine.outputDir, fullTag, "page"), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Create(engine.getFilePath(fmt.Sprintf("page/%d.html", page)))
+	f, err := os.Create(engine.getFilePath(fmt.Sprintf("%spage/%s", fullTag, fullPage)))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
+	title := fmt.Sprintf("Page %d ~ 100kb", page)
+	if tag != "" {
+		title = fmt.Sprintf("Writing about %s. Page %d ~ 100kb", tag, page)
+	}
+
 	pageData := ArticleListData{
-		Title:         fmt.Sprintf("Page %d ~ 100kb", page),
+		Title:         title,
 		Data:          articles,
 		Page:          page,
 		NextPage:      page + 1,

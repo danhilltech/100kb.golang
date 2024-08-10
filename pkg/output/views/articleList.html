@@ -6,6 +6,7 @@
 {{define "content"}}
 <nav>
     {{ if ge .PrevPage 0 }}
+
     <a href="/page/{{.PrevPage}}">&laquo; Previous</a>
     {{ else }}
     <span></span>
@@ -37,7 +38,7 @@
                 {{ if gt (len .GetZeroShot) 0}}
                 <br />
 
-                <span class="tags">
+                <span class="tags">Tags:
                     {{ range .GetZeroShot }}
                     <a href="/{{.}}">{{.}}</a>
                     {{ end }}

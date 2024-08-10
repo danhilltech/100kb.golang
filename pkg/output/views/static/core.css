@@ -247,7 +247,8 @@ h1,
 h2,
 h3,
 h4 {
-    font-weight: 400;
+    font-family: Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif;
+    font-weight: 500;
 
 }
 
@@ -255,6 +256,22 @@ footer {
     margin-top: 2em;
     color: #748386;
     padding-bottom: 2em;
+}
+
+.tags {
+    color: #FACFAD;
+}
+
+.tags a {
+    color: #F8BD7F;
+}
+
+.tags a::after {
+    content: ","
+}
+
+.tags a:last-child::after {
+    content: ""
 }
 
 /*
