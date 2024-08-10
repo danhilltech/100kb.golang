@@ -5,9 +5,8 @@
 
 {{define "content"}}
 <nav>
-    {{ if ge .PrevPage 0 }}
-
-    <a href="/page/{{.PrevPage}}">&laquo; Previous</a>
+    {{ if ne .PrevPage "" }}
+    <a href="{{.PrevPage}}">&laquo; Previous</a>
     {{ else }}
     <span></span>
     {{ end }}
@@ -15,7 +14,7 @@
         <span>Page {{.Page}}</span> |
         <a href="/about.html">About</a>
     </div>
-    <a href="/page/{{.NextPage}}">Next &raquo;</a>
+    <a href="{{.NextPage}}">Next &raquo;</a>
 </nav>
 <main>
     {{ if ne .TagTitle "" }}
@@ -32,7 +31,7 @@
         {{ end }}
 
         <li class="{{.GetDomainClassName}}" data-score="{{.GetDomainScore}}">
-            <div>
+            <div class="position">
                 # {{ .GetPos}}
             </div>
             <div>

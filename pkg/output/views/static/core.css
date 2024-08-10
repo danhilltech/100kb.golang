@@ -12,6 +12,25 @@ html {
     text-size-adjust: none;
 }
 
+
+:root {
+    --grayscale-100: rgb(248, 248, 248);
+    --grayscale-200: rgb(210, 210, 210);
+    --grayscale-300: rgb(176, 176, 176);
+    --grayscale-400: rgb(143, 143, 143);
+    --grayscale-500: rgb(111, 111, 111);
+    --grayscale-600: rgb(75, 75, 75);
+    --grayscale-700: rgb(22, 22, 22);
+
+    --green-100: rgb(245, 249, 246);
+    --green-200: rgb(191, 217, 191);
+    --green-300: rgb(140, 188, 141);
+    --green-400: rgb(93, 158, 94);
+    --green-500: rgb(72, 122, 73);
+    --green-600: rgb(49, 83, 49);
+    --green-700: rgb(14, 24, 15);
+}
+
 /* Remove default margin in favour of better control in authored CSS */
 body,
 h1,
@@ -104,8 +123,8 @@ body {
     /* font-family: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif; */
     /* font-weight: 300; */
 
-    background-color: #fff;
-    color: #201f1f;
+    background-color: var(--grayscale-100);
+    color: var(--grayscale-700);
     font-size: 1rem;
     line-height: 1.5;
     margin: 0;
@@ -169,6 +188,7 @@ h3 {
 */
 
 
+
 main {
     max-width: 900px;
     margin: 0 auto;
@@ -189,7 +209,6 @@ nav>* {
 
 nav>*:first-child {
     text-align: left;
-    color: #748386;
 }
 
 nav>*:last-child {
@@ -212,9 +231,12 @@ li>*:first-child {
 
 li a,
 nav a {
-    color: #BB4430;
+    color: var(--green-400);
 }
 
+.position {
+    color: var(--grayscale-300);
+}
 
 li a,
 nav a {
@@ -240,7 +262,7 @@ nav a:hover {
 }
 
 .domain {
-    color: #748386;
+    color: var(--grayscale-400);
 }
 
 h1,
@@ -249,21 +271,22 @@ h3,
 h4 {
     font-family: Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif;
     font-weight: 500;
+    color: var(--grayscale-600);
 
 }
 
 footer {
     margin-top: 2em;
-    color: #748386;
+    color: var(--grayscale-300);
     padding-bottom: 2em;
 }
 
 .tags {
-    color: #FACFAD;
+    color: var(--grayscale-400);
 }
 
 .tags a {
-    color: #F8BD7F;
+    color: var(--green-300);
 }
 
 .tags a::after {
@@ -273,18 +296,3 @@ footer {
 .tags a:last-child::after {
     content: ""
 }
-
-/*
-* Scores
-*/
-
-/* .score-excellent::before {
-    content: '🔥';
-}
-.score-good::before {
-    content: '👍';
-}
-
-.score-bad, .score-poor {
-    opacity: 0.5;
-} */

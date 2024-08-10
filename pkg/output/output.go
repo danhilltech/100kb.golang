@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"text/template"
 	"time"
 
@@ -49,8 +50,8 @@ type ArticleListData struct {
 	TagTitle string
 	Data     []*article.Article
 	Page     int
-	PrevPage int
-	NextPage int
+	PrevPage string
+	NextPage string
 
 	TotalArticles int
 	TotalDomains  int
@@ -302,13 +303,24 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 		tagTitle = fmt.Sprintf("Writing about %s", tag)
 	}
 
+	prevPage := ""
+	if page == 1 {
+		prevPage = fmt.Sprintf("/%s%s", fullTag, pageSegment)
+	} else if page > 1 {
+		prevPage = fmt.Sprintf("/%s%s/%d", fullTag, pageSegment, page-1)
+	}
+
+	prevPage = strings.ReplaceAll(prevPage, "//", "/")
+
+	nextPage := fmt.Sprintf("/%s/page/%d", pageSegment, page+1)
+
 	pageData := ArticleListData{
 		Title:         title,
 		TagTitle:      tagTitle,
 		Data:          articles,
 		Page:          page,
-		NextPage:      page + 1,
-		PrevPage:      page - 1,
+		NextPage:      nextPage,
+		PrevPage:      prevPage,
 		TotalArticles: totalArticles,
 		TotalDomains:  totalDomains,
 		GenDate:       time.Now().Format(time.RFC1123),
@@ -335,8 +347,8 @@ func (engine *RenderEngine) aboutPage(page int, articles []*article.Article, tot
 		Title:         "About",
 		Data:          articles,
 		Page:          page,
-		NextPage:      page + 1,
-		PrevPage:      page - 1,
+		NextPage:      "",
+		PrevPage:      "",
 		TotalArticles: totalArticles,
 		TotalDomains:  totalDomains,
 		GenDate:       time.Now().Format(time.RFC1123),
