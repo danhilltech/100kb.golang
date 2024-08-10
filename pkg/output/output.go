@@ -328,12 +328,12 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 
 	err := os.MkdirAll(filepath.Join(engine.outputDir, filepath.Dir(filePath)), os.ModePerm)
 	if err != nil {
-		return err
+		return fmt.Errorf("mkdir %s %w", filepath.Join(engine.outputDir, filepath.Dir(filePath)), err)
 	}
 
 	f, err := os.Create(engine.getFilePath(filePath))
 	if err != nil {
-		return err
+		return fmt.Errorf("%s %w", engine.getFilePath(filePath), err)
 	}
 	defer f.Close()
 
