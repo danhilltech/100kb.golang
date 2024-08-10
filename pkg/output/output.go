@@ -265,29 +265,44 @@ func (engine *RenderEngine) buildCategory(articles []*article.Article, tag strin
 	return nil
 }
 
-func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*article.Article, totalArticles int, totalDomains int) error {
+func buildPagePath(tag string, page int) string {
 
-	fullTag := ""
+	fullTag := "/"
 	if tag != "" {
-		fullTag = tag
+		fullTag = fmt.Sprintf("/%s", tag)
 	}
 
-	fullPage := fmt.Sprintf("%d.html", page)
-	if page == 0 {
-		fullPage = "index.html"
+	if page <= 0 {
+		return "/"
 	}
 
-	pageSegment := ""
+	pageSegment := "/"
 	if page > 0 {
 		pageSegment = "/page"
 	}
 
-	err := os.MkdirAll(filepath.Join(engine.outputDir, fullTag, "page"), os.ModePerm)
+	fullPage := fmt.Sprintf("/%d.html", page)
+	if page == 0 {
+		fullPage = ""
+	}
+
+	path := fmt.Sprintf("%s%s%s", fullTag, pageSegment, fullPage)
+
+	path = strings.ReplaceAll(path, "//", "/")
+
+	return path
+}
+
+func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*article.Article, totalArticles int, totalDomains int) error {
+
+	pagePath := buildPagePath(tag, page)
+
+	err := os.MkdirAll(filepath.Join(engine.outputDir, filepath.Dir(pagePath)), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Create(engine.getFilePath(fmt.Sprintf("%s%s/%s", fullTag, pageSegment, fullPage)))
+	f, err := os.Create(engine.getFilePath(pagePath))
 	if err != nil {
 		return err
 	}
@@ -303,16 +318,9 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 		tagTitle = fmt.Sprintf("Writing about %s", tag)
 	}
 
-	prevPage := ""
-	if page == 1 {
-		prevPage = fmt.Sprintf("/%s%s", fullTag, pageSegment)
-	} else if page > 1 {
-		prevPage = fmt.Sprintf("/%s%s/%d", fullTag, pageSegment, page-1)
-	}
+	prevPage := buildPagePath(tag, page-1)
 
-	prevPage = strings.ReplaceAll(prevPage, "//", "/")
-
-	nextPage := fmt.Sprintf("/%s/page/%d", pageSegment, page+1)
+	nextPage := buildPagePath(tag, page+1)
 
 	pageData := ArticleListData{
 		Title:         title,
