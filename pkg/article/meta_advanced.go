@@ -173,14 +173,9 @@ func (engine *Engine) articleMetaAdvanced(txn *sql.Tx, article *Article) error {
 
 		// }
 
-		startTime = time.Now().UnixMilli()
 		zcs, err := engine.zeroShotModel.Predict(summaryTexts, zeroShotLabels)
 		if err != nil {
 			return err
-		}
-		diff = time.Now().UnixMilli() - startTime
-		if diff > 500 {
-			engine.log.Printf("SLOW zero shot %d %s\n%+v\n", diff, article.Url, summaryTexts)
 		}
 
 		zeroshots := map[string][]float32{}
