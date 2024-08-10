@@ -293,16 +293,45 @@ func buildPagePath(tag string, page int) string {
 	return path
 }
 
+func buildPageFilePath(tag string, page int) string {
+
+	fullTag := "/"
+	if tag != "" {
+		fullTag = fmt.Sprintf("/%s", tag)
+	}
+
+	if page <= 0 {
+		return "/"
+	}
+
+	pageSegment := "/"
+	if page > 0 {
+		pageSegment = "/page"
+	}
+
+	fullPage := fmt.Sprintf("/%d.html", page)
+	if page == 0 {
+		fullPage = "/index.html"
+	}
+
+	path := fmt.Sprintf("%s%s%s", fullTag, pageSegment, fullPage)
+
+	path = strings.ReplaceAll(path, "//", "/")
+	path = strings.ReplaceAll(path, "//", "/")
+
+	return path
+}
+
 func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*article.Article, totalArticles int, totalDomains int) error {
 
-	pagePath := buildPagePath(tag, page)
+	filePath := buildPageFilePath(tag, page)
 
-	err := os.MkdirAll(filepath.Join(engine.outputDir, filepath.Dir(pagePath)), os.ModePerm)
+	err := os.MkdirAll(filepath.Join(engine.outputDir, filepath.Dir(filePath)), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Create(engine.getFilePath(pagePath))
+	f, err := os.Create(engine.getFilePath(filePath))
 	if err != nil {
 		return err
 	}
