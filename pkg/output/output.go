@@ -46,6 +46,7 @@ type RenderEngine struct {
 
 type ArticleListData struct {
 	Title    string
+	TagTitle string
 	Data     []*article.Article
 	Page     int
 	PrevPage int
@@ -267,7 +268,7 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 
 	fullTag := ""
 	if tag != "" {
-		fullTag = fmt.Sprintf("%s/", tag)
+		fullTag = tag
 	}
 
 	fullPage := fmt.Sprintf("%d.html", page)
@@ -275,12 +276,17 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 		fullPage = "index.html"
 	}
 
+	pageSegment := ""
+	if page > 0 {
+		pageSegment = "/page"
+	}
+
 	err := os.MkdirAll(filepath.Join(engine.outputDir, fullTag, "page"), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Create(engine.getFilePath(fmt.Sprintf("%spage/%s", fullTag, fullPage)))
+	f, err := os.Create(engine.getFilePath(fmt.Sprintf("%s%s/%s", fullTag, pageSegment, fullPage)))
 	if err != nil {
 		return err
 	}
@@ -291,8 +297,14 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 		title = fmt.Sprintf("Writing about %s. Page %d ~ 100kb", tag, page)
 	}
 
+	tagTitle := ""
+	if tag != "" {
+		tagTitle = fmt.Sprintf("Writing about %s", tag)
+	}
+
 	pageData := ArticleListData{
 		Title:         title,
+		TagTitle:      tagTitle,
 		Data:          articles,
 		Page:          page,
 		NextPage:      page + 1,

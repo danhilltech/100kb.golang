@@ -3,6 +3,7 @@ package domain
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -238,6 +239,66 @@ func (engine *Engine) RunBearBlog(ctx context.Context) error {
 			return err
 		}
 	}
+	return nil
+
+}
+
+type IndieBlogEntry struct {
+	FeedUrl  string `json:"feedurl"`
+	HomePage string `json:"homepage"`
+}
+
+func (engine *Engine) RunIndieBlog(ctx context.Context) error {
+
+	engine.log.Println("Getting IndieBlog list...")
+
+	resp, err := http.Get("https://indieblog.page/export")
+	// handle the error if there is one
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	d := 0
+
+	txn, _ := engine.db.Begin()
+	defer txn.Rollback()
+
+	var parsed = []IndieBlogEntry{}
+
+	err = json.Unmarshal(data, &parsed)
+	if err != nil {
+		return err
+	}
+
+	for _, a := range parsed {
+		select {
+		case <-ctx.Done():
+			txn.Commit()
+			return ctx.Err()
+		default:
+
+			u, err := url.Parse(a.HomePage)
+
+			if err == nil {
+				err = engine.Insert(txn, u.Hostname(), a.FeedUrl)
+				if err != nil {
+					engine.log.Println(err)
+				}
+			}
+			d++
+		}
+	}
+
+	engine.log.Printf("\tdone %d\n", d)
+	txn.Commit()
+
 	return nil
 
 }

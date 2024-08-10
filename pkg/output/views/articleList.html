@@ -18,6 +18,10 @@
     <a href="/page/{{.NextPage}}">Next &raquo;</a>
 </nav>
 <main>
+    {{ if ne .TagTitle "" }}
+    <h1>{{.TagTitle}}</h1>
+    {{end}}
+
     {{ $prev_date:="" }}
     {{ range .Data }}
     {{ if ne $prev_date .GetPublishedAt }}

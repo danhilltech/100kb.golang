@@ -222,6 +222,12 @@ func runCoreLoop(
 			return err
 		}
 
+		// // 2. Check HN stories for any new feeds
+		err = feedEngine.RunIndieBlog(ctx)
+		if err != nil {
+			return err
+		}
+
 		db.Tidy()
 
 	case MODE_META:
