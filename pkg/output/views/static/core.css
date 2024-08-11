@@ -14,10 +14,10 @@ html {
 
 
 :root {
-    --grayscale-100: rgb(248, 248, 248);
-    --grayscale-200: rgb(210, 210, 210);
-    --grayscale-300: rgb(176, 176, 176);
-    --grayscale-400: rgb(143, 143, 143);
+    --grayscale-100: rgb(246, 246, 246);
+    --grayscale-200: rgb(204, 204, 204);
+    --grayscale-300: rgb(154, 154, 154);
+    --grayscale-400: rgb(132, 132, 132);
     --grayscale-500: rgb(111, 111, 111);
     --grayscale-600: rgb(75, 75, 75);
     --grayscale-700: rgb(22, 22, 22);

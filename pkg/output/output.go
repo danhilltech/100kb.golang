@@ -52,6 +52,7 @@ type ArticleListData struct {
 	Page     int
 	PrevPage string
 	NextPage string
+	ThisPage string
 
 	TotalArticles int
 	TotalDomains  int
@@ -346,6 +347,7 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 	prevPage := buildPagePath(tag, page-1)
 
 	nextPage := buildPagePath(tag, page+1)
+	thisPage := buildPagePath(tag, page)
 
 	pageData := ArticleListData{
 		Title:         title,
@@ -354,6 +356,7 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 		Page:          page,
 		NextPage:      nextPage,
 		PrevPage:      prevPage,
+		ThisPage:      thisPage,
 		TotalArticles: totalArticles,
 		TotalDomains:  totalDomains,
 		GenDate:       time.Now().Format(time.RFC1123),

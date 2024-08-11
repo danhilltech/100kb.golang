@@ -57,7 +57,17 @@ func (article *Article) GetKeywords() string {
 func (article *Article) GetPublishedAt() string {
 	d := time.Unix(article.PublishedAt, 0)
 
-	return d.Format("2006-01-02")
+	if article.PublishedAt > time.Now().Unix()-60*60*36 {
+		return "Today"
+	}
+	if article.PublishedAt > time.Now().Unix()-60*60*48 {
+		return "Yesterday"
+	}
+	if article.PublishedAt > time.Now().Unix()-60*60*72 {
+		return "2 days ago"
+	}
+
+	return d.Format("Mon Jan 2")
 }
 
 func (article *Article) GetPos() string {

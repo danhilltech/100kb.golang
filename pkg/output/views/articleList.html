@@ -1,7 +1,7 @@
 {{template "main" .}}
 
 {{define "title"}}{{.Title}}{{end}}
-{{define "canonical"}}https://100kb.danhill.is/page/{{.Page}}{{end}}
+{{define "canonical"}}https://100kb.danhill.is{{.ThisPage}}{{end}}
 
 {{define "content"}}
 <nav>
@@ -35,7 +35,7 @@
                 # {{ .GetPos}}
             </div>
             <div>
-                <a href="{{.GetURL}}" target="_blank">{{.GetTitle }}</a> &bull;
+                <a href="{{.GetURL}}" target="_blank" title="Read article titled {{.GetTitle }}"></a> &bull;
                 <span class="domain">{{.GetDomain}}</span>
 
                 {{ if gt (len .GetZeroShot) 0}}
@@ -55,7 +55,12 @@
 
     </ul>
     <footer>
-        Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
+        <ul>
+            <li>Total Articles: {{.TotalArticles}}</li>
+            <li>Total Feeds: {{.TotalDomains}}</li>
+            <li>{{.GenDate}}</li>
+            <li>By <a href="https://danhill.is" rel="me" title="By Dan Hill">Dan Hill</a></li>
+        </ul>
     </footer>
 </main>
 {{end}}
