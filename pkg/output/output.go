@@ -240,11 +240,9 @@ func (engine *RenderEngine) buildCategory(articles []*article.Article, tag strin
 	pos := 1
 
 	for _, a := range articles {
-		d := time.Unix(a.PublishedAt, 0)
-
-		if k != d.Format("2006-01-02") {
+		if k != a.GetPublishedAt() {
 			pos = 1
-			k = d.Format("2006-01-02")
+			k = a.GetPublishedAt()
 		}
 
 		a.DayPosition = pos
@@ -282,7 +280,7 @@ func buildPagePath(tag string, page int) string {
 		pageSegment = "/page"
 	}
 
-	fullPage := fmt.Sprintf("/%d.html", page)
+	fullPage := fmt.Sprintf("/%d", page)
 	if page == 0 {
 		fullPage = ""
 	}
@@ -385,6 +383,7 @@ func (engine *RenderEngine) aboutPage(page int, articles []*article.Article, tot
 		Page:          page,
 		NextPage:      "",
 		PrevPage:      "",
+		ThisPage:      "/about",
 		TotalArticles: totalArticles,
 		TotalDomains:  totalDomains,
 		GenDate:       time.Now().Format(time.RFC1123),

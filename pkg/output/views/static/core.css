@@ -289,6 +289,14 @@ footer {
     padding-bottom: 2em;
 }
 
+footer ul {
+    display: flex;
+}
+
+footer li::after {
+    content: " / "
+}
+
 .tags {
     color: var(--grayscale-400);
     font-size: 0.85em;

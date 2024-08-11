@@ -35,7 +35,8 @@
                 # {{ .GetPos}}
             </div>
             <div>
-                <a href="{{.GetURL}}" target="_blank" title="Read article titled {{.GetTitle }}"></a> &bull;
+                <a href="{{.GetURL}}" target="_blank" title="Read article titled {{.GetTitle }}">{{.GetTitle }}</a>
+                &bull;
                 <span class="domain">{{.GetDomain}}</span>
 
                 {{ if gt (len .GetZeroShot) 0}}
