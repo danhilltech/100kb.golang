@@ -12,44 +12,29 @@
         <span>Page ~</span> |
         <a href="/about.html">About</a>
     </div>
-    <a href="/page/0">Home &raquo;</a>
+    <a href="/">Home &raquo;</a>
 </nav>
 <main>
     <h1>What is this?</h1>
-    <p>Lorem ipsum odor amet, consectetuer adipiscing elit. Himenaeos molestie nisi vulputate nulla non vestibulum
-        facilisis. Efficitur fames iaculis sollicitudin quisque, purus litora. Laoreet massa hac magna ipsum tempor
-        augue nunc fringilla. Dignissim netus maximus, turpis platea in leo non. Per hendrerit habitasse quisque eget mi
-        nec nisl. Gravida suscipit est neque per enim libero natoque morbi habitasse. Nulla consectetur elementum
-        bibendum enim pulvinar velit; aliquam sollicitudin.
+    <p>This is a personal project.</p>
+    <p>I wanted an chronological feed of articles written by real people with interesting
+        things to say.</p>
 
-    </p>
-    <p>Ante mauris mi nullam arcu ad nibh ultricies. Accumsan class in primis mollis volutpat. Fames pulvinar tellus
-        lacinia, netus fusce scelerisque. Cubilia a facilisis nisl a accumsan lobortis. Odio elit a torquent, elit ad
-        rutrum. Vitae conubia inceptos malesuada ultrices tortor taciti leo ante. Aptent curae vitae semper facilisis
-        suspendisse. Congue curabitur ornare ullamcorper molestie; class diam mattis convallis.
+    <p>I also wanted to explore some new technology I haven't had a chance to try before, mostly rust and LLMs. The rest
+        is very boring: golang that I've written for years, docker, sqlite etc.</p>
 
-    </p>
-    <p>Maximus scelerisque ultricies cursus convallis non accumsan rhoncus. Ante curae metus adipiscing efficitur
-        facilisis morbi massa varius. Nulla erat taciti ante velit curae orci ac. Parturient nulla dolor vulputate
-        lobortis commodo molestie. Tortor aptent magna dignissim sagittis morbi natoque eros. Fermentum congue quis
-        cursus leo auctor congue praesent! Justo aliquam purus vulputate luctus sem, vulputate condimentum libero
-        blandit. Fames mattis eu varius sodales sodales mus.
+    <h2>Opinionated</h2>
+    <p>I have a very opinionated view on what a 'quality' blog is. The types of things this project optimizes for are:
+        personal blogs, written in the first person, with high content density, minimal ads/trackers/bloat, about a
+        broad range of topics.</p>
 
-    </p>
-    <p>Himenaeos commodo sodales ullamcorper elit dapibus ac elementum. Consectetur ligula bibendum quam etiam
-        ultricies! Venenatis class cubilia dignissim sagittis torquent nascetur quam. Massa vitae sed conubia suscipit
-        iaculis metus. Nulla mattis venenatis bibendum euismod blandit arcu viverra. Taciti nostra magnis nostra augue
-        ex felis pretium lobortis. Praesent vestibulum rutrum vulputate et venenatis.
-
-    </p>
-    <p>Senectus magna metus; ultrices ex ridiculus cras sem et leo. Blandit praesent molestie eros imperdiet est
-        phasellus. Habitant et auctor laoreet odio vitae volutpat congue conubia habitant. Pretium faucibus ornare lacus
-        etiam sagittis taciti volutpat. Vulputate volutpat ultricies integer nulla blandit curabitur. Cursus parturient
-        pretium senectus fames eu. Lacus consectetur ipsum felis lacus integer accumsan. Integer est risus consequat
-        vestibulum eleifend fusce a.</p>
-    </p>
     <footer>
-        Total Articles: {{.TotalArticles}} | Total Feeds: {{.TotalDomains}} | {{.GenDate}}
+        <ul>
+            <li>Total Articles: {{.TotalArticles}}</li>
+            <li>Total Feeds: {{.TotalDomains}}</li>
+            <li>{{.GenDate}}</li>
+            <li>By <a href="https://danhill.is" rel="me" title="By Dan Hill">Dan Hill</a></li>
+        </ul>
     </footer>
 </main>
 {{end}}

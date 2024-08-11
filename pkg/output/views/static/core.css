@@ -22,21 +22,21 @@ html {
     --grayscale-600: rgb(75, 75, 75);
     --grayscale-700: rgb(22, 22, 22);
 
-    --green-100: rgb(245, 249, 246);
-    --green-200: rgb(191, 217, 191);
-    --green-300: rgb(140, 188, 141);
-    --green-400: rgb(93, 158, 94);
+    --blue-100: rgb(244, 247, 250);
+    --blue-200: rgb(191, 205, 226);
+    --blue-300: rgb(126, 156, 197);
+    --blue-400: rgb(98, 134, 185);
+    --blue-500: rgb(74, 112, 166);
+    --blue-600: rgb(50, 76, 113);
+    --blue-700: rgb(15, 22, 33);
+
+    --green-100: rgb(242, 248, 242);
+    --green-200: rgb(181, 212, 182);
+    --green-300: rgb(106, 168, 107);
+    --green-400: rgb(86, 146, 87);
     --green-500: rgb(72, 122, 73);
     --green-600: rgb(49, 83, 49);
     --green-700: rgb(14, 24, 15);
-
-    --blue-100: rgb(246, 248, 251);
-    --blue-200: rgb(195, 208, 228);
-    --blue-300: rgb(159, 181, 212);
-    --blue-400: rgb(111, 145, 191);
-    --blue-500: rgb(72, 109, 161);
-    --blue-600: rgb(52, 80, 117);
-    --blue-700: rgb(12, 17, 26);
 }
 
 /* Remove default margin in favour of better control in authored CSS */
@@ -277,9 +277,9 @@ h1,
 h2,
 h3,
 h4 {
-    font-family: Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif;
+    font-family: 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif;
     font-weight: 500;
-    color: var(--grayscale-600);
+    color: var(--blue-700);
 
 }
 
@@ -289,12 +289,18 @@ footer {
     padding-bottom: 2em;
 }
 
-footer ul {
-    display: flex;
+
+footer li {
+    display: inline-block;
+    font-size: 0.85em;
 }
 
 footer li::after {
     content: " / "
+}
+
+footer li:last-child:after {
+    content: ""
 }
 
 .tags {

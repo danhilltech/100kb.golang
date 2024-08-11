@@ -5,7 +5,7 @@
 
 {{define "content"}}
 <nav>
-    {{ if ne .PrevPage "" }}
+    {{ if ne .PrevPage "/" }}
     <a href="{{.PrevPage}}">&laquo; Previous</a>
     {{ else }}
     <span></span>
