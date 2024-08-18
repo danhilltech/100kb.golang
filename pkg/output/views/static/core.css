@@ -14,29 +14,21 @@ html {
 
 
 :root {
-    --grayscale-100: rgb(246, 246, 246);
-    --grayscale-200: rgb(204, 204, 204);
-    --grayscale-300: rgb(154, 154, 154);
-    --grayscale-400: rgb(132, 132, 132);
-    --grayscale-500: rgb(111, 111, 111);
-    --grayscale-600: rgb(75, 75, 75);
+    --grayscale-100: rgb(228, 228, 228);
+    --grayscale-200: rgb(174, 174, 174);
+    --grayscale-300: rgb(145, 145, 145);
+    --grayscale-400: rgb(123, 123, 123);
+    --grayscale-500: rgb(94, 94, 94);
+    --grayscale-600: rgb(69, 69, 69);
     --grayscale-700: rgb(22, 22, 22);
 
-    --blue-100: rgb(244, 247, 250);
-    --blue-200: rgb(191, 205, 226);
-    --blue-300: rgb(126, 156, 197);
-    --blue-400: rgb(98, 134, 185);
-    --blue-500: rgb(74, 112, 166);
-    --blue-600: rgb(50, 76, 113);
-    --blue-700: rgb(15, 22, 33);
-
-    --green-100: rgb(242, 248, 242);
-    --green-200: rgb(181, 212, 182);
-    --green-300: rgb(106, 168, 107);
-    --green-400: rgb(86, 146, 87);
-    --green-500: rgb(72, 122, 73);
-    --green-600: rgb(49, 83, 49);
-    --green-700: rgb(14, 24, 15);
+    --blue-100: rgb(210, 230, 251);
+    --blue-200: rgb(119, 179, 242);
+    --blue-300: rgb(64, 148, 236);
+    --blue-400: rgb(23, 123, 229);
+    --blue-500: rgb(17, 94, 175);
+    --blue-600: rgb(13, 69, 128);
+    --blue-700: rgb(4, 22, 42);
 }
 
 /* Remove default margin in favour of better control in authored CSS */
@@ -229,7 +221,7 @@ ul {
 }
 
 li {
-    margin-bottom: 0.6em;
+    margin-bottom: 4px;
     display: flex;
 }
 
@@ -304,12 +296,12 @@ footer li:last-child:after {
 }
 
 .tags {
-    color: var(--grayscale-400);
+    color: var(--grayscale-500);
     font-size: 0.85em;
 }
 
 .tags a {
-    color: var(--green-600);
+    color: var(--blue-600);
 }
 
 .tags a::after {

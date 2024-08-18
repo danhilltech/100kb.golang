@@ -17,16 +17,40 @@
 <main>
     <h1>What is this?</h1>
     <p>This is a personal project.</p>
-    <p>I wanted an chronological feed of articles written by real people with interesting
+    <p>I wanted a simple feed of articles written by real people with interesting
         things to say.</p>
 
     <p>I also wanted to explore some new technology I haven't had a chance to try before, mostly rust and LLMs. The rest
         is very boring: golang that I've written for years, docker, sqlite etc.</p>
 
     <h2>Opinionated</h2>
-    <p>I have a very opinionated view on what a 'quality' blog is. The types of things this project optimizes for are:
-        personal blogs, written in the first person, with high content density, minimal ads/trackers/bloat, about a
+    <p>As I browse HN each day, I find myself most drawn to content on personal blogs: people who have interesting
+        things to say, from their own point-of-view, on a whole range of topics. I'm less focused on the topic - or
+        whether I agree with the author - but more I love reading a whole bunch of different perspectives and ideas.</p>
+    <p>I started to form a pretty opinionated view on what a 'quality' blog is. I realized I felt a high correlation
+        between content I enjoyed and personal blogs, written in the first person, with high content density (usually
+        less than 100kb in page weight), minimal ads/trackers/bloat, about a
         broad range of topics.</p>
+    <p>So, I decided to write a search engine/crawler to filter for these blogs.</p>
+
+    <h2>How it works</h2>
+    <p>It's a simple pipeline that I can run locally from a <code>crontab</code> on my desktop. The pipeline runs in a
+        few steps:</p>
+    <ol>
+        <li>A search phase runs to find new possible blogs to index. Mostly from latest hacker news and some
+            public datasets of personal blogs.</li>
+        <li>If I discover valid RSS feeds on those blogs, I index that content.</li>
+        <li>I extract features from the new content (page weight, use of ads/trackers, first/third person writing, and
+            about 20 more).</li>
+        <li>Articles are filtered with a simple logistic regression based on a few hundred hacker news links I hand
+            labeled.</li>
+        <li>Static HTML is written and uploaded to the CDN</li>
+    </ol>
+    <p>The code is mostly written in go with sqlite and heavy disk caching of content. I use <code>rust-bert</code> and
+        Brave's rust implementation of <code>adblock</code>, both with protobuf connecting them to go (FFI was a
+        nightmare).</p>
+
+    <h2>Feedback?</h2>
 
     <footer>
         <ul>
