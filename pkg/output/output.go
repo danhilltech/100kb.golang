@@ -332,9 +332,9 @@ func (engine *RenderEngine) articleListsPage(page int, tag string, articles []*a
 	}
 	defer f.Close()
 
-	title := fmt.Sprintf("Page %d ~ 100kb", page)
+	title := fmt.Sprintf("Page %d | 100kb", page)
 	if tag != "" {
-		title = fmt.Sprintf("Writing about %s. Page %d ~ 100kb", tag, page)
+		title = fmt.Sprintf("Writing about %s | Page %d | 100kb", tag, page)
 	}
 
 	tagTitle := ""

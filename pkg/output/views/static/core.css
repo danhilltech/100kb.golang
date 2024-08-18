@@ -14,7 +14,7 @@ html {
 
 
 :root {
-    --grayscale-100: rgb(228, 228, 228);
+    --grayscale-100: rgb(252, 252, 252);
     --grayscale-200: rgb(174, 174, 174);
     --grayscale-300: rgb(145, 145, 145);
     --grayscale-400: rgb(123, 123, 123);
@@ -220,12 +220,16 @@ ul {
     list-style: none;
 }
 
-li {
+ul li {
     margin-bottom: 4px;
     display: flex;
 }
 
-li>*:first-child {
+ol li {
+    margin-bottom: 4px;
+}
+
+ul li>*:first-child {
     flex: 0 0 40px;
 }
 
@@ -310,4 +314,11 @@ footer li:last-child:after {
 
 .tags a:last-child::after {
     content: ""
+}
+
+code {
+    background-color: rgb(255, 151, 39);
+    color: rgb(109, 56, 0);
+    padding-left: 2px;
+    padding-right: 2px;
 }
