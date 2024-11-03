@@ -56,6 +56,18 @@
 
     </ul>
     <footer>
+        <div>
+            {{ if ne .PrevPage "/" }}
+            <a href="{{.PrevPage}}">&laquo; Previous</a>
+            {{ else }}
+            <span></span>
+            {{ end }}
+            <div>
+                <span>Page {{.Page}}</span> |
+                <a href="/about.html">About</a>
+            </div>
+            <a href="{{.NextPage}}">Next &raquo;</a>
+        </div>
         <ul>
             <li>Total Articles: {{.TotalArticles}}</li>
             <li>Total Feeds: {{.TotalDomains}}</li>

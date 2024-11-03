@@ -299,6 +299,20 @@ footer li:last-child:after {
     content: ""
 }
 
+
+footer div>* {
+    text-align: center;
+}
+
+footer div>*:first-child {
+    text-align: left;
+}
+
+footer div>*:last-child {
+    text-align: right;
+}
+
+
 .tags {
     color: var(--grayscale-500);
     font-size: 0.85em;
