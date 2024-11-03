@@ -283,6 +283,11 @@ func runCoreLoop(
 			return err
 		}
 
+		err = engine.RSS()
+		if err != nil {
+			return err
+		}
+
 		err = engine.StaticFiles()
 		if err != nil {
 			return err
