@@ -211,7 +211,9 @@ func (engine *RenderEngine) RSS() error {
 				Title:       goodArticles[i].GetTitle(),
 				Link:        &feeds.Link{Href: goodArticles[i].Url},
 				Description: goodArticles[i].Description,
-				Created:     time.Now(),
+				Created:     time.Unix(goodArticles[i].PublishedAt, 0),
+				Author:      &feeds.Author{Name: goodArticles[i].Domain},
+				Content:     goodArticles[i].GetText(),
 			})
 	}
 	feed.Items = feedItems

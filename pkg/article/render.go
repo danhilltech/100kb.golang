@@ -128,3 +128,31 @@ func (article *Article) GetHTML() template.HTML {
 	}
 	return template.HTML(w.String())
 }
+
+func (article *Article) GetText() string {
+	w := strings.Builder{}
+
+	for _, c := range article.Body.Content {
+		switch c.Type {
+		case "p":
+			w.WriteString(c.Text)
+			w.WriteString("\n\n")
+		case "h1":
+			w.WriteString("**")
+			w.WriteString(c.Text)
+			w.WriteString("**\n\n")
+		case "h2":
+			w.WriteString(c.Text)
+			w.WriteString("\n\n")
+		case "h3":
+			w.WriteString(c.Text)
+			w.WriteString("\n\n")
+		case "li":
+			w.WriteString("- ")
+			w.WriteString(c.Text)
+			w.WriteString("\n\n")
+
+		}
+	}
+	return w.String()
+}
