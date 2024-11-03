@@ -125,6 +125,9 @@ body {
     font-family: "DM Mono", monospace;
     font-weight: 400;
     font-style: normal;
+    font-feature-settings: "kern" 1, "liga" 1;
+    letter-spacing: -0.5px;
+
 
     background-color: var(--grayscale-100);
     color: var(--grayscale-700);
@@ -177,6 +180,8 @@ h5,
 h6 {
     overflow-wrap: break-word;
     text-wrap: balance;
+    letter-spacing: -1px;
+
 }
 
 /* Fix line height when title wraps */
@@ -193,7 +198,7 @@ h3 {
 
 
 main {
-    max-width: 900px;
+    max-width: 640px;
     margin: 0 auto;
 }
 
@@ -201,7 +206,7 @@ nav {
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    max-width: 900px;
+    max-width: 640px;
     margin: 0 auto;
     padding-top: 1em;
 }
@@ -259,7 +264,7 @@ footer>div a:hover {
     text-decoration: underline;
 }
 
-@media only screen and (max-width: 900px) {
+@media only screen and (max-width: 640px) {
 
     main,
     nav {
@@ -309,7 +314,7 @@ footer li:last-child:after {
 footer>div {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    max-width: 900px;
+    max-width: 640px;
 }
 
 
