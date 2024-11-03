@@ -2,7 +2,7 @@ FROM debian:latest
 
 # [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
 
-COPY --from=golang:1.22-alpine /usr/local/go/ /usr/local/go/
+COPY --from=golang:1.23-alpine /usr/local/go/ /usr/local/go/
 COPY --from=bitnami/pytorch:2.2.2 /opt/bitnami/python/lib/python3.11/site-packages/torch/ /opt/libtorch/
 # COPY --from=bitnami/pytorch:2.2.2 /opt/bitnami/python/lib/python3.11/site-packages/torch.libs/ /opt/libtorch/lib/
 # above is needed on arm64

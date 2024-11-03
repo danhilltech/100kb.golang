@@ -2,7 +2,7 @@ FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 
 # [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
 
-COPY --from=golang:1.22-alpine /usr/local/go/ /usr/local/go/
+COPY --from=golang:1.23-alpine /usr/local/go/ /usr/local/go/
 
 ARG USERNAME=builder
 ARG USER_UID=1000
