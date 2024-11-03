@@ -111,21 +111,23 @@ textarea:not([rows]) {
 
 html {
     scroll-behavior: smooth;
-
     height: 100%;
 }
 
 /* Make the body a nice central block */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
+    /* font-family: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
         "Nimbus Sans L", Roboto, "Noto Sans", "Segoe UI", Arial, Helvetica,
-        "Helvetica Neue", sans-serif;
+        "Helvetica Neue", sans-serif; */
     /* font-family: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif; */
     /* font-weight: 300; */
 
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+    font-weight: normal;
+
     background-color: var(--grayscale-100);
     color: var(--grayscale-700);
-    font-size: 1rem;
+    font-size: 14px;
     line-height: 1.5;
     margin: 0;
 
@@ -269,22 +271,22 @@ footer>div a:hover {
 }
 
 .domain {
-    color: var(--grayscale-400);
+    color: var(--grayscale-500);
 }
 
 h1,
 h2,
 h3,
 h4 {
-    font-family: 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif;
-    font-weight: 500;
+    /* font-family: 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif;
+    font-weight: 500; */
     color: var(--grayscale-700);
 
 }
 
 footer {
     margin-top: 2em;
-    color: var(--grayscale-300);
+
     padding-bottom: 2em;
 }
 
@@ -292,6 +294,7 @@ footer {
 footer li {
     display: inline-block;
     font-size: 0.85em;
+    color: var(--grayscale-500);
 }
 
 footer li::after {
