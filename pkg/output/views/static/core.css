@@ -17,18 +17,18 @@ html {
     --grayscale-100: rgb(248, 248, 248);
     --grayscale-200: rgb(232, 232, 232);
     --grayscale-300: rgb(217, 217, 217);
-    --grayscale-400: rgb(187, 187, 187);
-    --grayscale-500: rgb(120, 120, 120);
-    --grayscale-600: rgb(108, 108, 108);
-    --grayscale-700: rgb(64, 64, 64);
+    --grayscale-400: rgb(165, 165, 165);
+    --grayscale-500: rgb(106, 106, 106);
+    --grayscale-600: rgb(80, 80, 80);
+    --grayscale-700: rgb(36, 36, 36);
 
-    --blue-100: rgb(249, 249, 254);
-    --blue-200: rgb(230, 232, 250);
-    --blue-300: rgb(211, 214, 245);
-    --blue-400: rgb(175, 180, 237);
-    --blue-500: rgb(103, 111, 221);
-    --blue-600: rgb(84, 93, 217);
-    --blue-700: rgb(34, 42, 151);
+    --blue-100: rgb(248, 247, 255);
+    --blue-200: rgb(227, 228, 255);
+    --blue-300: rgb(203, 211, 253);
+    --blue-400: rgb(137, 160, 245);
+    --blue-500: rgb(28, 87, 227);
+    --blue-600: rgb(22, 61, 128);
+    --blue-700: rgb(13, 35, 61);
 }
 
 /* Remove default margin in favour of better control in authored CSS */
@@ -235,7 +235,7 @@ ul li>*:first-child {
 
 li a,
 nav a,
-footer div a {
+footer>div a {
     color: var(--blue-500);
 }
 
@@ -245,14 +245,14 @@ footer div a {
 
 li a,
 nav a,
-footer div a {
+footer>div a {
     text-decoration: none;
     text-underline-offset: 3px;
 }
 
 li a:hover,
 nav a:hover,
-footer div a:hover {
+footer>div a:hover {
     text-decoration: underline;
 }
 
@@ -302,22 +302,22 @@ footer li:last-child:after {
     content: ""
 }
 
-footer div {
+footer>div {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     max-width: 900px;
 }
 
 
-footer div>* {
+footer>div>* {
     text-align: center;
 }
 
-footer div>*:first-child {
+footer>div>*:first-child {
     text-align: left;
 }
 
-footer div>*:last-child {
+footer>div>*:last-child {
     text-align: right;
 }
 

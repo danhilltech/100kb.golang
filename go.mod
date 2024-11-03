@@ -29,6 +29,7 @@ require (
 	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/gorilla/feeds v1.2.0 // indirect
 	github.com/guptarohit/asciigraph v0.5.1 // indirect
 	github.com/jmhodges/gocld3 v0.0.0-20211031064447-cc40e88f7505 // indirect
 	github.com/josharian/intern v1.0.0 // indirect

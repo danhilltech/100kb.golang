@@ -14,6 +14,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/gorilla/feeds"
+
 	"github.com/danhilltech/100kb.golang/pkg/article"
 	"github.com/danhilltech/100kb.golang/pkg/domain"
 	"github.com/danhilltech/100kb.golang/pkg/scorer"
@@ -166,6 +168,68 @@ func (engine *RenderEngine) StaticFiles() error {
 			return err
 		}
 
+	}
+
+	return nil
+}
+
+func (engine *RenderEngine) RSS() error {
+
+	var goodArticles []*article.Article
+
+	now := time.Now().Unix()
+
+	for _, a := range engine.articles {
+		if a.DomainScore > 0.5 && a.PublishedAt < now {
+			goodArticles = append(goodArticles, a)
+		}
+	}
+
+	sort.Slice(goodArticles, func(i, j int) bool {
+		return goodArticles[i].PublishedAt > goodArticles[j].PublishedAt
+	})
+
+	feed := &feeds.Feed{
+		Title:       "100kb",
+		Link:        &feeds.Link{Href: "https://100kb.danhill.is/rss"},
+		Description: "Feed of articles written by real people with interesting things to say. By Dan Hill (https://danhill.is)",
+		Author:      &feeds.Author{Name: "Dan Hill"},
+		Created:     time.Now(),
+	}
+
+	max := len(goodArticles)
+
+	if max > 50 {
+		max = 50
+	}
+
+	var feedItems []*feeds.Item
+	for i := 0; i < max; i++ {
+		feedItems = append(feedItems,
+			&feeds.Item{
+				Id:          goodArticles[i].Url,
+				Title:       goodArticles[i].GetTitle(),
+				Link:        &feeds.Link{Href: goodArticles[i].Url},
+				Description: goodArticles[i].Description,
+				Created:     time.Now(),
+			})
+	}
+	feed.Items = feedItems
+
+	rss, err := feed.ToRss()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := os.Create(engine.getFilePath("rss"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(rss)
+	if err != nil {
+		return err
 	}
 
 	return nil
