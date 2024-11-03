@@ -122,8 +122,9 @@ body {
     /* font-family: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif; */
     /* font-weight: 300; */
 
-    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
-    font-weight: normal;
+    font-family: "DM Mono", monospace;
+    font-weight: 400;
+    font-style: normal;
 
     background-color: var(--grayscale-100);
     color: var(--grayscale-700);
