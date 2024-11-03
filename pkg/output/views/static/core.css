@@ -14,21 +14,21 @@ html {
 
 
 :root {
-    --grayscale-100: rgb(252, 252, 252);
-    --grayscale-200: rgb(174, 174, 174);
-    --grayscale-300: rgb(145, 145, 145);
-    --grayscale-400: rgb(123, 123, 123);
-    --grayscale-500: rgb(94, 94, 94);
-    --grayscale-600: rgb(69, 69, 69);
-    --grayscale-700: rgb(22, 22, 22);
+    --grayscale-100: rgb(248, 248, 248);
+    --grayscale-200: rgb(232, 232, 232);
+    --grayscale-300: rgb(217, 217, 217);
+    --grayscale-400: rgb(187, 187, 187);
+    --grayscale-500: rgb(120, 120, 120);
+    --grayscale-600: rgb(108, 108, 108);
+    --grayscale-700: rgb(64, 64, 64);
 
-    --blue-100: rgb(210, 230, 251);
-    --blue-200: rgb(119, 179, 242);
-    --blue-300: rgb(64, 148, 236);
-    --blue-400: rgb(23, 123, 229);
-    --blue-500: rgb(17, 94, 175);
-    --blue-600: rgb(13, 69, 128);
-    --blue-700: rgb(4, 22, 42);
+    --blue-100: rgb(249, 249, 254);
+    --blue-200: rgb(230, 232, 250);
+    --blue-300: rgb(211, 214, 245);
+    --blue-400: rgb(175, 180, 237);
+    --blue-500: rgb(103, 111, 221);
+    --blue-600: rgb(84, 93, 217);
+    --blue-700: rgb(34, 42, 151);
 }
 
 /* Remove default margin in favour of better control in authored CSS */
@@ -234,22 +234,25 @@ ul li>*:first-child {
 }
 
 li a,
-nav a {
+nav a,
+footer div a {
     color: var(--blue-500);
 }
 
 .position {
-    color: var(--grayscale-300);
+    color: var(--grayscale-500);
 }
 
 li a,
-nav a {
+nav a,
+footer div a {
     text-decoration: none;
     text-underline-offset: 3px;
 }
 
 li a:hover,
-nav a:hover {
+nav a:hover,
+footer div a:hover {
     text-decoration: underline;
 }
 
@@ -275,7 +278,7 @@ h3,
 h4 {
     font-family: 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif;
     font-weight: 500;
-    color: var(--blue-700);
+    color: var(--grayscale-700);
 
 }
 
@@ -297,6 +300,12 @@ footer li::after {
 
 footer li:last-child:after {
     content: ""
+}
+
+footer div {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    max-width: 900px;
 }
 
 
