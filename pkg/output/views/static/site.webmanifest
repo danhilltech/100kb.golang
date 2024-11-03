@@ -1,0 +1,19 @@
+{
+    "name": "100kb",
+    "short_name": "100kb",
+    "icons": [
+        {
+            "src": "/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "theme_color": "#0D4580",
+    "background_color": "#ffffff",
+    "display": "standalone"
+}
